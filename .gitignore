@@ -19,3 +19,13 @@ secrets.json
 .DS_Store
 .vscode/
 
+# =========================
+# Dependencies
+# =========================
+node_modules/
+
+# =========================
+# Generated / Runtime Outputs
+# =========================
+model_exe/outputs/
+
