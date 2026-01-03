@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create Account</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg0:#0A0D16;
+  --bg1:#0F1630;
+
+  --card: rgba(255,255,255,0.08);
+  --stroke: rgba(255,255,255,0.14);
+
+  --text:#EEF2FF;
+  --muted:#A7B0D6;
+
+  --good:#4ADE80;
+  --bad:#F87171;
+
+  --brand1:#7C3AED;
+  --brand2:#22D3EE;
+  --brand3:#60A5FA;
+
+  --shadow: 0 24px 70px rgba(0,0,0,0.55);
+  --r: 18px;
+}
+
+*{ box-sizing:border-box; }
+html, body{ height:100%; margin:0; }
+
+/* ✅ prevent white “bounce” area on scroll */
+html{
+  background: linear-gradient(180deg, var(--bg0), var(--bg1));
+  overscroll-behavior: none;
+}
+body{
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(900px 600px at 15% 15%, rgba(124,58,237,0.35), transparent 55%),
+    radial-gradient(900px 600px at 85% 20%, rgba(34,211,238,0.25), transparent 55%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+  overscroll-behavior: none;
+  overflow-x: hidden;
+}
+
+/* ✅ page layout: content centered, footer separated at bottom */
+.page{
+  min-height: 100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+.content{
+  flex: 1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 34px 16px;
+}
+
+.wrap{
+  width: min(460px, 100%);
+  text-align:center;
+}
+
+/* ✅ logo never clipped */
+#loginLogo{
+  width: 92px;
+  height: 92px;
+  border-radius: 20px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 16px 35px rgba(0,0,0,0.45);
+  background: rgba(255,255,255,0.06);
+  display:block;
+  margin: 0 auto 14px;
+}
+
+#box{
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+  padding: 24px 20px 18px;
+  animation: enter .45s ease both;
+}
+
+@keyframes enter{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+h3{
+  margin:0;
+  font-size:18px;
+  font-weight:750;
+  letter-spacing:.2px;
+}
+
+.sub{
+  margin-top:8px;
+  font-size:13px;
+  color:var(--muted);
+  line-height: 1.45;
+}
+
+.form{
+  margin-top:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+input{
+  width: 100%;
+  padding:12px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.16);
+  background:rgba(255,255,255,0.06);
+  color:var(--text);
+  font-size:14px;
+  transition: .18s ease;
+}
+
+input::placeholder{ color: rgba(167,176,214,0.88); }
+
+input:focus{
+  outline:none;
+  border-color:rgba(34,211,238,0.60);
+  box-shadow:0 0 0 4px rgba(34,211,238,0.12);
+  background:rgba(255,255,255,0.085);
+}
+
+.btn{
+  width: 100%;
+  padding:12px 14px;
+  border-radius:12px;
+  border:none;
+  cursor:pointer;
+  font-weight:800;
+  letter-spacing:.2px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  transition: .18s ease;
+  user-select:none;
+}
+
+.primary{
+  color:#fff;
+  background:
+    radial-gradient(120px 60px at 20% 20%, rgba(255,255,255,0.35), transparent 60%),
+    linear-gradient(90deg, rgba(124,58,237,0.98), rgba(34,211,238,0.92), rgba(96,165,250,0.90));
+  box-shadow:
+    0 18px 40px rgba(124,58,237,0.18),
+    0 12px 30px rgba(34,211,238,0.12);
+}
+.primary:hover{
+  transform: translateY(-1px);
+  filter: saturate(1.08);
+  box-shadow:
+    0 22px 52px rgba(124,58,237,0.22),
+    0 16px 36px rgba(34,211,238,0.16);
+}
+
+.row{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  margin-top: 6px;
+}
+.row .btn{
+  width: auto;
+  min-width: 170px;
+  background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: rgba(238,242,255,0.94);
+}
+.row .btn:hover{
+  background: rgba(255,255,255,0.13);
+  transform: translateY(-1px);
+}
+@media(max-width:460px){
+  .row{ flex-direction:column; }
+  .row .btn{ width:100%; min-width: unset; }
+}
+
+#msg{
+  min-height:18px;
+  font-size:13px;
+  margin-top: 8px;
+  text-align:center;
+}
+.successMsg{ color:var(--good); font-weight:800; }
+.errorMsg{ color:var(--bad); font-weight:800; }
+
+/* Flags (minimal, top-right inside box) */
+.lang-mini{
+  position:absolute;
+  top: 12px;
+  right: 12px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
+}
+
+.flag{
+  width: 22px;
+  height: 16px;
+  border-radius: 3px;
+  cursor:pointer;
+  border: 1px solid rgba(255,255,255,0.28);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+  transition: .15s ease;
+}
+.flag:hover{ transform: translateY(-1px); }
+.flag.active{
+  outline: 2px solid rgba(34,211,238,0.55);
+  outline-offset: 2px;
+}
+
+/* ✅ footer is NOT fixed anymore -> no overlap */
+.app-footer{
+  text-align:center;
+  padding: 14px 12px;
+  font-size:13px;
+  color: var(--muted);
+  background: rgba(15,18,32,0.45);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+}
+
+.btn:focus-visible, input:focus-visible{
+  outline: 3px solid rgba(34,211,238,0.28);
+  outline-offset: 2px;
+}
+
+html, body {
+    min-height: 100%;
+    overscroll-behavior: none;
+}
+
+</style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="content">
+      <main class="wrap">
+        <img id="loginLogo" src="/docs/fpm_logo.jpg" alt="Logo">
+
+        <section id="box" aria-label="Create account form">
+          <!-- Language flags -->
+          <div class="lang-mini" aria-label="Language switch">
+            <img id="flag-tr" src="https://flagcdn.com/w40/tr.png" class="flag" onclick="setLang('tr')" alt="Türkçe">
+            <img id="flag-en" src="https://flagcdn.com/w40/gb.png" class="flag active" onclick="setLang('en')" alt="English">
+          </div>
+
+          <h3 id="t_title">Create Account</h3>
+          <p class="sub" id="t_sub">Fill in the details to request an account.</p>
+
+          <div class="form">
+            <input id="username" placeholder="Username (min 4 chars)" autocomplete="username">
+            <input id="password" type="password" placeholder="Password (min 4 chars)" autocomplete="new-password">
+            <input id="password2" type="password" placeholder="Repeat Password" autocomplete="new-password">
+
+            <input id="mail" type="email" placeholder="Email" autocomplete="email">
+            <input id="mail2" type="email" placeholder="Repeat Email" autocomplete="email">
+
+            <input id="name" placeholder="Name (optional)" autocomplete="name">
+            <input id="birthyear" placeholder="Birth Year (YYYY)" inputmode="numeric">
+
+            <button class="btn primary" onclick="createAccount()" id="t_btn">Create Account →</button>
+
+            <div class="row">
+              <button class="btn" type="button" onclick="window.location.href='/pages/login.html'" id="t_back">
+                Back to Login
+              </button>
+            </div>
+
+            <div id="msg" role="status" aria-live="polite"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="app-footer">© 2025 FPM Web App</footer>
+  </div>
+
+<script>
+/* ===== i18n ===== */
+const T = {
+  en:{
+    title:"Create Account",
+    sub:"Fill in the details to request an account.",
+    ph_username:"Username (min 4 chars)",
+    ph_password:"Password (min 4 chars)",
+    ph_password2:"Repeat Password",
+    ph_mail:"Email",
+    ph_mail2:"Repeat Email",
+    ph_name:"Name (optional)",
+    ph_birth:"Birth Year (YYYY)",
+    btn:"Create Account →",
+    back:"Back to Login",
+    err_user:"Username must be at least 4 characters.",
+    err_pass:"Password must be at least 4 characters.",
+    err_pass_match:"Passwords do not match.",
+    err_mail_invalid:"Invalid email.",
+    err_mail_match:"Emails do not match.",
+    err_birth_req:"Birth year is required.",
+    err_age:"You must be at least 16 years old.",
+    ok:"Account created! Awaiting approval... Redirecting..."
+  },
+  tr:{
+    title:"Hesap Oluştur",
+    sub:"Hesap talebi için bilgileri doldurun.",
+    ph_username:"Kullanıcı Adı (en az 4 karakter)",
+    ph_password:"Şifre (en az 4 karakter)",
+    ph_password2:"Şifreyi Tekrar Girin",
+    ph_mail:"E-posta",
+    ph_mail2:"E-postayı Tekrar Girin",
+    ph_name:"İsim (opsiyonel)",
+    ph_birth:"Doğum Yılı (YYYY)",
+    btn:"Hesap Oluştur →",
+    back:"Giriş Sayfasına Dön",
+    err_user:"Kullanıcı adı en az 4 karakter olmalıdır.",
+    err_pass:"Şifre en az 4 karakter olmalıdır.",
+    err_pass_match:"Şifreler eşleşmiyor.",
+    err_mail_invalid:"Geçersiz e-posta.",
+    err_mail_match:"E-postalar eşleşmiyor.",
+    err_birth_req:"Doğum yılı zorunludur.",
+    err_age:"En az 16 yaşında olmalısınız.",
+    ok:"Hesap oluşturuldu! Onay bekleniyor... Yönlendiriliyorsunuz..."
+  }
+};
+let lang = "en";
+
+function setLang(l){
+  lang = l;
+
+  document.getElementById("t_title").textContent = T[l].title;
+  document.getElementById("t_sub").textContent = T[l].sub;
+
+  document.getElementById("username").placeholder = T[l].ph_username;
+  document.getElementById("password").placeholder = T[l].ph_password;
+  document.getElementById("password2").placeholder = T[l].ph_password2;
+  document.getElementById("mail").placeholder = T[l].ph_mail;
+  document.getElementById("mail2").placeholder = T[l].ph_mail2;
+  document.getElementById("name").placeholder = T[l].ph_name;
+  document.getElementById("birthyear").placeholder = T[l].ph_birth;
+
+  document.getElementById("t_btn").textContent = T[l].btn;
+  document.getElementById("t_back").textContent = T[l].back;
+
+  document.getElementById("flag-tr").classList.toggle("active", l === "tr");
+  document.getElementById("flag-en").classList.toggle("active", l === "en");
+}
+
+/* ✅ Enter => createAccount() (no refresh) */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    createAccount();
+  }
+});
+
+/* ===== createAccount (CORE FLOW UNCHANGED) ===== */
+async function createAccount() {
+  const usernameVal = document.getElementById("username").value.trim();
+  const passwordVal = document.getElementById("password").value.trim();
+  const password2Val = document.getElementById("password2").value.trim();
+  const mailVal = document.getElementById("mail").value.trim();
+  const mail2Val = document.getElementById("mail2").value.trim();
+  const nameVal = document.getElementById("name").value.trim();
+  const birthyearVal = document.getElementById("birthyear").value.trim();
+
+  const msg = document.getElementById("msg");
+  msg.className = "";
+  msg.textContent = "";
+
+  if (usernameVal.length < 4) { msg.className="errorMsg"; msg.textContent=T[lang].err_user; return; }
+  if (passwordVal.length < 4) { msg.className="errorMsg"; msg.textContent=T[lang].err_pass; return; }
+  if (passwordVal !== password2Val) { msg.className="errorMsg"; msg.textContent=T[lang].err_pass_match; return; }
+  if (!mailVal.includes("@")) { msg.className="errorMsg"; msg.textContent=T[lang].err_mail_invalid; return; }
+  if (mailVal !== mail2Val) { msg.className="errorMsg"; msg.textContent=T[lang].err_mail_match; return; }
+  if (!birthyearVal || isNaN(birthyearVal)) { msg.className="errorMsg"; msg.textContent=T[lang].err_birth_req; return; }
+
+  const age = new Date().getFullYear() - Number(birthyearVal);
+  if (age < 16) { msg.className="errorMsg"; msg.textContent=T[lang].err_age; return; }
+
+  const res = await fetch("/api/create-account", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: usernameVal,
+      password: passwordVal,
+      name: nameVal,
+      birthyear: birthyearVal,
+      mail: mailVal
+    })
+  });
+
+  const json = await res.json();
+
+  if (!json.success) {
+    msg.className = "errorMsg";
+    msg.textContent = json.error;
+    return;
+  }
+
+  msg.className = "successMsg";
+  msg.textContent = T[lang].ok;
+
+  setTimeout(() => {
+    window.location.href = "/pages/login.html";
+  }, 1500);
+}
+</script>
+
+</body>
+</html>

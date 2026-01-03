@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>About - FPM</title>
+
+<style>
+   /* ========== BASE ========== */
+/* ========== BASE ========== */
+html, body {
+    height: 100%;
+    margin: 0;
+    background: linear-gradient(180deg, #1a1f2e, #161a26);
+    overflow-x: hidden;
+}
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont;
+    background: linear-gradient(180deg, #1a1f2e, #161a26);
+    color: #e6e9f5;
+}
+
+/* ========== HEADER ========== */
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(122,162,255,0.18),
+            rgba(30,36,56,0.95) 35%,
+            rgba(30,36,56,0.95) 65%,
+            rgba(122,162,255,0.18)
+        );
+
+    backdrop-filter: blur(14px);
+    color: #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+
+    border-bottom: 1px solid rgba(122,162,255,0.25);
+    box-shadow:
+        0 6px 20px rgba(0,0,0,0.45),
+        inset 0 -1px 0 rgba(122,162,255,0.25);
+
+    z-index: 1000;
+}
+
+header strong {
+    font-size: 16px;
+    letter-spacing: 0.6px;
+
+    background: linear-gradient(90deg, #ffffff, #7aa2ff);
+
+    background-clip: text;          /* ✅ standard */
+    -webkit-background-clip: text;  /* ✅ Safari / Chrome */
+
+    color: transparent;             /* ✅ standard */
+    -webkit-text-fill-color: transparent; /* ✅ Safari */
+}
+
+
+/* ========== SIDEBAR ========== */
+#sidebar {
+    width: 220px;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    bottom: 0;
+    padding-top: 16px;
+    position: fixed;
+    top: 64px; /* header height */
+    left: 0;
+    bottom: 0;
+    z-index: 900;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    bottom: 0;
+    width: 220px;
+
+    background: rgba(26, 31, 46, 0.96);
+    border-right: 1px solid rgba(255,255,255,0.06);
+
+}
+
+#sidebar a {
+    display: flex;
+    align-items: center;
+    padding: 14px 22px;
+    color: #cdd3f8;
+    text-decoration: none;
+    font-size: 15px;
+    border-left: 3px solid transparent;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+#sidebar a:hover {
+    background: rgba(122,162,255,0.12);
+    color: #7aa2ff;
+}
+
+#sidebar a.active {
+    background: rgba(122,162,255,0.18);
+    color: #7aa2ff;
+    font-weight: 600;
+    border-left-color: #7aa2ff;
+}
+
+/* ========== MAIN ========== */
+#main {
+    margin-left: 220px;
+    padding: 32px;
+    min-height: calc(100vh - 128px);
+    margin-left: 220px;
+    padding: 32px;
+    padding-top: 96px; /* header + boşluk */
+    min-height: 100vh;
+    }
+
+/* ========== FOOTER ========== */
+.app-footer {
+    text-align: center;
+    padding: 14px;
+    font-size: 13px;
+    color: #aab0d6;
+    background: rgba(30, 36, 56, 0.85);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: fixed;
+    bottom: 0;
+    left: 220px;
+    right: 0;
+     z-index: 800;
+}
+
+/* ========== BUTTONS ========== */
+header button {
+    padding: 8px 18px;
+    border-radius: 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* LOGIN */
+#loginBtn {
+    background: rgba(122,162,255,0.18);
+    color: #7aa2ff;
+    border: 1px solid rgba(122,162,255,0.4);
+}
+
+#loginBtn:hover {
+    background: rgba(122,162,255,0.28);
+}
+
+/* LOGOUT */
+#logoutBtn {
+    background: rgba(255,120,120,0.18);
+    color: #ff9b9b;
+    border: 1px solid rgba(255,120,120,0.4);
+}
+
+#logoutBtn:hover {
+    background: rgba(255,120,120,0.28);
+}
+
+/* ========== TEXT ========== */
+h1, h2, h3 {
+    color: #ffffff;
+    letter-spacing: 0.3px;
+}
+
+p {
+    color: #d6dbff;
+    line-height: 1.6;
+}
+
+html, body {
+    min-height: 100%;
+    background: linear-gradient(180deg, #1a1f2e, #161a26);
+    overscroll-behavior: none;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+ <header>
+    <a href="/index.html" style="text-decoration:none; color:inherit;">
+        <div style="display:flex;align-items:center;gap:10px; cursor:pointer;">
+            <img src="/docs/fpm_logo.jpg" 
+                 alt="Logo"
+                 style="height:34px; width:auto; border-radius:4px;" />
+
+            <strong>FPM AI Model</strong>
+        </div>
+    </a>
+
+    <div style="display:flex;align-items:center;gap:20px;">
+        <div id="headerUserInfo" style="display:none;"></div>
+
+        <button id="loginBtn">Login</button>
+        <button id="logoutBtn" style="display:none;">Logout</button>
+    </div>
+</header>
+
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+    <a href="/index.html">Home</a>
+    <a href="/pages/results.html">Results</a>
+    <a href="/pages/stats.html">Statistics</a>
+    <a href="/pages/weekly.html">Weekly Games</a>
+    <a href="/pages/contact.html">Contact</a>
+    <a href="/pages/about.html">About</a>
+    
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+    <h2>About FPM System</h2>
+    <p>This is the about page available for all users.</p>
+</div>
+
+<!-- FOOTER -->
+<footer class="app-footer">
+    © 2025 FPM Web App
+</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const headerUserInfo = document.getElementById("headerUserInfo");
+
+    const navResults = document.getElementById("navResults");
+    const navStats = document.getElementById("navStats");
+    const navWeekly = document.getElementById("navWeekly");
+
+    let timerInterval = null;
+
+    let currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+
+    /* TIMER */
+    function startTimer() {
+        let seconds = Number(sessionStorage.getItem("activeSeconds") || 0);
+
+        timerInterval = setInterval(() => {
+            seconds++;
+            sessionStorage.setItem("activeSeconds", seconds);
+
+            let m = Math.floor(seconds / 60);
+            let s = seconds % 60;
+
+            const timerSpan = document.getElementById("activeTimer");
+            if (timerSpan) timerSpan.textContent = `Active: ${m}m ${s}s`;
+
+        }, 1000);
+    }
+
+    /* UPDATE UI */
+    function updateUI() {
+        currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+
+        if (!currentUser) {
+            loginBtn.style.display = "inline-block";
+            logoutBtn.style.display = "none";
+            headerUserInfo.style.display = "none";
+
+            navResults.style.display = "none";
+            navStats.style.display = "none";
+            navWeekly.style.display = "none";
+
+            clearInterval(timerInterval);
+            sessionStorage.removeItem("activeSeconds");
+        }
+        else {
+            loginBtn.style.display = "none";
+            logoutBtn.style.display = "inline-block";
+            headerUserInfo.style.display = "block";
+
+            headerUserInfo.innerHTML = `
+                User: <strong>${currentUser.username}</strong> 
+                (Type: ${currentUser.user_type}) |
+                <span id="activeTimer">Active: 0m 0s</span>
+            `;
+
+            startTimer();
+
+            if (currentUser.user_type === "client") {
+                navResults.style.display = "none";
+                navStats.style.display = "none";
+                navWeekly.style.display = "block";
+            }
+            else if (currentUser.user_type === "read") {
+                navResults.style.display = "block";
+                navStats.style.display = "block";
+                navWeekly.style.display = "none";
+            }
+            else {
+                navResults.style.display = "block";
+                navStats.style.display = "block";
+                navWeekly.style.display = "block";
+            }
+        }
+    }
+
+    /* LOGIN */
+    loginBtn.addEventListener("click", () => {
+        window.location.href = "/pages/login.html";
+    });
+
+    /* LOGOUT */
+    logoutBtn.addEventListener("click", () => {
+        sessionStorage.removeItem("currentUser");
+        sessionStorage.removeItem("activeSeconds");
+        clearInterval(timerInterval);
+
+        updateUI();
+        window.location.href = "/index.html";
+    });
+
+    updateUI();
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const current = window.location.pathname;
+
+    document.querySelectorAll("#sidebar a").forEach(link => {
+        const href = link.getAttribute("href");
+
+        // sayfa bu link ile bitiyorsa active yap
+        if (current.endsWith(href)) {
+            link.classList.add("active");
+        }
+    });
+});
+</script>
+
+</body>
+</html>

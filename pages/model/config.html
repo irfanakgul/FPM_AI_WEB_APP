@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Configuration - FPM</title>
+
+<style>
+/* ===== RESET ===== */
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    height: 100%;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont;
+    background: linear-gradient(180deg, #1a1f2e, #161a26);
+    color: #e6e9f5;
+    overflow: hidden; /* BODY SCROLL YOK */
+}
+
+/* ===== APP WRAPPER ===== */
+.app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* ===== HEADER ===== */
+header {
+    height: 64px;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(122,162,255,0.25),
+            rgba(30,36,56,0.95) 40%,
+            rgba(30,36,56,0.95) 60%,
+            rgba(122,162,255,0.25)
+        );
+    backdrop-filter: blur(14px);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(122,162,255,0.25);
+    box-shadow: 0 6px 22px rgba(0,0,0,0.45);
+}
+
+#headerUserInfo {
+    font-size: 14px;
+    opacity: 0.85;
+}
+
+/* ===== MAIN SCROLL AREA ===== */
+#main {
+    flex: 1;
+    overflow-y: auto;                /* SCROLL SADECE BURADA */
+    padding: 32px 24px 160px;        /* ACTION BAR İÇİN ALT BOŞLUK */
+}
+
+/* ===== CARD ===== */
+.config-card {
+    background: rgba(30,36,56,0.92);
+    backdrop-filter: blur(12px);
+    border-radius: 18px;
+    padding: 28px;
+    max-width: 1000px;
+    margin: 0 auto;
+
+    box-shadow:
+        0 20px 40px rgba(0,0,0,.45),
+        inset 0 0 0 1px rgba(255,255,255,.05);
+}
+
+.config-card h2 {
+    margin-top: 0;
+    color: #ffffff;
+    letter-spacing: .4px;
+}
+
+.config-card p {
+    color: #cdd3f8;
+    line-height: 1.6;
+}
+
+/* ===== EDITOR ===== */
+#configEditor {
+    width: 100%;
+    min-height: 420px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 16px 18px;
+
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    resize: vertical;
+
+    background: rgba(15,23,42,0.85);
+    color: #e6e9f5;
+
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.05),
+        0 8px 22px rgba(0,0,0,.35);
+
+    transition: border .25s ease, box-shadow .25s ease;
+}
+
+#configEditor:focus {
+    outline: none;
+    border-color: rgba(122,162,255,0.55);
+    box-shadow:
+        inset 0 0 0 1px rgba(122,162,255,0.35),
+        0 0 0 3px rgba(122,162,255,0.25);
+}
+
+/* ===== STICKY ACTION BAR ===== */
+.action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    background: rgba(30,36,56,0.9);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(255,255,255,0.08);
+
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    z-index: 50;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+    padding: 12px 28px;
+    border-radius: 999px;
+    border: none;
+    font-weight: 650;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all .25s ease;
+}
+
+/* SAVE */
+.btn-save {
+    background: linear-gradient(135deg,#22c55e,#16a34a);
+    color: #ffffff;
+    box-shadow: 0 8px 22px rgba(34,197,94,.45);
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(34,197,94,.6);
+}
+
+/* CANCEL */
+.btn-cancel {
+    background: linear-gradient(135deg,#f87171,#dc2626);
+    color: #ffffff;
+    box-shadow: 0 8px 22px rgba(248,113,113,.45);
+}
+
+.btn-cancel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(248,113,113,.6);
+}
+
+/* ===== UNSAVED INDICATOR ===== */
+.unsaved {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+
+    background: rgba(245,158,11,0.18);
+    color: #fde68a;
+    border: 1px solid rgba(245,158,11,0.45);
+
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+
+    box-shadow: 0 8px 20px rgba(0,0,0,.45);
+    display: none;
+}
+
+/* ===== TOAST ===== */
+.toast {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    padding: 14px 20px;
+    border-radius: 14px;
+    color: white;
+    font-size: 14px;
+    display: none;
+    box-shadow: 0 12px 30px rgba(0,0,0,.45);
+}
+
+.toast.success { background: linear-gradient(135deg,#22c55e,#16a34a); }
+.toast.error   { background: linear-gradient(135deg,#f87171,#dc2626); }
+
+/* ===== FOOTER ===== */
+footer {
+    height: 50px;
+    text-align: center;
+    padding: 14px;
+    color: #aab0d6;
+    background: rgba(30,36,56,0.9);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+    <a href="/index.html" style="text-decoration:none;color:inherit;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <img src="/docs/fpm_logo.jpg" style="height:34px;border-radius:6px;">
+            <strong>FPM AI Model</strong>
+        </div>
+    </a>
+    <div id="headerUserInfo"></div>
+</header>
+
+<div id="main">
+    <div class="config-card">
+        <h2>Model Configuration</h2>
+        <p>Edit <b>initial.py</b> parameters below.</p>
+        <textarea id="configEditor" spellcheck="false"></textarea>
+    </div>
+</div>
+
+<!-- STICKY ACTION BAR -->
+<div class="action-bar">
+    <button class="btn btn-save" id="btnSave">💾 Save & Exit</button>
+    <button class="btn btn-cancel" id="btnCancel">↩ Exit Without Saving</button>
+</div>
+
+<footer>© 2025 FPM Web App</footer>
+
+<div class="unsaved" id="unsaved">● Unsaved changes</div>
+<div class="toast success" id="toastSuccess">✔ Saved successfully</div>
+<div class="toast error" id="toastError">✖ Exited without saving</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    const currentUser = JSON.parse(sessionStorage.getItem("currentUser")||"null");
+    if(!currentUser || !["admin","mod"].includes(currentUser.user_type)){
+        alert("Access denied"); location.href="/index.html"; return;
+    }
+    headerUserInfo.innerHTML = `User: <b>${currentUser.username}</b> (${currentUser.user_type})`;
+
+    const res = await fetch("/api/config");
+    const original = await res.text();
+    const editor = configEditor;
+    editor.value = original;
+
+    editor.addEventListener("input",()=>{
+        unsaved.style.display = editor.value!==original ? "block":"none";
+    });
+
+    btnSave.onclick = async ()=>{
+        await fetch("/api/config/save",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({updated:editor.value})
+        });
+        toastSuccess.style.display="block";
+        setTimeout(()=>location.href="/pages/model/model.html",1200);
+    };
+
+    btnCancel.onclick = ()=>{
+        toastError.style.display="block";
+        setTimeout(()=>location.href="/pages/model/model.html",1000);
+    };
+});
+</script>
+
+</div>
+</body>
+</html>

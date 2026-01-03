@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Add Admin Member</title>
+
+<style>
+   /* ================= GLOBAL ================= */
+html, body {
+    margin: 0;
+    height: 100%;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont;
+    background: linear-gradient(180deg, #1a1f2e, #161a26);
+    color: #e6e9f5;
+}
+
+/* ================= HEADER ================= */
+header {
+    height: 60px;
+    background: linear-gradient(
+        90deg,
+        rgba(122,162,255,0.18),
+        rgba(30,36,56,0.95) 40%,
+        rgba(30,36,56,0.95) 60%,
+        rgba(122,162,255,0.18)
+    );
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+
+    border-bottom: 1px solid rgba(122,162,255,0.25);
+}
+
+header .title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+header img {
+    height: 34px;
+    border-radius: 6px;
+}
+
+#headerUserInfo {
+    font-size: 14px;
+    opacity: 0.85;
+    margin-right: 20px;
+}
+
+/* Header button */
+header button {
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.25s;
+}
+
+/* Logout stays soft red */
+#logoutBtn {
+    background: rgba(255,120,120,0.18);
+    color: #ff9b9b;
+    border: 1px solid rgba(255,120,120,0.35);
+}
+#logoutBtn:hover {
+    background: rgba(255,120,120,0.28);
+}
+
+/* ================= SIDEBAR ================= */
+#sidebar {
+    width: 200px;
+    background: rgba(26,31,46,0.96);
+    position: fixed;
+    top: 60px;
+    bottom: 0;
+    left: 0;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding-top: 20px;
+}
+
+#sidebar a {
+    display: block;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: #cdd3f8;
+    font-size: 15px;
+    border-left: 4px solid transparent;
+    transition: 0.25s;
+}
+
+#sidebar a:hover {
+    background: rgba(122,162,255,0.12);
+    color: #7aa2ff;
+    border-left-color: #7aa2ff;
+}
+
+/* ================= MAIN ================= */
+#main {
+    margin-left: 200px;
+    margin-top: 80px;
+    padding: 30px;
+}
+
+/* ================= CARD ================= */
+.card {
+    max-width: 520px;
+    margin: auto;
+    background: rgba(30,36,56,0.92);
+    padding: 25px 25px 30px;
+    border-radius: 14px;
+
+    box-shadow:
+        0 12px 30px rgba(0,0,0,0.45),
+        inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+h2 {
+    margin-top: 0;
+    color: #ffffff;
+    letter-spacing: 0.4px;
+}
+
+/* ================= FORM ================= */
+.form-group {
+    margin-top: 15px;
+}
+
+label {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+    display: block;
+    color: #d6dbff;
+}
+
+input, select {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-sizing: border-box;
+    font-size: 15px;
+    color: #e6e9f5;
+}
+
+input::placeholder {
+    color: #9aa3d6;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #7aa2ff;
+    background: rgba(255,255,255,0.09);
+    box-shadow: 0 0 0 3px rgba(122,162,255,0.18);
+}
+
+/* ================= SUBMIT BUTTON ================= */
+#btnCreate {
+    width: 100%;
+    margin-top: 22px;
+    padding: 13px;
+    font-size: 15px;
+    border: none;
+    border-radius: 10px;
+
+    background: linear-gradient(90deg, #5f8cff, #7aa2ff);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.25s;
+}
+
+#btnCreate:hover {
+    box-shadow: 0 0 16px rgba(122,162,255,0.45);
+    transform: translateY(-1px);
+}
+html, body {
+    min-height: 100%;
+    background: linear-gradient(180deg, #1a1f2e, #161a26);
+    overscroll-behavior: none;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<header>
+    <div class="title" onclick="window.location.href='/index.html'">
+        <img src="/docs/fpm_logo.jpg">
+        Add Admin Member
+    </div>
+
+    <div style="display:flex;align-items:center;gap:20px;">
+        <div id="headerUserInfo" style="display:none;"></div>
+        <button id="logoutBtn">Logout</button>
+    </div>
+</header>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+    <a href="/index.html">Home</a>
+    <a href="/pages/results.html">Results</a>
+    <a href="/pages/stats.html">Statistics</a>
+    <a href="/pages/weekly.html">Weekly Games</a>
+    <a href="/pages/contact.html">Contact</a>
+    <a href="/pages/about.html">About</a>
+    <a href="/pages/admin.html" style="background:green; color:white;">⚙️ Admin Panel</a>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+    <div class="card">
+        <h2>Add Admin / Co-Admin</h2>
+
+        <div class="form-group">
+            <label>Username</label>
+            <input id="username" required>
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input id="password" type="password" required>
+        </div>
+
+        <div class="form-group">
+            <label>User Type</label>
+            <select id="userType">
+                <option value="admin">Admin</option>
+                <option value="co-admin">Co-Admin</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Name</label>
+            <input id="name">
+        </div>
+
+        <div class="form-group">
+            <label>Birth Year</label>
+            <input id="birthyear" type="number">
+        </div>
+
+        <div class="form-group">
+            <label>Email</label>
+            <input id="mail" type="email">
+        </div>
+
+        <button id="btnCreate">Create Admin</button>
+
+    </div>
+</div>
+
+<script>
+/* =======================================================
+   LOGIN CHECK
+======================================================= */
+let currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+
+if (!currentUser || currentUser.user_type !== "admin") {
+    alert("Only admins can access this page.");
+    window.location.href = "/pages/login.html";
+}
+
+/* logout */
+document.getElementById("logoutBtn").onclick = () => {
+    sessionStorage.removeItem("currentUser");
+    window.location.href = "/index.html";
+};
+
+/* =======================================================
+   CREATE NEW ADMIN / CO-ADMIN
+======================================================= */
+document.getElementById("btnCreate").onclick = async () => {
+
+    const username  = document.getElementById("username").value.trim();
+    const password  = document.getElementById("password").value.trim();
+    const userType  = document.getElementById("userType").value;
+    const name      = document.getElementById("name").value.trim();
+    const birthyear = document.getElementById("birthyear").value.trim();
+    const mail      = document.getElementById("mail").value.trim();
+
+    if (!username || !password || !userType) {
+        alert("Username, Password and User Type are required.");
+        return;
+    }
+
+    const res = await fetch("/api/admin/add-member", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            username,
+            password,
+            user_type: userType,
+            name,
+            birthyear,
+            mail
+        })
+    });
+
+    const json = await res.json();
+
+    if (json.success) {
+        alert("Admin / Co-Admin successfully created.");
+        window.location.reload();
+    } else {
+        alert("Error: " + json.error);
+    }
+};
+</script>
+
+</body>
+</html>

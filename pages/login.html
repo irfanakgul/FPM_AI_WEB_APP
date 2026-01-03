@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg0:#0A0D16;
+  --bg1:#0F1630;
+
+  --card: rgba(255,255,255,0.08);
+  --stroke: rgba(255,255,255,0.14);
+
+  --text:#EEF2FF;
+  --muted:#A7B0D6;
+
+  --good:#4ADE80;
+  --bad:#F87171;
+
+  --brand1:#7C3AED;
+  --brand2:#22D3EE;
+  --brand3:#60A5FA;
+
+  --shadow: 0 24px 70px rgba(0,0,0,0.55);
+  --r: 18px;
+}
+
+*{ box-sizing:border-box; }
+html, body{ height:100%; margin:0; }
+
+body{
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(900px 600px at 15% 15%, rgba(124,58,237,0.35), transparent 55%),
+    radial-gradient(900px 600px at 85% 20%, rgba(34,211,238,0.25), transparent 55%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 26px 16px 86px;
+  overflow-x:hidden;
+}
+
+.wrap{
+  width: min(420px, 100%);
+  text-align:center;
+}
+
+#loginLogo{
+  width: 92px;
+  height: 92px;
+  border-radius: 20px;
+  object-fit: cover;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 16px 35px rgba(0,0,0,0.45);
+  background: rgba(255,255,255,0.06);
+}
+
+#box{
+  position: relative; /* flags anchor */
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+  padding: 22px 20px 18px;
+  animation: enter .45s ease both;
+}
+
+@keyframes enter{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+h3{
+  margin:0;
+  font-size:18px;
+  font-weight:750;
+  letter-spacing:.2px;
+}
+
+.sub{
+  margin-top:8px;
+  font-size:13px;
+  color:var(--muted);
+  line-height: 1.45;
+}
+
+.form{
+  margin-top:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+input{
+  padding:12px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.16);
+  background:rgba(255,255,255,0.06);
+  color:var(--text);
+  font-size:14px;
+  transition: .18s ease;
+}
+
+input::placeholder{ color: rgba(167,176,214,0.88); }
+
+input:focus{
+  outline:none;
+  border-color:rgba(34,211,238,0.60);
+  box-shadow:0 0 0 4px rgba(34,211,238,0.12);
+  background:rgba(255,255,255,0.085);
+}
+
+/* Buttons */
+.btn{
+  width: 100%;
+  padding:12px 14px;
+  border-radius:12px;
+  border:none;
+  cursor:pointer;
+  font-weight:800;
+  letter-spacing:.2px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  transition: .18s ease;
+  user-select:none;
+}
+
+.primary{
+  color:#fff;
+  background:
+    radial-gradient(120px 60px at 20% 20%, rgba(255,255,255,0.35), transparent 60%),
+    linear-gradient(90deg, rgba(124,58,237,0.98), rgba(34,211,238,0.92), rgba(96,165,250,0.90));
+  box-shadow:
+    0 18px 40px rgba(124,58,237,0.18),
+    0 12px 30px rgba(34,211,238,0.12);
+}
+
+.primary:hover{
+  transform: translateY(-1px);
+  filter: saturate(1.08);
+  box-shadow:
+    0 22px 52px rgba(124,58,237,0.22),
+    0 16px 36px rgba(34,211,238,0.16);
+}
+
+.secondary{
+  background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: rgba(238,242,255,0.94);
+}
+
+.secondary:hover{
+  background: rgba(255,255,255,0.13);
+  transform: translateY(-1px);
+}
+
+.row{
+  display:flex;
+  justify-content:center;   /* ✅ center */
+  align-items:center;       /* ✅ center */
+  gap:10px;
+  margin-top: 6px;
+}
+
+.row .btn{
+  width: auto;              /* ✅ no left-stretch */
+  min-width: 160px;
+}
+
+@media(max-width:420px){
+  .row{ flex-direction:column; }
+  .row .btn{ width:100%; min-width: unset; }
+}
+
+#msg{
+  min-height:18px;
+  font-size:13px;
+  margin-top: 8px;
+  text-align:center;
+}
+.successMsg{ color:var(--good); font-weight:800; }
+.errorMsg{ color:var(--bad); font-weight:800; }
+
+/* Flags (minimal, top-right inside box) */
+.lang-mini{
+  position:absolute;
+  top: 12px;
+  right: 12px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
+}
+
+.flag{
+  width: 22px;
+  height: 16px;
+  border-radius: 3px;
+  cursor:pointer;
+  border: 1px solid rgba(255,255,255,0.28);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+  transition: .15s ease;
+}
+
+.flag:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(0,0,0,0.42);
+}
+
+.flag.active{
+  outline: 2px solid rgba(34,211,238,0.55);
+  outline-offset: 2px;
+}
+
+.app-footer{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  text-align:center;
+  padding:12px;
+  font-size:13px;
+  color:var(--muted);
+  background:rgba(15,18,32,0.55);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.btn:focus-visible, input:focus-visible{
+  outline: 3px solid rgba(34,211,238,0.28);
+  outline-offset: 2px;
+}
+
+html, body {
+    min-height: 100%;
+    overscroll-behavior: none;
+}
+
+</style>
+</head>
+
+<body>
+
+<main class="wrap">
+  <img id="loginLogo" src="/docs/fpm_logo.jpg" alt="Logo">
+
+  <section id="box" aria-label="Login form">
+
+    <!-- ✅ Minimal flags inside the box (top-right) -->
+    <div class="lang-mini" aria-label="Language switch">
+      <img id="flag-tr" src="https://flagcdn.com/w40/tr.png" class="flag" onclick="setLang('tr')" alt="Türkçe">
+      <img id="flag-en" src="https://flagcdn.com/w40/gb.png" class="flag active" onclick="setLang('en')" alt="English">
+    </div>
+
+    <h3 id="t_title">Sign In</h3>
+    <p class="sub" id="t_sub">Enter your credentials to continue.</p>
+
+    <div class="form">
+      <input id="username" placeholder="Username" autocomplete="username">
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+
+      <button class="btn primary" onclick="login()" id="t_login">Log In →</button>
+
+      <!-- ✅ Centered action buttons -->
+      <div class="row">
+        <button class="btn secondary" type="button" onclick="location.href='/index.html'" id="t_home">Return to Home</button>
+        <button class="btn secondary" type="button" onclick="location.href='/pages/create_account.html'" id="t_create">Create New Account</button>
+      </div>
+
+      <div id="msg" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="app-footer">© 2025 FPM Web App</footer>
+
+<script>
+/* ===== TRANSLATIONS ===== */
+const T = {
+  en:{
+    title:"Sign In",
+    sub:"Enter your credentials to continue.",
+    username:"Username",
+    password:"Password",
+    login:"Log In →",
+    home:"Return to Home",
+    create:"Create New Account",
+    empty:"Please enter username and password.",
+    success:"Login successful! Redirecting..."
+  },
+  tr:{
+    title:"Giriş Yap",
+    sub:"Devam etmek için bilgilerinizi girin.",
+    username:"Kullanıcı Adı",
+    password:"Şifre",
+    login:"Giriş Yap →",
+    home:"Ana Sayfaya Dön",
+    create:"Yeni Hesap Oluştur",
+    empty:"Kullanıcı adı ve şifre giriniz.",
+    success:"Giriş başarılı! Yönlendiriliyorsunuz..."
+  }
+};
+
+let lang = "en";
+
+function setLang(l){
+  lang = l;
+
+  document.getElementById("t_title").textContent = T[l].title;
+  document.getElementById("t_sub").textContent = T[l].sub;
+  document.getElementById("username").placeholder = T[l].username;
+  document.getElementById("password").placeholder = T[l].password;
+  document.getElementById("t_login").textContent = T[l].login;
+  document.getElementById("t_home").textContent = T[l].home;
+  document.getElementById("t_create").textContent = T[l].create;
+
+  // active flag highlight
+  document.getElementById("flag-tr").classList.toggle("active", l === "tr");
+  document.getElementById("flag-en").classList.toggle("active", l === "en");
+}
+
+/* ===== LOGIN (UNCHANGED CORE FLOW) ===== */
+async function login(){
+  const u = username.value.trim();
+  const p = password.value.trim();
+  msg.className="";
+  msg.textContent="";
+
+  if(!u || !p){
+    msg.className="errorMsg";
+    msg.textContent = T[lang].empty;
+    return;
+  }
+
+  try{
+    const res = await fetch("/api/login",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ username:u, password:p })
+    });
+
+    const json = await res.json();
+
+    if(!json.success){
+      msg.className="errorMsg";
+      msg.textContent = json.error || "Invalid username or password.";
+      return;
+    }
+
+    msg.className="successMsg";
+    msg.textContent = T[lang].success;
+
+    sessionStorage.setItem("currentUser", JSON.stringify(json.user));
+
+    setTimeout(()=>location.href="/index.html",1000);
+
+  }catch(e){
+    msg.className="errorMsg";
+    msg.textContent = "Error: " + e.message;
+  }
+}
+
+/* Enter'a basınca login */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    login();
+  }
+});
+</script>
+
+</body>
+</html>

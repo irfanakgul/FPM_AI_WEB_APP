@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>FPM - Home</title>
+
+<style>
+    /* ================= GLOBAL ================= */
+html, body {
+    margin: 0;
+    height: 100%;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont;
+    background: linear-gradient(180deg, #1a1f2e, #161a26);
+    color: #e6e9f5;
+    overflow-x: hidden;
+}
+
+/* ================= HEADER ================= */
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(122,162,255,0.18),
+            rgba(30,36,56,0.95) 35%,
+            rgba(30,36,56,0.95) 65%,
+            rgba(122,162,255,0.18)
+        );
+
+    backdrop-filter: blur(14px);
+    color: #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+
+    border-bottom: 1px solid rgba(122,162,255,0.25);
+    box-shadow:
+        0 6px 20px rgba(0,0,0,0.45),
+        inset 0 -1px 0 rgba(122,162,255,0.25);
+
+    z-index: 1000;
+}
+
+header strong {
+    font-size: 16px;
+    letter-spacing: 0.6px;
+
+    background: linear-gradient(90deg, #ffffff, #7aa2ff);
+
+    background-clip: text;          /* ✅ standard */
+    -webkit-background-clip: text;  /* ✅ Safari / Chrome */
+
+    color: transparent;             /* ✅ standard */
+    -webkit-text-fill-color: transparent; /* ✅ Safari */
+}
+
+#headerUserInfo {
+    font-size: 14px;
+    opacity: 0.85;
+    margin-right: 20px;
+}
+
+/* ================= SIDEBAR ================= */
+#sidebar {
+    width: 200px;
+    background: rgba(26,31,46,0.96);
+    position: fixed;
+    top: 60px;
+    left: 0;
+    bottom: 0;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding-top: 20px;
+}
+
+#sidebar a {
+    display: block;
+    padding: 12px 16px;
+    color: #cdd3f8;
+    text-decoration: none;
+    font-size: 15px;
+    border-left: 4px solid transparent;
+    transition: 0.25s;
+}
+
+#sidebar a:hover {
+    background: rgba(122,162,255,0.12);
+    color: #7aa2ff;
+    border-left-color: #7aa2ff;
+}
+
+#sidebar a.active {
+    background: rgba(122,162,255,0.18);
+    color: #7aa2ff;
+    font-weight: 600;
+    border-left-color: #7aa2ff;
+}
+
+/* ================= MAIN ================= */
+#main {
+    margin-left: 200px;
+    margin-top: 60px;
+    padding: 28px;
+    min-height: calc(100vh - 120px);
+}
+
+/* ================= CONTENT CARD (ANA SAYFA) ================= */
+#contentCard {
+    background: rgba(30,36,56,0.9) !important;
+    backdrop-filter: blur(12px);
+    border-radius: 14px;
+    box-shadow:
+        0 12px 30px rgba(0,0,0,0.45),
+        inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+#contentCard h2,
+#contentCard h3,
+#contentCard h4 {
+    color: #ffffff;
+}
+
+#contentCard p {
+    color: #d6dbff;
+    line-height: 1.6;
+}
+
+#contentCard > div > div > div {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: #e6e9f5;
+}
+
+#contentCard div[style*="font-size:22px"] {
+    color: #ffffff;
+}
+
+/* ================= FOOTER ================= */
+.app-footer {
+    text-align: center;
+    padding: 15px;
+    color: #aab0d6;
+    background: rgba(30,36,56,0.9);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: fixed;
+    bottom: 0;
+    left: 200px;
+    right: 0;
+    font-size: 14px;
+}
+
+/* ================= BUTTON SYSTEM ================= */
+button {
+    background: rgba(122,162,255,0.18);
+    color: #7aa2ff;
+    border: 1px solid rgba(122,162,255,0.35);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background: rgba(122,162,255,0.28);
+    transform: translateY(-1px);
+}
+
+header button {
+    border-radius: 20px;
+    padding: 8px 18px;
+}
+
+/* LOGIN */
+#loginBtn {
+    background: rgba(122,162,255,0.18);
+    color: #7aa2ff;
+    border: 1px solid rgba(122,162,255,0.4);
+}
+#loginBtn:hover { background: rgba(122,162,255,0.28); }
+
+/* LOGOUT */
+#logoutBtn {
+    background: rgba(255,120,120,0.18);
+    color: #ff9b9b;
+    border: 1px solid rgba(255,120,120,0.35);
+}
+#logoutBtn:hover { background: rgba(255,120,120,0.28); }
+
+html, body {
+    min-height: 100%;
+    background: linear-gradient(180deg, #1a1f2e, #161a26);
+    overscroll-behavior: none;
+}
+
+.custom-button {
+    background: rgba(122,162,255,0.18);
+    color: #7aa2ff;
+    border: 1px solid rgba(122,162,255,0.35);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-block; /* div için önemli */
+}
+
+.custom-button:hover {
+    background: rgba(122,162,255,0.28);
+    transform: translateY(-1px);
+}
+
+
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<header>
+    <a href="/index.html" style="text-decoration:none; color:inherit;">
+        <div style="display:flex;align-items:center;gap:10px; cursor:pointer;">
+            <img src="/docs/fpm_logo.jpg"
+                 alt="Logo"
+                 style="height:34px; width:auto; border-radius:4px;" />
+
+            <strong>FPM AI Model</strong>
+        </div>
+    </a>
+
+    <div style="display:flex;align-items:center;gap:20px;">
+        <div id="headerUserInfo" style="display:none;"></div>
+
+        <button id="loginBtn">Login</button>
+        <button id="dbBtn" style="display:none;"> 💾 Database</button>
+        <button id="modelBtn" style="display:none;"> 🧠 Model Panel</button>
+        <button id="adminBtn" style="display:none;"> ⚙️ Admin Panel</button>
+
+
+        <div id="userPanelIcon" class="custom-button" style="display:none;">
+    My User Dashboard
+        </div>
+
+
+        <button id="logoutBtn" style="display:none;">Logout</button>
+    </div>
+</header>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+    <a href="/index.html">Home</a>
+    <a href="/pages/results.html">Results</a>
+    <a href="/pages/stats.html">Statistics</a>
+    <a href="/pages/weekly.html">Weekly Games</a>
+    <a href="/pages/contact.html">Contact</a>
+    <a href="/pages/about.html">About</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+    <!-- LANGUAGE SWITCH -->
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:20px;">
+        <img src="https://flagcdn.com/24x18/gb.png"
+             id="langEN"
+             style="cursor:pointer; border:1px solid #ccc; border-radius:3px;"
+             title="English" />
+
+        <img src="https://flagcdn.com/24x18/tr.png"
+             id="langTR"
+             style="cursor:pointer; border:1px solid #ccc; border-radius:3px;"
+             title="Türkçe" />
+    </div>
+
+    <!-- MAIN MODERN CARD -->
+    <div id="contentCard"
+         style="background:white; padding:30px; border-radius:14px;
+                box-shadow:0 6px 18px rgba(0,0,0,0.12); max-width:900px;
+                margin-bottom:80px;">
+
+        <!-- ENGLISH VERSION -->
+        <div id="textEN">
+            <h2 style="margin-top:0;">Welcome to FPM — AI Football Predictions</h2>
+
+            <p>
+                FPM (Football Prediction Model) uses advanced artificial intelligence to
+                generate football match predictions with a long-term accuracy of
+                <strong>70–80%</strong>. The model analyzes team performance, player form,
+                tactical patterns, historical data, and match context to deliver highly
+                consistent and profitable long-term results.
+            </p>
+
+            <p>
+                Predictions are updated every <strong>Tuesday</strong> and <strong>Friday</strong>,
+                covering the following <strong>three days</strong> of matches.
+                Subscribers can instantly view all results and also
+                <strong>export predictions to Excel</strong> for personal tracking,
+                bankroll management, or further analysis.
+            </p>
+
+            <h3>Membership Options</h3>
+
+            <div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:15px;">
+
+                <!-- WEEK TRIAL -->
+                <div style="flex:1; min-width:240px; background:#f8f9fc; border-radius:10px;
+                            padding:20px; text-align:center; border:1px solid #e2e5ec;">
+                    <h4>1-Week Trial</h4>
+                    <p style="opacity:0.8;">Try the model with full access</p>
+                    <div style="font-size:22px; font-weight:bold;">€5</div>
+                    <button onclick="window.location.href='/pages/subscription_form.html'"
+                            style="margin-top:15px;padding:10px 16px;border-radius:8px;
+                                   background:#0275d8;color:white;border:none;cursor:pointer;">
+                        Subscription Form
+                    </button>
+                </div>
+
+                <!-- MONTHLY -->
+                <div style="flex:1; min-width:240px; background:#f0f9ff; border-radius:10px;
+                            padding:20px; text-align:center; border:1px solid #cde8ff;">
+                    <h4>Monthly Access</h4>
+                    <p style="opacity:0.8;">Full unlimited access</p>
+                    <div style="font-size:22px; font-weight:bold;">€20</div>
+                    <button onclick="window.location.href='/pages/subscription_form.html'"
+                            style="margin-top:15px;padding:10px 16px;border-radius:8px;
+                                   background:#0275d8;color:white;border:none;cursor:pointer;">
+                        Subscription Form
+                    </button>
+                </div>
+
+                <!-- YEARLY -->
+                <div style="flex:1; min-width:240px; background:#f7fff6; border-radius:10px;
+                            padding:20px; text-align:center; border:1px solid #d5f4d1;">
+                    <h4>Yearly Access</h4>
+                    <p style="opacity:0.8;">Best value — long-term profit</p>
+                    <div style="font-size:22px; font-weight:bold;">€180 / year</div>
+                    <button onclick="window.location.href='/pages/subscription_form.html'"
+                            style="margin-top:15px;padding:10px 16px;border-radius:8px;
+                                   background:#0275d8;color:white;border:none;cursor:pointer;">
+                        Subscription Form
+                    </button>
+                </div>
+            </div>
+
+            <p style="margin-top:20px;">
+                Long-term analysis shows that our AI model consistently produces
+                <strong>positive expected value (+EV)</strong>, making it suitable for people
+                who want a data-driven approach to football predictions.
+            </p>
+        </div>
+
+        <!-- TURKISH VERSION -->
+        <div id="textTR" style="display:none;">
+            <h2 style="margin-top:0;">FPM — Yapay Zekâ Futbol Tahmin Modeli</h2>
+
+            <p>
+                FPM (Futbol Tahmin Modeli), gelişmiş yapay zekâ algoritmaları kullanarak
+                maç tahminlerini uzun vadede <strong>%70–80 başarı</strong> ile üretir.
+                Model; takım performansı, oyuncu formu, taktiksel yapı, maç bağlamı ve
+                geçmiş veriler gibi yüzlerce değişkeni analiz ederek
+                <strong>kârlı ve istikrarlı sonuçlar</strong> sunar.
+            </p>
+
+            <p>
+                Tahminler her <strong>Salı</strong> ve <strong>Cuma</strong> günleri
+                güncellenir ve önümüzdeki <strong>3 günün</strong> maçlarını kapsar.
+                Üyeler tüm sonuçları anında görüntüleyebilir ve ayrıca
+                <strong>Excel'e aktararak (export)</strong> kendi analizlerini veya kasa takibini yapabilirler.
+            </p>
+
+            <h3>Üyelik Seçenekleri</h3>
+
+            <div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:15px;">
+
+                <!-- WEEK TRIAL -->
+                <div style="flex:1; min-width:240px; background:#f8f9fc; border-radius:10px;
+                            padding:20px; text-align:center; border:1px solid #e2e5ec;">
+                    <h4>1 Haftalık Deneme</h4>
+                    <p style="opacity:0.8;">Tüm özelliklere erişim</p>
+                    <div style="font-size:22px; font-weight:bold;">50 TL</div>
+                    <button onclick="window.location.href='/pages/subscription_form.html'"
+                            style="margin-top:15px;padding:10px 16px;border-radius:8px;
+                                   background:#0275d8;color:white;border:none;cursor:pointer;">
+                        Uyelik Formu
+                    </button>
+                </div>
+
+                <!-- MONTHLY -->
+                <div style="flex:1; min-width:240px; background:#f0f9ff; border-radius:10px;
+                            padding:20px; text-align:center; border:1px solid #cde8ff;">
+                    <h4>Aylık Üyelik</h4>
+                    <p style="opacity:0.8;">Sınırsız erişim</p>
+                    <div style="font-size:22px; font-weight:bold;">1000 TL</div>
+                    <button onclick="window.location.href='/pages/subscription_form.html'"
+                            style="margin-top:15px;padding:10px 16px;border-radius:8px;
+                                   background:#0275d8;color:white;border:none;cursor:pointer;">
+                        Uyelik Formu
+                    </button>
+                </div>
+
+                <!-- YEARLY -->
+                <div style="flex:1; min-width:240px; background:#f7fff6; border-radius:10px;
+                            padding:20px; text-align:center; border:1px solid #d5f4d1;">
+                    <h4>Yıllık Üyelik</h4>
+                    <p style="opacity:0.8;">En avantajlı paket</p>
+                    <div style="font-size:22px; font-weight:bold;">9000 TL / yıl</div>
+                    <button onclick="window.location.href='/pages/subscription_form.html'"
+                            style="margin-top:15px;padding:10px 16px;border-radius:8px;
+                                   background:#0275d8;color:white;border:none;cursor:pointer;">
+                        Uyelik Formu
+                    </button>
+                </div>
+            </div>
+
+            <p style="margin-top:20px;">
+                Modelimiz uzun vadeli analizlerde istikrarlı şekilde
+                <strong>+kasa</strong> bırakan sonuçlar üretmektedir.
+                Veri odaklı bir futbol tahmini yaklaşımı arayanlar için güçlü bir çözümdür.
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const textEN = document.getElementById("textEN");
+    const textTR = document.getElementById("textTR");
+
+    const langEN = document.getElementById("langEN");
+    const langTR = document.getElementById("langTR");
+
+    langEN.addEventListener("click", () => {
+        textEN.style.display = "block";
+        textTR.style.display = "none";
+    });
+
+    langTR.addEventListener("click", () => {
+        textEN.style.display = "none";
+        textTR.style.display = "block";
+    });
+
+});
+</script>
+
+<!-- FOOTER -->
+<footer class="app-footer">
+    © 2025 FPM Web App
+</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const headerUserInfo = document.getElementById("headerUserInfo");
+
+    const modelBtn = document.getElementById("modelBtn");
+    const adminBtn = document.getElementById("adminBtn");
+    const dbBtn = document.getElementById("dbBtn");
+
+    let timerInterval = null;
+    let currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+
+    function startTimer() {
+        let seconds = Number(sessionStorage.getItem("activeSeconds") || 0);
+
+        timerInterval = setInterval(() => {
+            seconds++;
+            sessionStorage.setItem("activeSeconds", seconds);
+
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+
+            const timerSpan = document.getElementById("activeTimer");
+            if (timerSpan) timerSpan.textContent = `Active: ${m}m ${s}s`;
+        }, 1000);
+    }
+
+    function updateUI() {
+        currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+
+        if (!currentUser) {
+            // LOGGED OUT
+            loginBtn.style.display = "inline-block";
+            logoutBtn.style.display = "none";
+            headerUserInfo.style.display = "none";
+
+            if (adminBtn) adminBtn.style.display = "none";
+            if (modelBtn) modelBtn.style.display = "none";
+            if (dbBtn) dbBtn.style.display = "none";
+
+            clearInterval(timerInterval);
+            sessionStorage.removeItem("activeSeconds");
+            return;
+        }
+
+        // LOGGED IN
+        loginBtn.style.display = "none";
+        logoutBtn.style.display = "inline-block";
+
+        headerUserInfo.style.display = "block";
+        headerUserInfo.innerHTML = `
+            User: <strong>${currentUser.username}</strong>
+            (Type: ${currentUser.user_type}) |
+            <span id="activeTimer">Active: 0m 0s</span>
+        `;
+
+        startTimer();
+
+        // ✅ ADMIN ONLY BUTTONS (Admin + Model + DB)
+        if (currentUser.user_type === "admin") {
+            if (adminBtn) {
+                adminBtn.style.display = "inline-block";
+                adminBtn.onclick = () => window.location.href = "/pages/admin.html";
+            }
+            if (modelBtn) {
+                modelBtn.style.display = "inline-block";
+                modelBtn.onclick = () => window.location.href = "/pages/model/model.html";
+            }
+            if (dbBtn) {
+                dbBtn.style.display = "inline-block";
+                dbBtn.onclick = () => window.location.href = "/pages/model/database.html";
+            }
+        } else {
+            if (adminBtn) adminBtn.style.display = "none";
+            if (modelBtn) modelBtn.style.display = "none";
+            if (dbBtn) dbBtn.style.display = "none";
+        }
+    }
+
+    loginBtn.addEventListener("click", () => {
+        window.location.href = "/pages/login.html";
+    });
+
+    logoutBtn.addEventListener("click", () => {
+        sessionStorage.removeItem("currentUser");
+        sessionStorage.removeItem("activeSeconds");
+        clearInterval(timerInterval);
+        updateUI();
+        window.location.href = "/index.html";
+    });
+
+    updateUI();
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const current = window.location.pathname;
+    document.querySelectorAll("#sidebar a").forEach(link => {
+        const href = link.getAttribute("href");
+        if (current.endsWith(href)) link.classList.add("active");
+    });
+});
+</script>
+
+<script>
+const curr = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+const userPanelIcon = document.getElementById("userPanelIcon");
+
+if (userPanelIcon) {
+    // Admin değilse göster
+    if (curr && curr.user_type !== "admin") {
+        userPanelIcon.style.display = "inline-block";
+        userPanelIcon.onclick = () => window.location.href = "/pages/user_panel.html";
+    } else {
+        userPanelIcon.style.display = "none";
+    }
+}
+</script>
+
+</body>
+</html>

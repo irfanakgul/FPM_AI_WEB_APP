@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Ödeme Başarılı</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 80px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎉 Ödeme Başarılı!</h1>
+  <p>Aboneliğiniz başarıyla aktif edildi.</p>
+
+  <a href="/">Ana sayfaya dön</a>
+
+  <script>
+document.addEventListener("DOMContentLoaded", async () => {
+    const pending = sessionStorage.getItem("pendingSub");
+
+    if (!pending) return; // Trial veya başka durum
+
+    const data = JSON.parse(pending);
+
+    const res = await fetch("/api/subscription_create", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+            username: data.username,
+            name: data.name,
+            mail: data.mail,
+            subs_type: data.subs_type
+        })
+    });
+
+    // Kayıt başarılı ise pending temizle
+    sessionStorage.removeItem("pendingSub");
+});
+</script>
+<script>
+(async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get("session_id");
+
+    if (!sessionId) {
+        console.error("Stripe session ID bulunamadı!");
+        return;
+    }
+
+    const res = await fetch("/api/subscription_finalize", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ sessionId })
+    });
+
+    const json = await res.json();
+
+    if (json.success) {
+        console.log("Başarıyla Google Sheet'e kaydedildi.");
+    } else {
+        console.error("Google Sheet'e kaydedilemedi:", json.error);
+    }
+})();
+</script>
+
+
+</body>
+</html>

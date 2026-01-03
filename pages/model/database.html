@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Database Manager - FPM</title>
+
+<style>
+/* ===================== YOUR THEME (AS-IS) ===================== */
+html, body {
+    margin: 0;
+    height: 100%;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont;
+    background: linear-gradient(180deg, #1a1f2e, #161a26);
+    color: #e6e9f5;
+    overflow-x: hidden;
+    min-height: 100%;
+    overscroll-behavior: none;
+}
+
+/* ================= HEADER ================= */
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(122,162,255,0.18),
+            rgba(30,36,56,0.95) 35%,
+            rgba(30,36,56,0.95) 65%,
+            rgba(122,162,255,0.18)
+        );
+
+    backdrop-filter: blur(14px);
+    color: #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+
+    border-bottom: 1px solid rgba(122,162,255,0.25);
+    box-shadow:
+        0 6px 20px rgba(0,0,0,0.45),
+        inset 0 -1px 0 rgba(122,162,255,0.25);
+
+    z-index: 1000;
+}
+
+header strong {
+    font-size: 16px;
+    letter-spacing: 0.6px;
+
+    background: linear-gradient(90deg, #ffffff, #7aa2ff);
+    background-clip: text;
+    -webkit-background-clip: text;
+
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+#headerUserInfo {
+    font-size: 14px;
+    opacity: 0.85;
+    margin-right: 20px;
+}
+
+/* ================= BUTTON SYSTEM ================= */
+button {
+    background: rgba(122,162,255,0.18);
+    color: #7aa2ff;
+    border: 1px solid rgba(122,162,255,0.35);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+button:hover {
+    background: rgba(122,162,255,0.28);
+    transform: translateY(-1px);
+}
+
+/* Header buttons */
+header button {
+    border-radius: 20px;
+    padding: 8px 18px;
+}
+
+/* LOGIN */
+#loginBtn {
+    background: rgba(122,162,255,0.18);
+    color: #7aa2ff;
+    border: 1px solid rgba(122,162,255,0.4);
+}
+#loginBtn:hover {
+    background: rgba(122,162,255,0.28);
+}
+
+/* LOGOUT */
+#logoutBtn {
+    background: rgba(255,120,120,0.18);
+    color: #ff9b9b;
+    border: 1px solid rgba(255,120,120,0.35);
+}
+#logoutBtn:hover {
+    background: rgba(255,120,120,0.28);
+}
+
+/* ================= FOOTER ================= */
+.app-footer {
+    text-align: center;
+    padding: 15px;
+    color: #aab0d6;
+    background: rgba(30,36,56,0.9);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: fixed;
+    bottom: 0;
+    left: 0;            /* ✅ sidebar yok */
+    right: 0;
+    font-size: 14px;
+    z-index: 900;
+}
+
+/* ===================== NO SIDEBAR LAYOUT ===================== */
+#sidebar { display:none !important; }
+
+#main {
+    margin-left: 0;           /* ✅ sidebar yok */
+    margin-top: 64px;         /* header height */
+    padding: 28px;
+    padding-bottom: 110px;    /* footer space */
+    min-height: calc(100vh - 64px);
+}
+
+/* ===================== DATABASE UI ===================== */
+:root{
+  --card: rgba(30,36,56,0.9);
+  --card2: rgba(26,31,46,0.96);
+  --border: rgba(255,255,255,0.06);
+  --muted: #aab0d6;
+  --shadow: 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.05);
+  --cellPad: 8px 10px;
+  --fontScale: 1;
+}
+
+.db-card{
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 18px;
+}
+
+.db-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.db-top h2{
+  margin:0;
+  font-size: 18px;
+  letter-spacing: .3px;
+}
+
+.db-meta{
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.controls{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items:center;
+}
+
+select{
+  border: 1px solid rgba(122,162,255,0.25);
+  background: rgba(122,162,255,0.10);
+  color: #e6e9f5;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-weight: 650;
+  font-size: 13px;
+  outline: none;
+  min-width: 240px;
+}
+
+.btn{
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-weight: 700;
+  font-size: 13px;
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  user-select:none;
+}
+.btn.primary{ background: rgba(122,162,255,0.18); border:1px solid rgba(122,162,255,0.35); }
+.btn.success{ background: rgba(34,197,94,0.14); border:1px solid rgba(34,197,94,0.30); color:#b7f7c9; }
+.btn.warn{ background: rgba(245,158,11,0.14); border:1px solid rgba(245,158,11,0.30); color:#ffd9a3; }
+.btn.danger{ background: rgba(255,120,120,0.18); border:1px solid rgba(255,120,120,0.35); color:#ffb5b5; }
+
+.btn.active{
+  outline: 2px solid rgba(122,162,255,0.45);
+  box-shadow: 0 16px 26px rgba(0,0,0,.40);
+}
+
+.table-wrapper{
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: auto;
+  max-height: 70vh;
+  background: rgba(26,31,46,0.96);
+}
+
+table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: calc(13px * var(--fontScale));
+}
+
+th, td{
+  padding: var(--cellPad);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+thead th{
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: rgba(26,31,46,0.96);
+  border-bottom: 2px solid rgba(122,162,255,0.18);
+}
+
+thead tr.search th{
+  position: sticky;
+  top: 38px;
+  z-index: 4;
+  background: rgba(26,31,46,0.96);
+}
+
+.search input{
+  width: 50%;
+  border: 1px solid rgba(122,162,255,0.25);
+  background: rgba(122,162,255,0.08);
+  color: #e6f5ef;
+  border-radius: 5px;
+  padding: 7px 8px;
+  font-size: 10px;
+  outline: none;
+}
+
+td input.cell{
+  width: 100%;
+  min-width: 120px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #e6e9f5;
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+td input.cell:not(:disabled){
+  border-color: rgba(122, 255, 211, 0.35);
+  background: rgba(122,162,255,0.08);
+}
+td input.cell:disabled{
+  opacity: .9;
+}
+
+.db-bottom{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.custom-button {
+    background: rgba(122,162,255,0.18);
+    color: #7aa2ff;
+    border: 1px solid rgba(122,162,255,0.35);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-block; /* div'i buton gibi yapar */
+}
+
+.custom-button:hover {
+    background: rgba(122,162,255,0.28);
+    transform: translateY(-1px);
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- HEADER (YOUR EXACT HTML) -->
+<header>
+    <a href="/index.html" style="text-decoration:none; color:inherit;">
+        <div style="display:flex;align-items:center;gap:10px; cursor:pointer;">
+            <img src="/docs/fpm_logo.jpg"
+                 alt="Logo"
+                 style="height:34px; width:auto; border-radius:4px;" />
+            <strong>FPM AI Model</strong>
+        </div>
+    </a>
+
+    <div style="display:flex;align-items:center;gap:20px;">
+        <div id="headerUserInfo" style="display:none;"></div>
+
+        <button id="loginBtn">Login</button>
+        <button id="modelBtn" style="display:none;"> 🧠 Model Panel</button>
+        <button id="adminBtn" style="display:none;"> ⚙️ Admin Panel</button>
+
+        <div id="userPanelIcon" class="custom-button" style="display:none;">
+    🗄️ DATABASE
+</div>
+
+
+        <button id="logoutBtn" style="display:none;">Logout</button>
+    </div>
+</header>
+
+<!-- SIDEBAR REMOVED -->
+<div id="sidebar"></div>
+
+<!-- MAIN -->
+<div id="main"></div>
+
+<!-- FOOTER (YOUR STYLE) -->
+<footer class="app-footer">© 2025 FPM Web App</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const main = document.getElementById("main");
+
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const headerUserInfo = document.getElementById("headerUserInfo");
+  const modelBtn = document.getElementById("modelBtn");
+  const adminBtn = document.getElementById("adminBtn");
+  const userPanelIcon = document.getElementById("userPanelIcon");
+
+  const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+
+  // Header logic (keep behavior similar)
+  if (!currentUser) {
+    loginBtn.style.display = "inline-block";
+    logoutBtn.style.display = "none";
+    headerUserInfo.style.display = "none";
+    modelBtn.style.display = "none";
+    adminBtn.style.display = "none";
+    userPanelIcon.style.display = "none";
+  } else {
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "inline-block";
+    headerUserInfo.style.display = "block";
+    headerUserInfo.innerHTML = `User: <strong>${currentUser.username}</strong> (Type: ${currentUser.user_type})`;
+
+    modelBtn.style.display = "inline-block";
+    if (currentUser.user_type === "admin") adminBtn.style.display = "inline-block";
+    userPanelIcon.style.display = "inline-block";
+  }
+
+  loginBtn.onclick = () => location.href = "/pages/login.html";
+  logoutBtn.onclick = () => { sessionStorage.clear(); location.href = "/index.html"; };
+  modelBtn.onclick = () => location.href = "/pages/model/model.html";
+  adminBtn.onclick = () => location.href = "/pages/admin.html";
+  userPanelIcon.onclick = () => location.href = "/pages/model/database.html";
+
+  // Admin-only access
+  if (!currentUser || currentUser.user_type !== "admin") {
+    main.innerHTML = `
+      <div class="db-card" style="max-width:720px;margin:22px auto;">
+        <h2 style="margin:0 0 8px;">Access Denied</h2>
+        <div class="db-meta">This page is only accessible by <b>admin</b> users.</div>
+        <div style="margin-top:14px;">
+          <button class="btn primary" onclick="location.href='/index.html'">Go Home</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // UI
+  main.innerHTML = `
+    <div class="db-card">
+      <div class="db-top">
+        <h2>Database Manager</h2>
+        <div class="db-meta" id="rangeInfo">Select a table and press Show.</div>
+      </div>
+
+      <div class="controls">
+        <select id="tableSelect"></select>
+
+        <button class="btn primary" id="btnShow">📄 Show Table</button>
+        <button class="btn warn" id="btnEdit">✏️ Edit</button>
+        <button class="btn success" id="btnUpdate">✅ Update DB</button>
+        <button class="btn danger" id="btnDelete">🗑 Delete Table</button>
+
+        <button class="btn" id="btnZoomIn">➕ Zoom</button>
+        <button class="btn" id="btnZoomOut">➖ Zoom</button>
+      </div>
+
+      <div class="table-wrapper" id="tableArea"></div>
+
+      <div class="db-bottom">
+        <div class="db-meta" id="pageInfo"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn" id="btnPrev">◀ Prev</button>
+          <button class="btn" id="btnNext">Next ▶</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const tableSelect = document.getElementById("tableSelect");
+  const tableArea = document.getElementById("tableArea");
+  const rangeInfo = document.getElementById("rangeInfo");
+  const pageInfo = document.getElementById("pageInfo");
+
+  const btnShow = document.getElementById("btnShow");
+  const btnEdit = document.getElementById("btnEdit");
+  const btnUpdate = document.getElementById("btnUpdate");
+  const btnDelete = document.getElementById("btnDelete");
+  const btnPrev = document.getElementById("btnPrev");
+  const btnNext = document.getElementById("btnNext");
+  const btnZoomIn = document.getElementById("btnZoomIn");
+  const btnZoomOut = document.getElementById("btnZoomOut");
+
+  let LIMIT = 100;
+  let page = 0;
+  let total = 0;
+  let columns = [];
+  let rows = [];
+  let editMode = false;
+  let filters = {};
+
+  // Zoom
+  let fontScale = 1.0;
+  function applyZoom(){ document.documentElement.style.setProperty("--fontScale", String(fontScale)); }
+  applyZoom();
+  btnZoomIn.onclick = () => { fontScale = Math.min(1.35, +(fontScale + 0.05).toFixed(2)); applyZoom(); };
+  btnZoomOut.onclick = () => { fontScale = Math.max(0.85, +(fontScale - 0.05).toFixed(2)); applyZoom(); };
+
+  function setButtonActive(b){
+    [btnShow, btnEdit, btnUpdate, btnDelete].forEach(x=>x.classList.remove("active"));
+    if (b) b.classList.add("active");
+  }
+
+  async function loadTables(){
+    const tbls = await fetch("/api/db/tables").then(r=>r.json());
+    tableSelect.innerHTML = tbls.map(t=>`<option value="${t}">${t}</option>`).join("");
+  }
+
+  async function loadData(){
+    const t = tableSelect.value;
+    const offset = page * LIMIT;
+
+    const qs = new URLSearchParams();
+    qs.set("table", t);
+    qs.set("limit", String(LIMIT));
+    qs.set("offset", String(offset));
+    for (const [k,v] of Object.entries(filters)){
+      if (v) qs.set(`q_${k}`, v);
+    }
+
+    const resp = await fetch(`/api/db/read?${qs.toString()}`);
+    const j = await resp.json();
+
+    columns = j.columns || [];
+    rows = j.rows || [];
+    total = j.total ?? rows.length;
+
+    renderTable();
+    renderRange();
+  }
+
+  function renderRange(){
+    if (!total) {
+      rangeInfo.textContent = "No rows found.";
+      pageInfo.textContent = "";
+      return;
+    }
+    const start = page * LIMIT + 1;
+    const end = Math.min((page * LIMIT) + rows.length, total);
+    rangeInfo.textContent = `Showing ${start} – ${end} of ${total} rows`;
+    pageInfo.textContent = `Page ${page + 1} • ${LIMIT}/page`;
+  }
+
+  function renderTable(){
+    tableArea.innerHTML = "";
+
+    if (!columns.length) {
+      tableArea.innerHTML = `<div class="db-meta" style="padding:12px;">No columns found.</div>`;
+      return;
+    }
+
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+
+    // header row
+    const trh = document.createElement("tr");
+    columns.forEach(c=>{
+      const th = document.createElement("th");
+      th.textContent = c;
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+
+    // search row (sticky)
+    const trs = document.createElement("tr");
+    trs.className = "search";
+
+    columns.forEach(c=>{
+      const th = document.createElement("th");
+      if (c === "__rowid") {
+        th.innerHTML = `<span class="db-meta">rowid</span>`;
+      } else {
+        const inp = document.createElement("input");
+        inp.placeholder = "Search…";
+        inp.value = filters[c] || "";
+        inp.oninput = async () => {
+          filters[c] = inp.value.trim();
+          page = 0;
+          await loadData();
+        };
+        th.appendChild(inp);
+      }
+      trs.appendChild(th);
+    });
+
+    thead.appendChild(trs);
+    table.appendChild(thead);
+
+    // body
+    const tbody = document.createElement("tbody");
+
+    if (!rows.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = columns.length;
+      td.className = "db-meta";
+      td.style.padding = "12px";
+      td.textContent = "No rows to display.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      table.appendChild(tbody);
+      tableArea.appendChild(table);
+      return;
+    }
+
+    rows.forEach(r=>{
+      const tr = document.createElement("tr");
+      tr.setAttribute("data-rowid", r.__rowid ?? "");
+
+      columns.forEach(c=>{
+        const td = document.createElement("td");
+        td.setAttribute("data-col", c);
+
+        if (c === "__rowid") {
+          td.textContent = r.__rowid ?? "";
+        } else {
+          const inp = document.createElement("input");
+          inp.className = "cell";
+          inp.value = (r[c] ?? "");
+          inp.setAttribute("data-orig", String(r[c] ?? ""));
+          inp.disabled = !editMode;
+          td.appendChild(inp);
+        }
+
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    tableArea.appendChild(table);
+    tableArea.scrollTop = 0;
+  }
+
+  // events
+  btnShow.onclick = async () => {
+    setButtonActive(btnShow);
+    page = 0;
+    filters = {};
+    editMode = false;
+    btnEdit.textContent = "✏️ Edit";
+    await loadData();
+  };
+
+  btnPrev.onclick = async () => {
+    if (page === 0) return;
+    page--;
+    await loadData();
+  };
+
+  btnNext.onclick = async () => {
+    const nextOffset = (page + 1) * LIMIT;
+    if (nextOffset >= total) return;
+    page++;
+    await loadData();
+  };
+
+  btnEdit.onclick = () => {
+    setButtonActive(btnEdit);
+    editMode = !editMode;
+    btnEdit.textContent = editMode ? "👁 Read" : "✏️ Edit";
+    renderTable();
+  };
+
+  btnDelete.onclick = async () => {
+    setButtonActive(btnDelete);
+    const t = tableSelect.value;
+    if (!confirm(`Delete table "${t}" ?`)) return;
+
+    const resp = await fetch(`/api/db/table/${t}`, { method:"DELETE" });
+    const j = await resp.json().catch(()=>({}));
+
+    if (!resp.ok) {
+      alert(j.error || "Delete failed");
+      return;
+    }
+    alert("Deleted");
+    await loadTables();
+    page = 0;
+    await loadData();
+  };
+
+  btnUpdate.onclick = async () => {
+    setButtonActive(btnUpdate);
+    if (!editMode) {
+      alert("Edit mode is OFF. Click Edit first.");
+      return;
+    }
+
+    const tbl = document.querySelector("#tableArea table");
+    if (!tbl) return;
+
+    const changes = [];
+    const bodyRows = tbl.querySelectorAll("tbody tr");
+
+    bodyRows.forEach(tr=>{
+      const rowid = tr.getAttribute("data-rowid");
+      if (!rowid) return;
+
+      const obj = { __rowid: Number(rowid) };
+      let changed = false;
+
+      columns.forEach(c=>{
+        if (c === "__rowid") return;
+        const inp = tr.querySelector(`td[data-col="${c}"] input`);
+        if (!inp) return;
+
+        const original = inp.getAttribute("data-orig") ?? "";
+        const now = inp.value ?? "";
+
+        if (String(original) !== String(now)) {
+          obj[c] = now;
+          changed = true;
+        }
+      });
+
+      if (changed) changes.push(obj);
+    });
+
+    if (!changes.length) {
+      alert("No changes detected.");
+      return;
+    }
+
+    const resp = await fetch("/api/db/update", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ table: tableSelect.value, changes })
+    });
+    const j = await resp.json().catch(()=>({}));
+
+    if (!resp.ok) {
+      alert(j.error || "Update failed");
+      return;
+    }
+
+    alert("Updated!");
+    editMode = false;
+    btnEdit.textContent = "✏️ Edit";
+    await loadData();
+  };
+
+  // init
+  await loadTables();
+  await loadData();
+});
+</script>
+
+</body>
+</html>
