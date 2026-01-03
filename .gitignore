@@ -1,0 +1,21 @@
+# =========================
+# Secrets / Credentials
+# =========================
+credentials.json
+model_exe/google_api/google_api.json
+*.env
+.env
+*.key
+*.pem
+*.p12
+*service_account*.json
+google_api.json
+
+# Node / Python secrets
+config.json
+secrets.json
+
+# OS / Editor
+.DS_Store
+.vscode/
+
