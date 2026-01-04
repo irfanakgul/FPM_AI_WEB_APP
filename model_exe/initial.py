@@ -1,4 +1,3 @@
-from pathlib import Path
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 
@@ -6,31 +5,24 @@ from sqlalchemy.engine import URL
 as_future = False
 best_league=False
 limit=0
-int_jump=00
+int_jump=0
 
 button_clean_tableName = 'tbl_futureGames'
 
-init_version = 'v13'
-rond_threshold = 0.51
+init_version = 'v14'
+rond_threshold = 0.50
 
 selected_odds_list = 'odds_select_B'
 target_cols = ['home_HT','away_HT','home_FT','Away_FT']
 train_table_name = 'results'
-selected_odds_list = 'odds_select_B'
 model_first_cleaned_data = 'model_first_cleaned_TrainData'
 
-init_root = Path(__file__).resolve().parents[1]
-init_DB_PATH = f"{init_root}/model_exe/database/results.db"
-
+# init_root = Path(__file__).resolve().parents[1]
 
 model_inUse = True
 model_size = 11
 model_list = ['Lin_Reg','RF_Reg','KN_Reg','DT_Reg','SVM_Reg','XGB_Reg','AB_Regressor','XGB_Reg','BR_Reg']
 focus_model_live = 'Lin_Reg'
-
-h_level_low = 1.68
-h_level_high = 2.2
-
 
 exclude_terms = ['U20', 'Kadınlar', 'u20', 'U19', 'u19','u23', 'kadınlar', 'kadin', 'Kadinlar','Kupa','kupa','KUPA','CUP','Cup','cup','Kupası', 'Bölgesel','U21','Hazırlık','hazirlik']
 
@@ -40,11 +32,10 @@ week_threshold = 6              # after this week, will be take into account
 init_CI_Score_threshold = 0.5 # 0.64 default. it will be used in 'FINAL_STAKE_MAKER' for final selection
 init_RISK_VALUE_threshold = 2 # ADJUST RISK VALUE < 'FINAL_STAKE_MAKER'
 
-weekend_low = 1.32
+weekend_low = 1.30
 weekend_high = 1.7
-week_low = 1.24
-week_high = 1.68
-mon_fri_low = 1.266
+week_low = 1.22
+week_high = 1.7
 
 
 # google connection
@@ -65,7 +56,7 @@ def cloud_connection():
     engine = create_engine(url, pool_pre_ping=True)
 
     with engine.connect() as conn:
-        print('========|',conn.execute(text("SELECT current_user, current_database(), version()")).fetchone(),'|========')
+        print('========|',conn.execute(text("SELECT current_user, current_database()")).fetchone(),'|========')
 
     print('*** ✅ SUCCESSFUL CLOUD CONNECTION ⛓️ ***')
     
