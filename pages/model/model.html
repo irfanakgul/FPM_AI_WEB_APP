@@ -537,6 +537,18 @@ html, body {
   background: rgba(20, 40, 70, 0.65);
 }
 
+.buttons-separator {
+    width: 100%;
+    height: 1px;
+    margin: 18px 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,0.35),
+        transparent
+    );
+}
+
 </style>
 
 </head>
@@ -625,43 +637,39 @@ sidebar.innerHTML=`
 ;
 
 /* UI */
-main.innerHTML=`
+/* UI */
+main.innerHTML = `
 <h2>Model Executive</h2>
+
 <div class="model-panel">
 <div class="model-card">
-<div class="model-buttons">
-<button class="action-btn" data-action="Game PULL">
-     ⚽️ Game PULL
-</button>
 
-<button class="action-btn" data-action="Standing PULL">
-    📊 Standing PULL
-</button>
+<!-- 🔼 ÜST BUTON GRUBU -->
+<div class="model-buttons top-actions">
 
-<button class="action-btn" data-action="Predict">
-    🎯 Predict
-</button>
-
-<button class="action-btn" data-action="Analysis">
-    📈 Analysis
-</button>
-
-<button class="action-btn" data-action="League PULL">
-    🏆 League PULL
-</button>
+<button class="action-btn" data-action="Game PULL">⚽️ Game PULL</button>
+<button class="action-btn" data-action="Standing PULL">📊 Standing PULL</button>
+<button class="action-btn" data-action="Predict">🎯 Predict</button>
+<button class="action-btn" data-action="Analysis">📈 Analysis</button>
+<button class="action-btn" data-action="League PULL">🏆 League PULL</button>
 
 <button class="action-btn t-indigo" data-action="UPDATE_PULL">
     <span class="active-dot">●</span> 🔄 Update PULL
 </button>
 
+</div>
+
+<!-- ───────── FULL WIDTH SEPARATOR ───────── -->
+<div class="buttons-separator"></div>
+
+<!-- 🔽 ALT BUTON GRUBU -->
+<div class="model-buttons bottom-actions">
+
 <button class="action-btn t-indigo" data-action="SHOW_CURRENT">
-    <span class="active-dot">●</span>Show Current
+    <span class="active-dot">●</span> Show Current
 </button>
 
-
-<button class="action-btn" data-action="MODEL_FIT">
-    🧠 Model FIT
-</button>
+<button class="action-btn" data-action="MODEL_FIT">🧠 Model FIT</button>
 
 <button class="action-btn t-clear-table" data-action="CLEAR_TABLE">
     <span class="active-dot">●</span> 🗑️ Clear Table
@@ -671,37 +679,36 @@ main.innerHTML=`
     <span class="active-dot">●</span> 🧩 Backup Cloud
 </button>
 
-
-
-<button id="btnConfiguration" class="config-btn">
-    ⚙️ Configration
-</button>
+<button id="btnConfiguration" class="config-btn">⚙️ Configration</button>
 
 <button class="action-btn t-red" data-action="STOP">
-        <span class="active-dot">●</span> 🚨 STOP RUN
-    </button>
-</div>
+    <span class="active-dot">●</span> 🚨 STOP RUN
+</button>
 
+</div>
 </div>
 
 <div class="model-card">
-<div class="log-panel" id="logPanel"><div class="log-line system">[SYSTEM] Ready for any action. Please press any action button! ☝️☝️☝️ </div></div>
+<div class="log-panel" id="logPanel">
+    <div class="log-line system">
+        [SYSTEM] Ready for any action. Please press any action button! ☝️☝️☝️
+    </div>
+</div>
 </div>
 
 <div class="model-card model-input">
-    <input id="modelInput" type="text" placeholder="provide your input from here ➡️ [ENTER] " />
+    <input id="modelInput" type="text" placeholder="provide your input from here ➡️ [ENTER]" />
 
     <div class="model-input-actions">
-    <button class="action-btn t-amber" id="btnClear">
-        <span class="active-dot">●</span> Clear Logs
-    </button>
-
-    
+        <button class="action-btn t-amber" id="btnClear">
+            <span class="active-dot">●</span> Clear Logs
+        </button>
+    </div>
 </div>
 
 </div>
-
 `;
+
 
 // ⚙️ CONFIGURATION BUTTON
 const configBtn = document.getElementById("btnConfiguration");
