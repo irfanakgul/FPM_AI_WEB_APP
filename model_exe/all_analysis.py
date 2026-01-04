@@ -6,7 +6,7 @@ from initial import engine, init_version, \
         weekend_high,weekend_low,exclude_terms,focus_model_live,init_RISK_VALUE_threshold
 
 from func_write_read_to_google import *
-import re
+import re,time
 import pandas as pd
 from sqlalchemy import text
 from datetime import datetime, timedelta
@@ -122,6 +122,8 @@ def fn_losers(df):
     df_losers = pd.DataFrame(loser_list)
     if len(df_losers)>0:
         df_losers.to_sql(name='log_LOSER_LEAGUES', con=engine, if_exists='replace', index=False)
+
+    
     print(f'> !! LOSER LEAGUES: {list_losers} | Unique Size: {len(df)} | RUNTIME: {runTime}!! ')
 # %%
 
@@ -130,7 +132,6 @@ def master_find_loser():
     df_foc_google = fn_read_from_google(spreadsheet_id, sheet_name='LOG_FOCUS_MODEL_A',path=GOOGLE_API_PATH)
 
     # combine legacy focus and current focus
-    # df_focus = pd.concat([df_focus_legacy, df_foc_google], ignore_index=True)
     df_focus = df_foc_google.copy()
     # %%
     df_perc = calc_winner_loser_leagues(df_focus)
@@ -185,7 +186,7 @@ def fn_master(sec_model_type,df_sec_standing,df_all_sec,df_tbl_future_raw):
 
     # filter out model draw result
     if model_inUse == True:
-        df_lin_sec = df_lin_sec[df_lin_sec['Home_FT']!=df_lin_sec['Away_FT']]        
+        df_lin_sec = df_lin_sec[df_lin_sec['Home_FT']!=df_lin_sec['Away_FT']]
     
     df = pd.merge(df_lin_sec,df_tbl_future_raw, on=['MacTarihi', 'HomeTeam', 'AwayTeam'])
 
@@ -227,7 +228,7 @@ def fn_master(sec_model_type,df_sec_standing,df_all_sec,df_tbl_future_raw):
                 if nl_home == nl_away:
                     ligname = nl_home
                 else:
-                    ligname = '-----'
+                    ligname = '-(NoStanding)'
             else:
                 ligname = '-(NoStanding)'
     
@@ -243,7 +244,7 @@ def fn_master(sec_model_type,df_sec_standing,df_all_sec,df_tbl_future_raw):
                 if nl_home == nl_away:
                     ligname = nl_home
                 else:
-                    ligname = '---'
+                    ligname = '-(NoStanding)'
             else:
                 ligname = '-(NoStanding)'
     
@@ -281,7 +282,6 @@ df_final[['Ms1','Ms2']] = df_final[['Ms1','Ms2']].round(2)
 df_final.to_sql(name='MK_UNFILTERED_GAMES', con=engine, if_exists='replace', index=False)
 df_final.to_sql(name='MK_UNFILTERED_GAMES_container', con=engine, if_exists='append', index=False)
 # %%
-# weekend_low,weekend_high,week_low,week_high,mon_fri_low = set_var_threshold()
 
 # Tarihleri datetime formatına çevir
 df_final['MacTarihi_dt'] = pd.to_datetime(df_final['MacTarihi'], format="%d-%m-%Y")
@@ -312,6 +312,7 @@ print("-----------------------------/ end of IM_CLEAN_SELECT.py  /--------------
 print('-----> STEP-3 | IM_STAKERER.py started')
 
 # %%
+time.sleep(5)
 df_future = fn_read_data_db('MK_REM_PRE_ELECTION_ALLMODEL')
 df_standing = fn_read_data_db('MK_WEEKLY_STANDINGS')
 df_standing['Position'] = pd.to_numeric(df_standing['Position'], errors='coerce')
@@ -389,16 +390,17 @@ def calculate_stake_comment(row, week_threshold,week,h_all_stand,a_all_stand,lg_
     h_all_stand = int(h_all_stand)
     a_all_stand = int(a_all_stand)
 
+    # list out if out of week threshold
     if not (week > week_threshold and week < 100):
-        return "EE2"
+        return "E-low-week"
 
     a_percent = (a_all_stand / lg_size) * 100
     h_percent = (h_all_stand / lg_size) * 100
 
     # -------- B GRUBU --------
-    if a_all_stand == 1 and h_percent >= 80:
-        step = (100 - 80) / 5
-        idx = int((h_percent - 80) // step)
+    if a_all_stand == 1 and h_percent >= 70:
+        step = (100 - 70) / 5
+        idx = int((h_percent - 70) // step)
         idx = min(idx, 4)
         return f"B-{idx + 1}"
 
@@ -421,13 +423,12 @@ def calculate_stake_comment(row, week_threshold,week,h_all_stand,a_all_stand,lg_
     if h_all_stand == 4 and a_percent >= 90:
         return assign_A(16, 90)
 
-    return "EE1"
+    return "E-other"
 
 # -----------
 def fn_selection_sec(df,version,week_threshold):
     dfs = []
-    
-    
+
     df = df[df['Diff_position']!='?']
     df['Diff_position'] = df['Diff_position'].astype('int32')
     df['Mdl_Socore'] = df['Home_FT'].astype(str) + '-' + df['Away_FT'].astype(str)
@@ -457,9 +458,8 @@ def fn_selection_sec(df,version,week_threshold):
                 lambda row: calculate_stake_comment(row, week_threshold,week,h_all_stand,a_all_stand,lg_size),
                 axis=1 )       
         else:
-            df_single['StakeComment'] = 'EEE-Low_Week'
+            df_single['StakeComment'] = 'EE-low_week'
 
-            
         dfs.append(df_single)
     
 
@@ -486,37 +486,34 @@ def fn_selection_final(df):
     
         df_day = df[df['MacTarihi']==day]
         
-        lst_day_comments = df_day['StakeComment'].unique().tolist()
-        
-        selected_comments = [f'{prefix}{i+1}' 
-                     for prefix in ['A-', 'B-'] 
-                     for i in range(100)] # A and B selection
+        selected_comments = df_day['StakeComment'].unique().tolist()
+        # print(F'SELECTED COMMENTS: {selected_comments}')
+
+        # selected_comments = [f'{prefix}{i+1}' 
+        #              for prefix in ['A-', 'B-'] 
+        #              for i in range(100)] # A and B selection
         
         for comment in selected_comments:
-            # if comment in lst_day_comments:
-            df_sel = df_day[df_day['StakeComment']==comment]
-            df_selected_all.append(df_sel)
-            # if len(df_sel)>0:
-            #     print(df_sel.AwayTeam.iloc[0])
+            if 'A-' in comment or 'B-' in comment:
+                df_sel = df_day[df_day['StakeComment']==comment]
+                df_selected_all.append(df_sel)
+
+    
+    sel_cols = ['MacTarihi', 'Lig_x', '_NL', 'HomeTeam', 'AwayTeam', 'REGTYPE',
+       'Winner', 'Ms1', 'Ms2', 'Diff_position', 'Combined_Pos', 'Home_FT',
+       'Away_FT', 'Mdl_Socore', 'StakeComment', 'RunTime',
+       'Version', 'LeagueSize','GameLink_y']
     
     if len(df_selected_all)>0:
         df_results = pd.concat(df_selected_all, axis=0).reset_index(drop=True)
 
         # df_filtered = df_results.groupby('MacTarihi').head(3)
         df_filtered = df_results.groupby('MacTarihi').head(2000)
-        
-        
-        df_filtered = df_filtered[['MacTarihi', 'Lig_x', '_NL', 'HomeTeam', 'AwayTeam', 'REGTYPE',
-       'Winner', 'Ms1', 'Ms2', 'Diff_position', 'Combined_Pos', 'Home_FT',
-       'Away_FT', 'Mdl_Socore', 'StakeComment', 'RunTime',
-       'Version', 'LeagueSize','GameLink_y']] 
+        df_filtered = df_filtered[sel_cols] 
         
     else:
         print(f'!!! NOT FOUND - SEC STAKE SELECTION!!!')
-        df_filtered = pd.DataFrame(columns=['MacTarihi', 'Lig_x', '_NL', 'HomeTeam', 'AwayTeam', 'REGTYPE',
-       'Winner', 'Ms1', 'Ms2', 'Diff_position', 'Combined_Pos', 'Home_FT',
-       'Away_FT', 'Mdl_Socore', 'StakeComment', 'RunTime',
-       'Version', 'LeagueSize','GameLink_y'])
+        df_filtered = pd.DataFrame(columns=sel_cols)
       
     return df_filtered
 
@@ -530,15 +527,13 @@ def master_im_staker():
     df_res_all_dist.to_sql(name=f'MK_FINAL_STAKER_ALLMODELS', con=engine, if_exists='append', index=False)
 
     print(f"** {version} FINAL STAKE SELECTION (ALLMODEL) DONE | Table:MK_FINAL_STAKER_ALLMODELS   SIZE: {len(df_res_all[df_res_all['REGTYPE']==focus_model_live])}")
-    # %%
     print(f"±± RunTime > {datetime.now().strftime('%d.%m.%Y | %H:%M:%S')}")
 
-# %%
 
 #master im staker trigger
 master_im_staker()
 
-print('-------------------------------------- end of IM_STAKER.py -------------------------------------- ')
+print('-------------------------------------- End of IM_STAKER.py (END: STEP-3) -------------------------------------- ')
 
 # %%
 ########################################## 4- FINAL_STAKE_MAKER ########################################
@@ -564,18 +559,19 @@ def set_week_period(df):
     df['period'] = df['MacTarihi'].apply(calc_period)
     return df
 # %%
+import numpy as np
+
 def set_prio_rate(df):
-    # Koşullar ve değerler
+    # 1) HOME mantığı (mevcut)
     conditions = []
     values = []
-    
-    for home in range(1, 6):  # Ev sahibi sırası (1-5)
-        for diff in range(1, 24):  # Pozisyon farkı (1-23)
+
+    for home in range(1, 6):       # HomeStand 1-5
+        for diff in range(1, 24):  # Diff_position 1-23
             conditions.append((df['HomeStand'] == home) & (df['Diff_position'] == diff))
-            
-            # Öncelik puanı hesaplama
+
             if home == 1:
-                prio = max(1, 30 - diff)  # 1. sıradaysa, fark büyüdükçe Prio düşer (1 en iyi ihtimal)
+                prio = max(1, 30 - diff)
             elif home == 2:
                 prio = max(10, 40 - diff)
             elif home == 3:
@@ -583,13 +579,30 @@ def set_prio_rate(df):
             elif home == 4:
                 prio = max(45, 70 - diff)
             elif home == 5:
-                prio = max(70, 100 - diff)  # 5. sıradaysa, fark büyüse bile ihtimal daha düşük
-            
+                prio = max(70, 100 - diff)
+
             values.append(prio)
-    
-    # Prio sütununu oluştur
+
     df['Prio_Rate'] = np.select(conditions, values, default=100)
+
+    # 2) AWAY mantığı (sadece AwayStand == 1 ise, HomeStand’e göre override)
+    away_cond = [
+        (df['AwayStand'] == 1) & (df['HomeStand'] >= 18),
+        (df['AwayStand'] == 1) & (df['HomeStand'].isin([16, 17])),
+        (df['AwayStand'] == 1) & (df['HomeStand'] == 15),
+        (df['AwayStand'] == 1) & (df['HomeStand'] == 14),  # çakışma çözümü: ara değer
+        (df['AwayStand'] == 1) & (df['HomeStand'] == 13),
+        (df['AwayStand'] == 1) & (df['HomeStand'] == 12),
+    ]
+    away_val = [20, 30, 40, 45, 50, 70]
+
+    override = np.select(away_cond, away_val, default=np.nan)
+    df['Prio_Rate'] = np.where(~np.isnan(override), override, df['Prio_Rate'])
+
     return df
+
+
+
 # %%
 def set_prio_odds(df):
     # Ms1 sütununu float yap
@@ -602,39 +615,42 @@ def set_prio_odds(df):
     return df
 # %%
 def set_prio_confidence(df):
-    df = df.copy()  # Orijinal df’ye zarar vermemek için bir kopyasını al
-    # df['Ms1'] = df['Ms1'].copy().str.replace(',', '.').astype(float).round(2)
-    df['LeagueSize'] = df['LeagueSize'].astype(int)
-    df['Diff_position'] = df['Diff_position'].astype(int)
+    # df = df.copy()  # Orijinal df’ye zarar vermemek için bir kopyasını al
+    # # df['Ms1'] = df['Ms1'].copy().str.replace(',', '.').astype(float).round(2)
+    # df['LeagueSize'] = df['LeagueSize'].astype(int)
+    # df['Diff_position'] = df['Diff_position'].astype(int)
 
-    df[['H', 'A']] = df['Standing'].str.extract(r'H=(\d+),A=(\d+)').astype(int)
+    # df[['H', 'A']] = df['Standing'].str.extract(r'H=(\d+),A=(\d+)').astype(int)
     
-    # 1. Ev sahibi takımın galibiyet oranı düşükse, favoridir → Bu nedenle oranın tersini alıyoruz
-    df['MS1_Gucu'] = 1 / df['Ms1']
+    # # 1. Ev sahibi takımın galibiyet oranı düşükse, favoridir → Bu nedenle oranın tersini alıyoruz
+    # df['MS1_Gucu'] = 1 / df['Ms1']
     
-    # 2. Takım sıralarını normalize et (örneğin 3/20 = 0.15 → daha küçük daha iyi)
-    df['Ev_Norm'] = df['H'] / df['LeagueSize']
-    df['Dep_Norm'] = df['A'] / df['LeagueSize']
+    # # 2. Takım sıralarını normalize et (örneğin 3/20 = 0.15 → daha küçük daha iyi)
+    # df['Ev_Norm'] = df['H'] / df['LeagueSize']
+    # df['Dep_Norm'] = df['A'] / df['LeagueSize']
     
-    # 3. Pozisyon farkını normalize et (farkı al, lig büyüklüğüne böl → 0 ile 1 arası değer)
-    df['Diff_Norm'] = df['Diff_position'] / df['LeagueSize']
+    # # 3. Pozisyon farkını normalize et (farkı al, lig büyüklüğüne böl → 0 ile 1 arası değer)
+    # df['Diff_Norm'] = df['Diff_position'] / df['LeagueSize']
     
-    # 4. Güven skoru hesapla (ağırlıklı ortalama gibi):
-    #    - MS1_Gucu: Ev sahibinin oranına göre favorilik derecesi
-    #    - Diff_Norm: Pozisyon farkı ne kadar büyükse o kadar iyi
-    #    - Dep_Norm - Ev_Norm: Ev sahibi daha üst sıradaysa sonuç pozitif olur, bu da iyi
-    df['CI_Score'] = (
-        0.5 * df['MS1_Gucu'] +        # %50 oran etkisi
-        0.3 * df['Diff_Norm'] +       # %30 pozisyon farkı etkisi
-        0.2 * (df['Dep_Norm'] - df['Ev_Norm'])  # %20 ev-deplasman sıralama farkı
-    ).round(2)
+    # # 4. Güven skoru hesapla (ağırlıklı ortalama gibi):
+    # #    - MS1_Gucu: Ev sahibinin oranına göre favorilik derecesi
+    # #    - Diff_Norm: Pozisyon farkı ne kadar büyükse o kadar iyi
+    # #    - Dep_Norm - Ev_Norm: Ev sahibi daha üst sıradaysa sonuç pozitif olur, bu da iyi
+    # df['CI_Score'] = (
+    #     0.5 * df['MS1_Gucu'] +        # %50 oran etkisi
+    #     0.3 * df['Diff_Norm'] +       # %30 pozisyon farkı etkisi
+    #     0.2 * (df['Dep_Norm'] - df['Ev_Norm'])  # %20 ev-deplasman sıralama farkı
+    # ).round(2)
     
-    # 5. Her maç günündeki maçları bu güven skoruna göre sırala
-    df['Prio_CI_Rank'] = df.groupby('MacTarihi')['CI_Score'].rank(method='first', ascending=False).astype(int)
+    # # 5. Her maç günündeki maçları bu güven skoruna göre sırala
+    # df['Prio_CI_Rank'] = df.groupby('MacTarihi')['CI_Score'].rank(method='first', ascending=False).astype(int)
 
 
-    df = df.drop(['H', 'A', 'MS1_Gucu', 'Ev_Norm', 'Dep_Norm', 'Diff_Norm'],axis=1)
+    # df = df.drop(['H', 'A', 'MS1_Gucu', 'Ev_Norm', 'Dep_Norm', 'Diff_Norm'],axis=1)
     
+    df['CI_Score'] = 1.0
+    df['Prio_CI_Rank'] = 1
+
     return df
 # %%
 def fn_set_risky_weeks(df):
@@ -707,7 +723,8 @@ df_all_model = df[['MacTarihi','Time', 'STATUS','Lig_CODE','Lig', 'EvSahibi',
                    'StakeComment','period', 'Version','RunTime','GameLink']]
 
 
-
+df_all_model = df_all_model[~df_all_model['Lig_CODE'].str.contains(r'\-\(NoStanding\)', na=False)]
+df_all_model = df_all_model[~df_all_model['StakeComment'].str.contains('E-other', na=False)]
 
 # add to log into db for all model stake commentted.
 lst_all_model_link = list(fn_read_data_db('FINAL_ALLMODEL_STAKER')['GameLink'])
@@ -725,7 +742,7 @@ diff_all_model.to_sql(name=f'FINAL_ALLMODEL_STAKER', con=engine, if_exists='appe
 df_model = df_all_model[df_all_model['ModelType']==focus_model_live]
 df_model = df_model.sort_values(['MacTarihi'],ascending=True)
 df_model['HomeStand'] = df_model['Standing'].str.extract(r'(?:H=|h_all=)(\d+)').astype(int)
-
+df_model['AwayStand'] = (df['Standing'].str.extract(r'A=(\d+)').astype(int))
 # set risk value for bottom away teams. 
 df_model = fn_set_risky_weeks(df_model)
 
@@ -743,12 +760,12 @@ df_model["RISK_Value"] = df_model["RISK_Value"].astype(int)
 
 # select sorted version. Prio_Odds: sort by Ms1, Prio_Rate: sort by rate calc
 df_model_sorted = df_model.sort_values(
-    by=["MacTarihi", "Prio_Rate", "CI_Score"],
-    ascending=[True, True, False])
+    by=["MacTarihi", "Prio_Rate"],
+    ascending=[True, True])
 
 df_model_sorted = df_model_sorted.drop_duplicates(subset='GameLink', keep='last')
 
-df_model_sorted=df_model_sorted[['MacTarihi','Time', 'STATUS','Lig_CODE','Lig', 
+df_model_sorted = df_model_sorted[['MacTarihi','Time', 'STATUS','Lig_CODE','Lig', 
         'EvSahibi','KonukEkip', 'ModelType','Mdl_Socore','MS_SELECTION', 'Ms1', 'Ms2',
         'Standing','LeagueSize','Diff_position','RISK_Value',
             'StakeComment','Prio_Odds','Prio_Rate','CI_Score','Prio_CI_Rank','period',
@@ -766,7 +783,6 @@ fn_write_to_google(df_model_sorted_dist,spreadsheet_id,'LOG_FOCUS_MODEL_A',repla
 
 # %%
 ## FINAL SELECTION based on Focus selected model
-
 # loser ligleri final seciminden once listeden cikarir. 
 temp_loser_leagues = fn_read_data_db('log_LOSER_LEAGUES')['LoserLeague'].tolist()
 
