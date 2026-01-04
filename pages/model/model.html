@@ -667,6 +667,11 @@ main.innerHTML=`
     <span class="active-dot">●</span> 🗑️ Clear Table
 </button>
 
+<button class="action-btn t-purple" data-action="Backup">
+    <span class="active-dot">●</span> 🧩 Backup Cloud
+</button>
+
+
 
 <button id="btnConfiguration" class="config-btn">
     ⚙️ Configration
@@ -983,6 +988,25 @@ if (action === "SHOW_CURRENT") {
 
     return;
 }
+
+if (action === "Backup") {
+
+    addLog("[SYSTEM] Starting cloud → local backup", "system");
+
+    fetch("/api/backup-from-cloud", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+    })
+    .then(res => res.json())
+    .then(() => {
+        addLog("[SYSTEM] Backup process started", "system");
+    })
+    .catch(err => {
+        addLog("[ERROR] Backup failed to start", "system");
+        console.error(err);
+    });
+}
+
 
         /* =====================
            🚧 DİĞER BUTONLAR

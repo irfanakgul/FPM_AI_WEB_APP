@@ -1,9 +1,13 @@
 import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
-import sqlite3
+import sqlite3,sys
 from datetime import datetime
 
+def log(msg):
+    print(msg, flush=True)
+    sys.stdout.flush()
+    
 hash_code = datetime.today().strftime("%d%m%Y")
 
 PG = URL.create(
@@ -28,10 +32,10 @@ WHERE schemaname='public'
 ORDER BY tablename
 """, pg_engine)["tablename"].tolist()
 
-print("Tables:", len(tables))
+print("Tables:", len(tables), flush=True)
 
 for t in tables:
-    print("Exporting:", t)
+    print("Exporting:", t, flush=True)
 
     try:
         # büyük tablolar için chunk
@@ -41,8 +45,8 @@ for t in tables:
             chunk.to_sql(t, sqlite_conn, if_exists="replace" if first else "append", index=False)
             first = False
     except Exception as e:
-        print(f'--> ERROR:{t} : {e}')
+        print(f'--> ERROR:{t} : {e}', flush=True)
         continue
 
 sqlite_conn.close()
-print("Done:", sqlite_path)
+print("Done:", sqlite_path, flush=True)
