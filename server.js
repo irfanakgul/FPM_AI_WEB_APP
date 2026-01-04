@@ -2867,6 +2867,40 @@ app.post("/api/db/update", async (req, res) => {
   }
 });
 
+// =====================================
+// BACKUP CLOUD BUTTON
+// =====================================
+app.post("/api/backup-from-cloud", (req, res) => {
+    console.log("☁️➡️💾 BACKUP FROM CLOUD TRIGGERED");
+
+    const scriptPath = path.join(
+        __dirname,
+        "model_exe",
+        "utilty",
+        "backup_from_cloud_to_local.py"
+            );
+
+    const pyProcess = spawn("python3", ["-u", scriptPath]);
+
+    pyProcess.stdout.on("data", data => {
+        const msg = data.toString();
+        console.log("[BACKUP]", msg);
+        modelLogs.push({ type: "info", message: msg, time: Date.now() });
+    });
+
+    pyProcess.stderr.on("data", data => {
+        const msg = data.toString();
+        console.error("[BAKCUP_ERROR]", msg);
+        modelLogs.push({ type: "error", message: msg, time: Date.now() });
+    });
+
+    pyProcess.on("close", code => {
+        console.log(`[BACKUP] finished with code ${code}`);
+    });
+
+    res.json({ status: "started" });
+});
+
 
 
 // import config server
