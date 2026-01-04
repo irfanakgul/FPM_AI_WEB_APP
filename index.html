@@ -241,7 +241,6 @@ html, body {
         <div id="headerUserInfo" style="display:none;"></div>
 
         <button id="loginBtn">Login</button>
-        <button id="dbBtn" style="display:none;"> 💾 Database</button>
         <button id="modelBtn" style="display:none;"> 🧠 Model Panel</button>
         <button id="adminBtn" style="display:none;"> ⚙️ Admin Panel</button>
 
@@ -467,7 +466,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const modelBtn = document.getElementById("modelBtn");
     const adminBtn = document.getElementById("adminBtn");
-    const dbBtn = document.getElementById("dbBtn");
 
     let timerInterval = null;
     let currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
@@ -498,7 +496,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (adminBtn) adminBtn.style.display = "none";
             if (modelBtn) modelBtn.style.display = "none";
-            if (dbBtn) dbBtn.style.display = "none";
 
             clearInterval(timerInterval);
             sessionStorage.removeItem("activeSeconds");
@@ -528,14 +525,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 modelBtn.style.display = "inline-block";
                 modelBtn.onclick = () => window.location.href = "/pages/model/model.html";
             }
-            if (dbBtn) {
-                dbBtn.style.display = "inline-block";
-                dbBtn.onclick = () => window.location.href = "/pages/model/database.html";
-            }
+ 
         } else {
             if (adminBtn) adminBtn.style.display = "none";
             if (modelBtn) modelBtn.style.display = "none";
-            if (dbBtn) dbBtn.style.display = "none";
         }
     }
 
