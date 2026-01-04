@@ -7,9 +7,18 @@ best_league=False
 limit=0
 int_jump=0
 
-button_clean_tableName = 'tbl_futureGames'
+# list of clear button tables
+lst_clear_button_tables = ['tbl_futureGames','Predicted_games_AVG_sec']
 
+#protected tables. avoid to remove tables below:
+lst_protected_tables = ['tbl_future_all_collect_RAW','LEGACY_FOCUS_ALL_container','MK_WEEKLY_STANDINGS_rawContainer',\
+                        'LOG_MK_IM_STAKER_ALL_COMMENT_ALLMODEL_ALL_TIME','log_time_jump','tables','selection_Driver_List'\
+                        'results']
+
+# selection version
 init_version = 'v14'
+
+#rond thrs
 rond_threshold = 0.50
 
 selected_odds_list = 'odds_select_B'
