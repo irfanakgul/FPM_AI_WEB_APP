@@ -1,7 +1,13 @@
 const fs = require("fs");
 
-const INITIAL_PATH =
-    "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/initial.py";
+const path = require("path");
+
+const INITIAL_PATH = path.join(
+  process.cwd(),
+  "model_exe",
+  "initial.py"
+);
+
 
 function readInitial() {
     return fs.readFileSync(INITIAL_PATH, "utf-8");

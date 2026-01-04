@@ -10,7 +10,7 @@ int_jump=0
 # list of clear button tables
 lst_clear_button_tables = ['tbl_futureGames','Predicted_games_AVG_sec']
 
-#protected tables. avoid to remove clean...
+#protected tables. avoid to remove tables below:
 lst_protected_tables = ['tbl_future_all_collect_RAW','LEGACY_FOCUS_ALL_container','MK_WEEKLY_STANDINGS_rawContainer',\
                         'LOG_MK_IM_STAKER_ALL_COMMENT_ALLMODEL_ALL_TIME','log_time_jump','tables','selection_Driver_List'\
                         'results']
