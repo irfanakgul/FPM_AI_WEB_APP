@@ -1,0 +1,178 @@
+<!-- =========================================================
+FILE: /pages/create_account.html
+PURPOSE:
+- Create Account page (new layout system)
+- Uses shared header / sidebar / footer via layout.js
+- Keeps ALL existing input IDs unchanged
+- Adds Preferred Language selection with clear description text
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- ===== Page Meta ===== -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create Account • FPM AI</title>
+
+  <!-- ===== Global CSS (layout + header + sidebar + footer) ===== -->
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <!-- ===== Page-specific CSS (ONLY create account page) ===== -->
+  <link rel="stylesheet" href="/css/create_account.css" />
+</head>
+
+<body>
+  <!-- =========================================================
+       APP LAYOUT (Header / Sidebar / Footer injected)
+  ========================================================= -->
+  <div class="app-shell">
+
+    <!-- Header injection -->
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="app-content">
+      <!-- Sidebar injection -->
+      <aside class="app-sidebar" id="appSidebar"></aside>
+
+      <!-- =====================================================
+           MAIN CONTENT
+      ===================================================== -->
+      <main class="app-main">
+        <div class="main-card ca-card">
+
+          <!-- ===== Page Title / Subtitle ===== -->
+          <div class="ca-header">
+            <h3 id="t_title">Create Account</h3>
+            <p class="sub" id="t_sub">
+              Fill in the details to request an account.
+            </p>
+          </div>
+
+          <!-- =================================================
+               CREATE ACCOUNT FORM
+               IMPORTANT:
+               - Existing input IDs are NOT changed
+          ================================================= -->
+          <div class="form ca-form" aria-label="Create account form">
+
+            <!-- Username -->
+            <input
+              id="username"
+              placeholder="Username (min 4 chars)"
+              autocomplete="username"
+            />
+
+            <!-- Password -->
+            <input
+              id="password"
+              type="password"
+              placeholder="Password (min 4 chars)"
+              autocomplete="new-password"
+            />
+
+            <!-- Repeat Password -->
+            <input
+              id="password2"
+              type="password"
+              placeholder="Repeat Password"
+              autocomplete="new-password"
+            />
+
+            <!-- Email -->
+            <input
+              id="mail"
+              type="email"
+              placeholder="Email"
+              autocomplete="email"
+            />
+
+            <!-- Repeat Email -->
+            <input
+              id="mail2"
+              type="email"
+              placeholder="Repeat Email"
+              autocomplete="email"
+            />
+
+            <!-- Name -->
+            <input
+              id="name"
+              placeholder="Name (optional)"
+              autocomplete="name"
+            />
+
+            <!-- =================================================
+                 Preferred Language (NEW)
+                 PURPOSE:
+                 - User selects preferred UI language
+                 - Will be written to Google Sheet column: PREFERED_LANG
+            ================================================= -->
+            <div class="ca-lang-block">
+              <!-- Static explanation text -->
+              <div class="ca-lang-label">
+                Prefered Language
+              </div>
+
+              <!-- Dropdown -->
+              <select id="prefered_lang" class="ca-select" aria-label="Prefered Language">
+                <option value="EN">English (EN)</option>
+                <option value="TR">Türkçe (TR)</option>
+              </select>
+            </div>
+
+            <!-- Birth Year -->
+            <input
+              id="birthyear"
+              placeholder="Birth Year (YYYY)"
+              inputmode="numeric"
+            />
+
+            <!-- =================================================
+                 PRIMARY ACTION
+            ================================================= -->
+            <button
+              class="btn btn-primary ca-primary"
+              type="button"
+              onclick="createAccount()"
+              id="t_btn"
+            >
+              Create Account →
+            </button>
+
+            <!-- =================================================
+                 SECONDARY ACTION
+            ================================================= -->
+            <div class="row ca-row">
+              <button
+                class="btn btn-ghost ca-back"
+                type="button"
+                onclick="window.location.href='/pages/login.html'"
+                id="t_back"
+              >
+                Back to Login
+              </button>
+            </div>
+
+            <!-- =================================================
+                 MESSAGE AREA (SUCCESS / ERROR)
+                 ID MUST NOT CHANGE
+            ================================================= -->
+            <div id="msg" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Footer injection -->
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- =========================================================
+       SCRIPTS
+       ORDER IS IMPORTANT
+  ========================================================= -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/create_account.js"></script>
+</body>
+</html>

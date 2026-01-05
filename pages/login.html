@@ -1,0 +1,99 @@
+<!-- =========================================================
+FILE: /pages/login.html
+PURPOSE:
+- New Login page that uses shared header/sidebar/footer via layout.js
+- Keeps old login logic flow (POST /api/login, store user, redirect)
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- ===== Page meta ===== -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login • FPM AI</title>
+
+  <!-- ===== Global CSS (layout + header + sidebar + footer + shared components) ===== -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <!-- ===== Page-specific CSS (only login page styles) ===== -->
+  <link rel="stylesheet" href="/css/login.css" />
+</head>
+
+<body>
+  <!-- ===== App layout (shared areas will be injected) ===== -->
+  <div class="app-shell">
+    <!-- Header injection point -->
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="app-content">
+      <!-- Sidebar injection point -->
+      <aside class="app-sidebar" id="appSidebar"></aside>
+
+      <!-- ===== Main page content ===== -->
+      <main class="app-main">
+        <div class="main-card login-card">
+          <!-- ===== Login Title / Subtitle ===== -->
+          <div class="login-header">
+            <h1 class="login-title" data-i18n="login_title">Sign In</h1>
+            <p class="login-sub" data-i18n="login_sub">Enter your credentials to continue.</p>
+          </div>
+
+          <!-- ===== Login Form ===== -->
+          <div class="login-form" aria-label="Login form">
+            <!-- Username -->
+            <input
+              id="username"
+              class="login-input"
+              autocomplete="username"
+              placeholder="Username"
+              data-i18n-placeholder="login_username_ph"
+            />
+
+            <!-- Password -->
+            <input
+              id="password"
+              class="login-input"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Password"
+              data-i18n-placeholder="login_password_ph"
+            />
+
+            <!-- Login Button -->
+            <button id="btnLogin" class="btn btn-primary login-btn" type="button" data-i18n="login_btn">
+              Log In →
+            </button>
+
+            <!-- Secondary Actions -->
+            <div class="login-actions">
+            <button class="btn btn-ghost" type="button" onclick="location.href='/index.html'" data-i18n="login_home">
+                Return to Home
+            </button>
+
+            <button class="btn btn-ghost" type="button" onclick="location.href='/pages/create_account.html'" data-i18n="login_create">
+                Create New Account
+            </button>
+
+            <!-- NEW -->
+            <button class="btn btn-ghost" type="button" onclick="location.href='/pages/forgot_password.html'" data-i18n="login_forgot">
+                Forgot Password
+            </button>
+            </div>
+
+
+            <!-- Message area -->
+            <div id="msg" class="login-msg" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Footer injection point -->
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- ===== Scripts: layout first, then global app, then page logic ===== -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>

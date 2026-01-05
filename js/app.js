@@ -1,6 +1,23 @@
-// js/app.js
-window.addEventListener("layout:ready", () => {
-  // ====== i18n (TR/EN) ======
+/* =========================================================
+FILE: /js/app.js
+PURPOSE:
+- Global client logic for:
+  1) Language switching (TR/EN) + persistence
+  2) Auto language on login based on currentUser.PREFERED_LANG
+  3) Force EN when logged out
+  4) Auth UI (Login/Create/Logout) based on sessionStorage.currentUser
+  5) Header user info (username + user_type) and active timer
+  6) Role-based header navigation pills (admin/co-admin rules)
+  7) Sidebar active page highlight
+  8) GUARANTEED auth button clicks via event delegation (header injected)
+========================================================= */
+
+(function () {
+  /* =========================================================
+     SECTION: i18n dictionary (global text)
+     PURPOSE:
+     - Translates elements that have data-i18n="key"
+  ========================================================= */
   const translations = {
     en: {
       // Sidebar
@@ -9,19 +26,29 @@ window.addEventListener("layout:ready", () => {
       sidebar_note_title: "Note",
       sidebar_note_desc: "Later we will show/hide menu items based on user_type.",
 
-      // Pages
+      // Pages (demo)
       home_title: "Welcome",
-      home_desc:
-        "This is the Home page. Later we will move your real content here without breaking logic.",
+      home_desc: "This is the Home page. Later we will move your real content here without breaking logic.",
       about_title: "About",
-      about_desc:
-        "This is the About page. We'll migrate your existing functionality step by step.",
+      about_desc: "This is the About page. We'll migrate your existing functionality step by step.",
 
-      // Header user box
+      // Header labels
       username: "User",
       usertype: "Type",
 
-      // Auth
+      // =========================================================
+      // SECTION: Login / Forgot Password (NEW i18n)
+      // PURPOSE: Texts for login page and forgot password page
+      // =========================================================
+      login_forgot: "Forgot Password",
+
+      fp_title: "Forgot Password",
+      fp_desc: "Enter your email. Later we will send a password reset link.",
+      fp_send: "Send",
+      fp_back: "Back to Login",
+
+
+      // Auth labels
       login: "Login",
       create_account: "Create account",
       logout: "Logout",
@@ -31,30 +58,46 @@ window.addEventListener("layout:ready", () => {
       nav_home: "Ana Sayfa",
       nav_about: "Hakkında",
       sidebar_note_title: "Not",
-      sidebar_note_desc:
-        "Daha sonra user_type’a göre menüleri gösterip gizleyeceğiz.",
+      sidebar_note_desc: "Daha sonra user_type’a göre menüleri gösterip gizleyeceğiz.",
 
-      // Pages
+      // Pages (demo)
       home_title: "Hoş geldin",
-      home_desc:
-        "Bu Ana Sayfa. Daha sonra mevcut içeriğini mantığı bozmadan buraya taşıyacağız.",
+      home_desc: "Bu Ana Sayfa. Daha sonra mevcut içeriğini mantığı bozmadan buraya taşıyacağız.",
       about_title: "Hakkında",
-      about_desc:
-        "Bu Hakkında sayfası. Mevcut işlevlerini adım adım aktaracağız.",
+      about_desc: "Bu Hakkında sayfası. Mevcut işlevlerini adım adım aktaracağız.",
 
-      // Header user box
+      // Header labels
       username: "Kullanıcı",
       usertype: "Tip",
 
-      // Auth
+      // =========================================================
+      // SECTION: Login / Forgot Password (NEW i18n)
+      // PURPOSE: Texts for login page and forgot password page
+      // =========================================================
+      login_forgot: "Şifremi Unuttum",
+
+      fp_title: "Şifremi Unuttum",
+      fp_desc: "E-posta adresinizi girin. Daha sonra şifre yenileme linki göndereceğiz.",
+      fp_send: "Gönder",
+      fp_back: "Girişe Dön",
+
+
+      // Auth labels
       login: "Giriş",
       create_account: "Hesap oluştur",
       logout: "Çıkış",
     },
   };
 
+  /* =========================================================
+     SECTION: Storage helpers
+  ========================================================= */
   function getLang() {
     return localStorage.getItem("lang") || "en";
+  }
+
+  function readCurrentUser() {
+    return JSON.parse(sessionStorage.getItem("currentUser") || "null");
   }
 
   function t(key) {
@@ -62,6 +105,9 @@ window.addEventListener("layout:ready", () => {
     return translations[lang]?.[key] ?? translations.en[key] ?? key;
   }
 
+  /* =========================================================
+     SECTION: Translation apply
+  ========================================================= */
   function applyTranslations() {
     const lang = getLang();
     document.documentElement.lang = lang;
@@ -73,93 +119,198 @@ window.addEventListener("layout:ready", () => {
     });
   }
 
-  function setLanguage(lang) {
+  /* =========================================================
+     SECTION: setLanguage
+     PURPOSE:
+     - Persist chosen language
+     - If manual (user clicked flags) -> set override marker
+     - Apply translations + update auth button texts
+     - Broadcast "lang:changed" so page scripts update placeholders/messages
+  ========================================================= */
+  function setLanguage(lang, options = { manual: false }) {
     localStorage.setItem("lang", lang);
+
+    // Manual override (user clicked flag)
+    if (options.manual) {
+      localStorage.setItem("lang_override", "1");
+    }
+
     applyTranslations();
-    // auth buton yazıları da güncellensin
-    renderAuth();
+    updateAuthButtonsText();
+
+    // Notify other scripts (login.js, create_account.js etc.)
+    window.dispatchEvent(new CustomEvent("lang:changed", { detail: { lang } }));
   }
 
-  // Default EN
-  applyTranslations();
+  /* =========================================================
+     SECTION: Auto language selection (MAIN RULES)
+     PURPOSE RULES:
+     - If NOT logged in => force EN (and clear override)
+     - If logged in AND no manual override => apply user's PREFERED_LANG
+     - Persist across pages with localStorage.lang
+  ========================================================= */
+  function applyAutoLanguage(currentUser) {
+    const hasOverride = localStorage.getItem("lang_override") === "1";
 
-  // Dil butonları
-  const btnLangEn = document.getElementById("btnLangEn");
-  const btnLangTr = document.getElementById("btnLangTr");
-  btnLangEn?.addEventListener("click", () => setLanguage("en"));
-  btnLangTr?.addEventListener("click", () => setLanguage("tr"));
-
-  // ====== Auth UI (Mock) ======
-  // Daha sonra gerçek login/logout yapını buraya bağlayacağız.
-  // Şimdilik butonlara basınca state değişsin diye mock yapıyoruz.
-  let authState = {
-    isLoggedIn: false,
-    user_name: "demo_user",
-    user_type: "admin",
-  };
-
-  function renderAuth() {
-    const authActions = document.getElementById("authActions");
-    const userBox = document.getElementById("userBox");
-
-    if (!authActions) return;
-
-    authActions.innerHTML = "";
-
-    if (authState.isLoggedIn) {
-      // user box göster
-      if (userBox) {
-        userBox.style.display = "block";
-        const uName = document.getElementById("userName");
-        const uType = document.getElementById("userType");
-        if (uName) uName.textContent = authState.user_name;
-        if (uType) uType.textContent = authState.user_type;
+    // Logged out => always EN
+    if (!currentUser) {
+      localStorage.removeItem("lang_override");
+      if (localStorage.getItem("lang") !== "en") {
+        setLanguage("en", { manual: false });
+      } else {
+        applyTranslations();
+        updateAuthButtonsText();
       }
+      return;
+    }
 
-      const btnLogout = document.createElement("button");
-      btnLogout.className = "btn btn-primary";
-      btnLogout.textContent = t("logout");
-      btnLogout.addEventListener("click", () => {
-        authState.isLoggedIn = false;
-        renderAuth();
-        applyTranslations();
-      });
+    // Logged in + manual override => keep it
+    if (hasOverride) {
+      applyTranslations();
+      updateAuthButtonsText();
+      return;
+    }
 
-      authActions.appendChild(btnLogout);
+    // Logged in => use user's preferred language
+    const pref = String(currentUser.PREFERED_LANG || currentUser.prefered_lang || "EN").toUpperCase();
+
+    if (pref === "TR") {
+      if (localStorage.getItem("lang") !== "tr") setLanguage("tr", { manual: false });
+      else { applyTranslations(); updateAuthButtonsText(); }
     } else {
-      // user box gizle
-      if (userBox) userBox.style.display = "none";
-
-      const btnLogin = document.createElement("button");
-      btnLogin.className = "btn btn-primary";
-      btnLogin.textContent = t("login");
-      btnLogin.addEventListener("click", () => {
-        // mock login
-        authState.isLoggedIn = true;
-        renderAuth();
-        applyTranslations();
-      });
-
-      const btnCreate = document.createElement("button");
-      btnCreate.className = "btn btn-ghost";
-      btnCreate.textContent = t("create_account");
-      btnCreate.addEventListener("click", () => {
-        alert("Create account (mock) — later real flow will be integrated.");
-      });
-
-      authActions.appendChild(btnLogin);
-      authActions.appendChild(btnCreate);
+      if (localStorage.getItem("lang") !== "en") setLanguage("en", { manual: false });
+      else { applyTranslations(); updateAuthButtonsText(); }
     }
   }
 
-  // İlk render
-  renderAuth();
-});
+  /* =========================================================
+     SECTION: Auth button texts + visibility
+  ========================================================= */
+  function updateAuthButtonsText() {
+    const loginBtn = document.getElementById("loginBtn");
+    const createAccountBtn = document.getElementById("createAccountBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
 
+    if (loginBtn) loginBtn.textContent = t("login");
+    if (createAccountBtn) createAccountBtn.textContent = t("create_account");
+    if (logoutBtn) logoutBtn.textContent = t("logout");
+  }
 
-  // ====== Active page in sidebar ======
+  function updateAuthButtonsVisibility(currentUser) {
+    const loginBtn = document.getElementById("loginBtn");
+    const createAccountBtn = document.getElementById("createAccountBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    if (!loginBtn || !createAccountBtn || !logoutBtn) return;
+
+    if (!currentUser) {
+      loginBtn.style.display = "inline-block";
+      createAccountBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+    } else {
+      loginBtn.style.display = "none";
+      createAccountBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+    }
+  }
+
+  /* =========================================================
+     SECTION: Header user info
+  ========================================================= */
+  function updateHeaderUserInfo(currentUser) {
+    const headerUserInfo = document.getElementById("headerUserInfo");
+    const userName = document.getElementById("userName");
+    const userType = document.getElementById("userType");
+    const timerSpan = document.getElementById("activeTimer");
+
+    if (!headerUserInfo) return;
+
+    if (!currentUser) {
+      headerUserInfo.style.display = "none";
+      if (timerSpan) timerSpan.textContent = "Active: 0m 0s";
+      return;
+    }
+
+    headerUserInfo.style.display = "block";
+    if (userName) userName.textContent = currentUser.username ?? currentUser.user_name ?? "-";
+    if (userType) userType.textContent = currentUser.user_type ?? "-";
+    if (timerSpan) timerSpan.textContent = "Active: 0m 0s";
+  }
+
+  /* =========================================================
+     SECTION: Role-based header navigation (UPDATED)
+     RULES:
+     - User Dashboard: ALL user_type (logged in)
+     - Admin Dashboard: admin only
+     - Model Panel: admin + co-admin
+     - Stats: admin + co-admin
+     - Results: admin + co-admin
+  ========================================================= */
+  function updateRoleNav(currentUser) {
+    const modelNavBtn = document.getElementById("modelNavBtn");
+    const adminNavBtn = document.getElementById("adminNavBtn");
+    const statsNavBtn = document.getElementById("statsNavBtn");
+    const resultsNavBtn = document.getElementById("resultsNavBtn");
+    const userDashNavBtn = document.getElementById("userDashNavBtn");
+
+    // Hide all by default
+    if (modelNavBtn) modelNavBtn.style.display = "none";
+    if (adminNavBtn) adminNavBtn.style.display = "none";
+    if (statsNavBtn) statsNavBtn.style.display = "none";
+    if (resultsNavBtn) resultsNavBtn.style.display = "none";
+    if (userDashNavBtn) userDashNavBtn.style.display = "none";
+
+    if (!currentUser) return;
+
+    const type = String(currentUser.user_type || "").toLowerCase();
+
+    // User Dashboard for all logged-in users
+    if (userDashNavBtn) userDashNavBtn.style.display = "inline-flex";
+
+    // Admin dashboard only for admin
+    if (type === "admin") {
+      if (adminNavBtn) adminNavBtn.style.display = "inline-flex";
+    }
+
+    // Admin + co-admin: model + stats + results
+    if (type === "admin" || type === "co-admin" || type === "coadmin") {
+      if (modelNavBtn) modelNavBtn.style.display = "inline-flex";
+      if (statsNavBtn) statsNavBtn.style.display = "inline-flex";
+      if (resultsNavBtn) resultsNavBtn.style.display = "inline-flex";
+    }
+  }
+
+  /* =========================================================
+     SECTION: Active timer
+  ========================================================= */
+  let timerInterval = null;
+
+  function startTimer() {
+    let seconds = Number(sessionStorage.getItem("activeSeconds") || 0);
+    if (timerInterval) clearInterval(timerInterval);
+
+    timerInterval = setInterval(() => {
+      seconds++;
+      sessionStorage.setItem("activeSeconds", String(seconds));
+
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+
+      const timerSpan = document.getElementById("activeTimer");
+      if (timerSpan) timerSpan.textContent = `Active: ${m}m ${s}s`;
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = null;
+    sessionStorage.removeItem("activeSeconds");
+  }
+
+  /* =========================================================
+     SECTION: Sidebar active page highlight
+  ========================================================= */
   function normalizePath(p) {
-    // index'e / olarak gelenleri de eşleştirelim
     if (!p || p === "/") return "/index.html";
     return p;
   }
@@ -173,4 +324,87 @@ window.addEventListener("layout:ready", () => {
     });
   }
 
-  setActiveNav();
+  /* =========================================================
+     SECTION: Main UI updater
+     PURPOSE:
+     - Apply auto language first
+     - Then update header UI + role nav + timer
+  ========================================================= */
+  function updateUI() {
+    const currentUser = readCurrentUser();
+
+    // Language first
+    applyAutoLanguage(currentUser);
+
+    // Header UI
+    updateAuthButtonsVisibility(currentUser);
+    updateAuthButtonsText();
+    updateHeaderUserInfo(currentUser);
+    updateRoleNav(currentUser);
+
+    // Timer
+    if (!currentUser) stopTimer();
+    else startTimer();
+
+    // Sidebar active highlight
+    setActiveNav();
+  }
+
+  /* =========================================================
+     SECTION: GUARANTEED click delegation for injected header
+     PURPOSE:
+     - Ensures Login/Create/Logout always work even if header is injected later
+  ========================================================= */
+  document.addEventListener("click", (e) => {
+    const target = e.target;
+
+    // Login
+    if (target && target.id === "loginBtn") {
+      window.location.href = "/pages/login.html";
+      return;
+    }
+
+    // Create Account
+    if (target && target.id === "createAccountBtn") {
+      window.location.href = "/pages/create_account.html";
+      return;
+    }
+
+    // Logout
+    if (target && target.id === "logoutBtn") {
+      sessionStorage.removeItem("currentUser");
+
+      // Force EN when logged out
+      localStorage.removeItem("lang_override");
+      localStorage.setItem("lang", "en");
+
+      stopTimer();
+      updateUI();
+      window.location.href = "/index.html";
+      return;
+    }
+
+    // Flags (manual override)
+    if (target && target.id === "btnLangEn") {
+      setLanguage("en", { manual: true });
+      return;
+    }
+    if (target && target.id === "btnLangTr") {
+      setLanguage("tr", { manual: true });
+      return;
+    }
+  });
+
+  /* =========================================================
+     SECTION: Init after layout is ready
+     PURPOSE:
+     - layout.js will dispatch "layout:ready" after injecting header/sidebar/footer
+  ========================================================= */
+  window.addEventListener("layout:ready", () => {
+    updateUI();
+  });
+
+  // Fallback: if layout:ready somehow doesn’t fire, still try once
+  // (This does not break anything; updateUI will no-op if elements missing)
+  setTimeout(() => updateUI(), 300);
+})();
