@@ -9,6 +9,10 @@
 >>> pm2 start npm --name "my-app" -- start
 >>> pm2 startup    (pc yeniden baslasa bile serveri oto baslatmasi icin)
 
+=== Calisiyor mu kontrol etmek icin: 
+>>> pm2 list
+>>> pm2 logs my-app (printleri bu kodla da terminalde gorebilirsin. !)
+
 
 === Acik serverlari listelemek icin: 
 >>> lsof -i :3000
@@ -16,6 +20,9 @@
 
 === Spesific oto server kapatmak icin: (my-app serveri bu ornek icin)
 >>> pm2 stop my-app   # Durdur
+
+=== Tum serverlari kapatir. bunu yapmak onemli!
+>>> pm2 delete all
 
 
 === Tum serverleri kapatmak icin:
