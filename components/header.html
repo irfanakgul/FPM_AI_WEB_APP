@@ -1,21 +1,71 @@
+<!-- =========================================================
+FILE: /components/header.html
+PURPOSE:
+- Shared header UI (loaded by layout.js)
+- Buttons are shown/hidden by /js/app.js based on user_type
+========================================================= -->
+
 <div class="header-inner">
+
+  <!-- ===== LEFT: Logo + Brand Text ===== -->
   <div class="brand">
-    <img class="brand-logo" src="/docs/fpm_logo.jpg" alt="FPM Logo"
-     onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';" />
-
-
+    <img
+      class="brand-logo"
+      src="/docs/fpm_logo.jpg"
+      alt="FPM Logo"
+      onerror="
+        this.style.display='none';
+        document.getElementById('logoFallback').style.display='flex';
+      "
+    />
     <div id="logoFallback" class="logo-fallback" style="display:none;">FPM</div>
+
+    <div class="brand-title">
+      <span class="brand-text">FPM AI</span>
+    </div>
   </div>
 
+  <!-- ===== MIDDLE/RIGHT: Navigation Pills ===== -->
+  <div class="header-actions">
+
+    <!-- Model Panel (admin + co-admin) -->
+    <a id="modelNavBtn" class="hdr-pill hdr-pill-blue" href="/pages/model/model.html" style="display:none;">
+      <span class="hdr-pill-label">Model Panel</span>
+    </a>
+
+    <!-- Admin Dashboard (admin only) -->
+    <a id="adminNavBtn" class="hdr-pill hdr-pill-purple" href="/pages/admin.html" style="display:none;">
+      <span class="hdr-pill-label">Admin Dashboard</span>
+    </a>
+
+    <!-- Stats (admin + co-admin) -->
+    <a id="statsNavBtn" class="hdr-pill hdr-pill-green" href="/pages/stats.html" style="display:none;">
+      <span class="hdr-pill-label">Stats</span>
+    </a>
+
+    <!-- Results (admin + co-admin) -->
+    <a id="resultsNavBtn" class="hdr-pill hdr-pill-green" href="/pages/results.html" style="display:none;">
+      <span class="hdr-pill-label">Results</span>
+    </a>
+
+    <!-- User Dashboard (ALL user_type) -->
+    <a id="userDashNavBtn" class="hdr-pill hdr-pill-green" href="/pages/user_panel.html" style="display:none;">
+      <span class="hdr-pill-label">User Dashboard</span>
+    </a>
+
+  </div>
+
+  <!-- ===== FAR RIGHT: User Info + Language + Auth ===== -->
   <div class="header-right">
-    <div class="user-box" id="userBox" style="display:none;">
+    <div id="headerUserInfo" class="user-box" style="display:none;">
       <div class="user-line">
         <span class="label" data-i18n="username">User</span>:
-        <span class="value" id="userName">demo_user</span>
+        <span class="value" id="userName">-</span>
       </div>
       <div class="user-line">
         <span class="label" data-i18n="usertype">Type</span>:
-        <span class="value" id="userType">admin</span>
+        <span class="value" id="userType">-</span>
+        <span class="value" style="margin-left:8px;" id="activeTimer">Active: 0m 0s</span>
       </div>
     </div>
 
@@ -25,7 +75,9 @@
     </div>
 
     <div class="auth-actions" id="authActions">
-      <!-- JS login durumuna göre burayı dolduracak -->
+      <button id="loginBtn" class="btn btn-primary" type="button">Login</button>
+      <button id="createAccountBtn" class="btn btn-ghost" type="button">Create account</button>
+      <button id="logoutBtn" class="btn btn-primary" type="button" style="display:none;">Logout</button>
     </div>
   </div>
 </div>

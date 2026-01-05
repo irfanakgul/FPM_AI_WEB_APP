@@ -358,20 +358,57 @@ app.post("/api/update-cells", async (req, res) => {
 });
 
 
-// =====================================
-// CREATE ACCOUNT (Write to Google Sheet)
-// =====================================
-
 // =============================================================
-// CREATE ACCOUNT ENDPOINT (FINAL VERSION WITH REG_DATE)
-// =============================================================
+// CREATE ACCOUNT
+//=============================================================
 app.post("/api/create-account", async (req, res) => {
     try {
-        const { username, password, name, birthyear, mail } = req.body;
+        const { username, password, name, birthyear, mail, prefered_lang } = req.body;
 
-        if (!username || !password || !birthyear) {
-            return res.json({ success: false, error: "Missing fields" });
+        // =========================================================
+        // SECTION: Language resolver for error messages (NEW)
+        // PURPOSE:
+        // - Decide error language based on prefered_lang
+        // =========================================================
+        const uiLang = String(req.body.ui_lang || "").toLowerCase(); // "tr" or "en"
+        const pref = String(prefered_lang || "EN").toUpperCase();   // "TR" or "EN"
+
+        const lang =
+        (uiLang === "tr" || uiLang === "en")
+            ? uiLang
+            : (pref === "TR" ? "tr" : "en");
+
+        const ERR = {
+            en: {
+                missing: "Missing required fields.",
+                invalidMail: "Invalid email format.",
+                userExists: "Username already exists.",
+                mailExists: "Email already exists."
+            },
+            tr: {
+                missing: "Zorunlu alanlar eksik.",
+                invalidMail: "Geçersiz e-posta formatı.",
+                userExists: "Bu kullanıcı adı zaten mevcut.",
+                mailExists: "Bu e-posta adresi zaten kayıtlı."
+            }
+        };
+
+        // =========================================================
+        // REQUIRED FIELDS (mail is mandatory)
+        // =========================================================
+        if (!username || !password || !birthyear || !mail) {
+            return res.json({ success: false, error: ERR[lang].missing });
         }
+
+        // =========================================================
+        // BASIC EMAIL FORMAT CHECK
+        // =========================================================
+        if (!mail.includes("@")) {
+            return res.json({ success: false, error: ERR[lang].invalidMail });
+        }
+
+        const prefLang = String(prefered_lang || "EN").toUpperCase();
+        const safePrefLang = (prefLang === "TR" || prefLang === "EN") ? prefLang : "EN";
 
         const client = await auth.getClient();
         const sheets = google.sheets({ version: "v4", auth: client });
@@ -379,7 +416,6 @@ app.post("/api/create-account", async (req, res) => {
         const userSheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
         const TAB = "info";
 
-        // Load all rows
         const read = await sheets.spreadsheets.values.get({
             spreadsheetId: userSheetId,
             range: `${TAB}`
@@ -388,16 +424,25 @@ app.post("/api/create-account", async (req, res) => {
         const rows = read.data.values || [];
         const headers = rows[0];
         const data = rows.slice(1);
-
-        // Header indexes
         const h = (x) => headers.indexOf(x);
 
-        // Check duplicate username
-        if (data.find(r => (r[h("USERNAME")] || "").trim() === username.trim())) {
-            return res.json({ success: false, error: "Username already exists." });
+        // =========================================================
+        // DUPLICATE CHECKS (USERNAME + MAIL)
+        // =========================================================
+        const usernameNorm = username.trim();
+        const mailNorm = mail.trim().toLowerCase();
+
+        if (data.find(r => ((r[h("USERNAME")] || "") + "").trim() === usernameNorm)) {
+            return res.json({ success: false, error: ERR[lang].userExists });
         }
 
-        // Create new CLIENT_ID
+        if (data.find(r => (((r[h("MAIL")] || "") + "").trim().toLowerCase()) === mailNorm)) {
+            return res.json({ success: false, error: ERR[lang].mailExists });
+        }
+
+        // =========================================================
+        // CREATE CLIENT ID
+        // =========================================================
         const lastId = data
             .map(r => r[h("CLIENT_ID")])
             .filter(v => v && v.startsWith("C"))
@@ -406,12 +451,13 @@ app.post("/api/create-account", async (req, res) => {
 
         const newClientId = "C" + (lastId + 1);
 
-        // Create REG_DATE
         const now = new Date();
         const regDate = now.toLocaleDateString("en-GB") + " " +
                         now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-        // Build new row EXACTLY according to sheet header order
+        // =========================================================
+        // BUILD ROW (order = sheet headers)
+        // =========================================================
         const newRow = [];
 
         headers.forEach(col => {
@@ -421,9 +467,10 @@ app.post("/api/create-account", async (req, res) => {
                 case "USERNAME": newRow.push(username); break;
                 case "PASSWORD": newRow.push(password); break;
                 case "USER_TYPE": newRow.push("client"); break;
-                case "MAIL": newRow.push(mail || ""); break;     // 🔵 NEW
+                case "MAIL": newRow.push(mail); break;
                 case "NAME": newRow.push(name || ""); break;
                 case "BIRTHYEAR": newRow.push(birthyear); break;
+                case "PREFERED_LANG": newRow.push(safePrefLang); break;
                 case "COMMENT": newRow.push(""); break;
                 case "LOGIN_COUNT": newRow.push(0); break;
                 case "LAST_LOGIN": newRow.push(""); break;
@@ -432,7 +479,6 @@ app.post("/api/create-account", async (req, res) => {
             }
         });
 
-        // Append new row
         await sheets.spreadsheets.values.append({
             spreadsheetId: userSheetId,
             range: `${TAB}`,
@@ -447,6 +493,7 @@ app.post("/api/create-account", async (req, res) => {
         return res.json({ success: false, error: err.message });
     }
 });
+
 
 // =============================================================
 // CONTACT FORM → Writes to Google Sheet (contact_form tab)
@@ -503,7 +550,6 @@ app.post("/api/contact_form", async (req, res) => {
 });
 
 
-
 // =====================================
 // NEW LOGIN no endpoint
 // =====================================
@@ -542,10 +588,33 @@ app.post("/api/login", async (req, res) => {
         const idxLoginCount = headers.indexOf("LOGIN_COUNT");
         const idxLastLogin = headers.indexOf("LAST_LOGIN");
 
-        const user = dataRows.find(r =>
-            (r[idxUser] || "").trim() === username &&
-            (r[idxPass] || "").trim() === password
-        );
+        // =========================================================
+        // SECTION: MAIL index (NEW for login by email)
+        // PURPOSE: Allow login with USERNAME OR MAIL
+        // =========================================================
+        const idxMail = headers.indexOf("MAIL");
+
+        // =========================================================
+        // SECTION: Login identifier normalize (NEW)
+        // PURPOSE:
+        // - If user typed an email, compare case-insensitively
+        // - Username compare stays exact/trim based
+        // =========================================================
+        const identifierRaw = String(username || "").trim();
+        const identifierLower = identifierRaw.toLowerCase();
+
+        const user = dataRows.find(r => {
+            const sheetUsername = String(r[idxUser] || "").trim();
+            const sheetPassword = String(r[idxPass] || "").trim();
+
+            const sheetMail = idxMail >= 0 ? String(r[idxMail] || "").trim().toLowerCase() : "";
+
+            const matchesIdentifier =
+                (sheetUsername === identifierRaw) ||
+                (idxMail >= 0 && sheetMail && sheetMail === identifierLower);
+
+            return matchesIdentifier && (sheetPassword === String(password || "").trim());
+        });
 
         if (!user) {
             return res.json({ success: false, error: "Invalid username or password." });

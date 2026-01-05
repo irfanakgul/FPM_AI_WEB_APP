@@ -1,227 +1,386 @@
+/* =========================================================
+FILE: /css/style.css
+PURPOSE:
+- Single source of truth for global layout + header/sidebar/footer + shared UI
+- Fix footer floating (always bottom)
+- Ensure background is consistent (no bottom color band)
+- Sidebar optional: if hidden, main expands automatically (flex layout)
+========================================================= */
+
+/* =========================
+   1) THEME TOKENS (CENTER)
+========================= */
 :root{
-  --bg: #0b0f14;
-  --panel: #101823;
-  --panel-2: #0f1720;
-  --border: rgba(255,255,255,0.08);
-  --text: rgba(255,255,255,0.88);
-  --muted: rgba(255,255,255,0.62);
+  /* Modern dark gradient (more "premium" + softer) */
+  --bg-0: #070A12;
+  --bg-1: #0B1020;
+  --bg-2: #0E1430;
 
-  --accent: rgba(120, 180, 255, 0.9);
-  --accent-2: rgba(120, 255, 200, 0.8);
+  /* Accent glows */
+  --glow-a: rgba(122, 162, 255, 0.18); /* blue */
+  --glow-b: rgba(188, 122, 255, 0.14); /* purple */
+  --glow-c: rgba(120, 255, 214, 0.10); /* mint */
 
-  --shadow: 0 10px 30px rgba(0,0,0,0.35);
-  --radius: 16px;
+  /* Surfaces */
+  --surface-1: rgba(255,255,255,0.07);  /* cards */
+  --surface-2: rgba(255,255,255,0.05);  /* header/sidebar/footer */
+  --surface-3: rgba(255,255,255,0.04);  /* inputs */
+
+  /* Borders */
+  --border: rgba(255,255,255,0.12);
+  --border-strong: rgba(255,255,255,0.18);
+
+  /* Text */
+  --text: rgba(255,255,255,0.92);
+  --muted: rgba(255,255,255,0.64);
+
+  /* Radius & shadow */
+  --r-lg: 18px;
+  --r-md: 14px;
+  --shadow: 0 28px 60px rgba(0,0,0,0.50);
+
+  /* Layout sizes */
+  --header-h: 64px;
+  --sidebar-w: 260px;
+  --gap: 16px;
+
+  /* Button accents */
+  --blue: #78B0FF;
+  --purple: #B58BFF;
+  --green: #66F0C2;
 }
 
+/* =========================
+   2) RESET + BASE
+========================= */
 *{ box-sizing: border-box; }
-html, body { height: 100%; }
+html, body{ height: 100%; }
 body{
   margin: 0;
-  background: radial-gradient(1200px 600px at 20% 0%, rgba(120,180,255,0.12), transparent 55%),
-              radial-gradient(900px 500px at 80% 20%, rgba(120,255,200,0.08), transparent 60%),
-              var(--bg);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Solid fallback + also used by fixed background layer */
+  background: var(--bg-0);
 }
 
+/* Fixed global background so no “bottom band” appears */
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(900px 520px at 14% 10%, var(--glow-a), transparent 60%),
+    radial-gradient(820px 520px at 86% 12%, var(--glow-b), transparent 62%),
+    radial-gradient(900px 520px at 50% 110%, var(--glow-c), transparent 60%),
+    linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 40%, var(--bg-0) 100%);
+}
+
+/* Links */
 a{ color: inherit; text-decoration: none; }
-
-.app-shell{
-  min-height: 100%;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{
+  outline: 2px solid rgba(120,176,255,0.45);
+  outline-offset: 2px;
 }
 
-/* Header */
+/* =========================
+   3) APP LAYOUT (FIX FOOTER)
+========================= */
+/* IMPORTANT:
+   - app-shell is a full-height column
+   - footer stays at bottom even when content is short */
+.app-shell{
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header fixed height area */
 .app-header{
+  height: var(--header-h);
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
-  background: rgba(16, 24, 35, 0.6);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
   backdrop-filter: blur(10px);
 }
-.header-inner{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  gap: 16px;
-}
-.brand{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.brand-logo{
-  height: 30px;
-  width: auto;
-  border-radius: 8px;
-}
-.logo-fallback{
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  background: rgba(255,255,255,0.03);
-}
 
-.header-right{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.user-box{
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.03);
-  border-radius: 14px;
-  padding: 8px 10px;
-  box-shadow: var(--shadow);
-}
-.user-line{
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.3;
-}
-.user-line .value{ color: var(--text); }
-
-.lang-switch{
-  display: flex;
-  gap: 8px;
-}
-
-/* Content */
+/* Middle area grows to fill remaining space */
 .app-content{
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  min-height: 0;
+  flex: 1;
+  display: flex;          /* KEY: sidebar optional, main auto expands */
+  gap: var(--gap);
+  padding: var(--gap);
+  align-items: stretch;
 }
 
 /* Sidebar */
 .app-sidebar{
-  border-right: 1px solid var(--border);
-  background: rgba(16, 24, 35, 0.35);
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
   backdrop-filter: blur(10px);
-  padding: 16px;
+  overflow: hidden;
 }
-.nav{
+
+/* Main always expands */
+.app-main{
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Footer always at bottom */
+.app-footer{
+  margin-top: auto; /* KEY: pushes footer to bottom */
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.05));
+  backdrop-filter: blur(10px);
+  text-align: center;
+  color: var(--muted);
+}
+
+/* Responsive: sidebar becomes full width on small screens */
+@media (max-width: 920px){
+  .app-content{ flex-direction: column; }
+  .app-sidebar{ width: 100%; flex: 0 0 auto; }
+  .app-main{ justify-content: stretch; }
+}
+
+/* =========================
+   4) MAIN CARD (STANDARD)
+========================= */
+.main-card{
+  width: 100%;
+  max-width: 960px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface-1), rgba(255,255,255,0.03));
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+/* =========================
+   5) HEADER CONTENT
+========================= */
+.header-inner{
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.brand-logo{
+  height: 34px;
+  width: auto;
+  border-radius: 10px;
+}
+
+.logo-fallback{
+  height: 34px;
+  width: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border);
+  font-weight: 800;
+}
+
+.brand-text{
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+/* Right side */
+.header-actions{
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.header-right{
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* User box */
+.user-box{
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 8px 10px;
+  line-height: 1.25;
+  max-width: 320px;
+}
+.user-line{ font-size: 12px; color: var(--muted); }
+.user-line .value{ color: var(--text); font-weight: 800; }
+.user-line .label{ color: var(--muted); }
+
+/* Language buttons */
+.lang-switch{
+  display: flex;
+  gap: 8px;
+}
+.icon-btn{
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: 0.16s ease;
+}
+.icon-btn:hover{
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+
+/* =========================
+   6) NAV PILLS (HEADER BUTTONS)
+========================= */
+.hdr-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+  backdrop-filter: blur(10px);
+  transition: 0.16s ease;
+}
+.hdr-pill:hover{
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+.hdr-pill-label{ font-size: 13px; font-weight: 900; }
+
+/* Optional accent variants */
+.hdr-pill-blue{ box-shadow: 0 0 0 1px rgba(120,176,255,0.10) inset; }
+.hdr-pill-purple{ box-shadow: 0 0 0 1px rgba(181,139,255,0.10) inset; }
+.hdr-pill-green{ box-shadow: 0 0 0 1px rgba(102,240,194,0.10) inset; }
+
+/* =========================
+   7) BUTTONS (LOGIN/LOGOUT etc.)
+========================= */
+.btn{
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 900;
+  transition: 0.16s ease;
+}
+.btn:hover{
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+
+.btn-primary{
+  border: 1px solid rgba(120,176,255,0.28);
+  background: linear-gradient(135deg, rgba(120,176,255,0.22), rgba(181,139,255,0.16));
+}
+.btn-ghost{
+  background: rgba(255,255,255,0.03);
+}
+
+/* =========================
+   8) INPUTS (GLOBAL)
+========================= */
+input, select, textarea{
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 14px;
+  transition: 0.16s ease;
+}
+input::placeholder{ color: var(--muted); }
+input:focus, select:focus, textarea:focus{
+  border-color: rgba(120,176,255,0.55);
+  box-shadow: 0 0 0 4px rgba(120,176,255,0.14);
+  background: rgba(255,255,255,0.055);
+}
+
+/* =========================
+   9) SIDEBAR NAV
+========================= */
+.sidebar-wrap{
+  padding: 14px;
+}
+
+.nav-list{
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
+
 .nav-item{
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid transparent;
+  color: rgba(255,255,255,0.86);
   background: rgba(255,255,255,0.02);
+  transition: 0.16s ease;
 }
 .nav-item:hover{
   border-color: var(--border);
   background: rgba(255,255,255,0.04);
 }
+.nav-item.active{
+  border-color: rgba(120,176,255,0.35);
+  background: rgba(120,176,255,0.10);
+}
 
+/* Sidebar note */
 .sidebar-note{
-  margin-top: 16px;
+  margin-top: 12px;
   padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.02);
-  color: var(--muted);
-  font-size: 13px;
-}
-.badge{
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  margin-bottom: 8px;
-  color: var(--text);
-  font-size: 12px;
-}
-
-/* Main */
-.app-main{
-  padding: 22px;
-  overflow: auto;
-}
-.main-card{
-  max-width: 980px;
-  margin: 0 auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: rgba(16, 24, 35, 0.55);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow);
-  padding: 22px;
-}
-h1{
-  margin: 0 0 10px 0;
-  font-size: 24px;
-}
-p{
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-/* Footer */
-.app-footer{
-  border-top: 1px solid var(--border);
-  background: rgba(16, 24, 35, 0.5);
-  backdrop-filter: blur(10px);
-}
-.footer-inner{
-  padding: 14px 18px;
-  text-align: center;
-  color: var(--muted);
-}
-
-/* Buttons */
-.btn{
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
-  padding: 10px 12px;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: transform 0.06s ease, background 0.2s ease, border-color 0.2s ease;
-}
-.btn:hover{
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.14);
-}
-.btn:active{ transform: translateY(1px); }
-
-.btn-primary{
-  border-color: rgba(120,180,255,0.35);
-  background: rgba(120,180,255,0.12);
-}
-.btn-primary:hover{
-  border-color: rgba(120,180,255,0.55);
-  background: rgba(120,180,255,0.16);
-}
-
-.btn-ghost{
-  background: transparent;
-}
-
-.icon-btn{
-  width: 40px;
-  height: 40px;
   border-radius: 14px;
   border: 1px solid var(--border);
   background: rgba(255,255,255,0.03);
-  cursor: pointer;
 }
-.icon-btn:hover{
-  background: rgba(255,255,255,0.06);
+.sidebar-note h4{
+  margin: 0 0 6px 0;
+  font-size: 13px;
+}
+.sidebar-note p{
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
 }
 
-
-.nav-item.active{
-  border-color: rgba(120,180,255,0.55);
-  background: rgba(120,180,255,0.12);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-}
+/* =========================
+   10) SMALL HELPERS
+========================= */
+.row{ display: flex; gap: 10px; align-items: center; }
+.form{ display: flex; flex-direction: column; gap: 10px; }
+.successMsg{ color: rgba(120,255,200,0.95); font-weight: 900; }
+.errorMsg{ color: rgba(255,120,120,0.95); font-weight: 900; }

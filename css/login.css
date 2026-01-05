@@ -1,0 +1,89 @@
+/* =========================================================
+FILE: /css/login.css
+PURPOSE:
+- Only login page specific styling
+- Keeps modern soft look but compatible with global theme
+========================================================= */
+
+/* Login card tweaks (still uses .main-card base from style.css) */
+.login-card{
+  /* Login için biraz daha dar ve ortalı */
+  max-width: 520px;
+}
+
+/* Top area */
+.login-header{
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.login-title{
+  margin-bottom: 8px;
+}
+
+.login-sub{
+  color: rgba(255,255,255,0.62);
+}
+
+/* Form stack */
+.login-form{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Inputs (page-specific, global button style korunur) */
+.login-input{
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.88);
+  font-size: 14px;
+  transition: 0.18s ease;
+}
+
+.login-input::placeholder{
+  color: rgba(255,255,255,0.55);
+}
+
+.login-input:focus{
+  outline: none;
+  border-color: rgba(120,180,255,0.55);
+  box-shadow: 0 0 0 4px rgba(120,180,255,0.12);
+  background: rgba(255,255,255,0.085);
+}
+
+/* Login button spacing */
+.login-btn{
+  margin-top: 4px;
+}
+
+/* Secondary action buttons */
+.login-actions{
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+/* Message */
+.login-msg{
+  min-height: 18px;
+  font-size: 13px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Success / Error styles */
+.login-msg.success{
+  color: rgba(120,255,200,0.95);
+  font-weight: 800;
+}
+
+.login-msg.error{
+  color: rgba(255,120,120,0.95);
+  font-weight: 800;
+}

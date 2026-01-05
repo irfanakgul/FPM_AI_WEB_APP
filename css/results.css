@@ -1,0 +1,17 @@
+/* =========================================================
+FILE: /css/results.css
+PURPOSE:
+- Results page specific styling only
+========================================================= */
+
+.results-card{
+  max-width: 980px;
+}
+
+.results-placeholder{
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.65);
+}
