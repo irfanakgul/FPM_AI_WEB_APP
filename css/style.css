@@ -2,33 +2,35 @@
 FILE: /css/style.css
 PURPOSE:
 - Single source of truth for global layout + header/sidebar/footer + shared UI
-- Fix footer floating (always bottom)
-- Ensure background is consistent (no bottom color band)
-- Sidebar optional: if hidden, main expands automatically (flex layout)
+- Footer always at bottom (no floating)
+- Background consistent (no bottom color band)
+- Sidebar optional: if hidden, main expands automatically
+- Modern, more visible header pill gradients + selected state
+- Main content width increased responsively (less empty side space)
 ========================================================= */
 
 /* =========================
    1) THEME TOKENS (CENTER)
 ========================= */
 :root{
-  /* Modern dark gradient (more "premium" + softer) */
+  /* Deep modern dark */
   --bg-0: #070A12;
   --bg-1: #0B1020;
   --bg-2: #0E1430;
 
-  /* Accent glows */
-  --glow-a: rgba(122, 162, 255, 0.18); /* blue */
-  --glow-b: rgba(188, 122, 255, 0.14); /* purple */
-  --glow-c: rgba(120, 255, 214, 0.10); /* mint */
+  /* Accent glows (stronger) */
+  --glow-a: rgba(122, 162, 255, 0.26); /* blue */
+  --glow-b: rgba(188, 122, 255, 0.22); /* purple */
+  --glow-c: rgba(120, 255, 214, 0.16); /* mint */
 
   /* Surfaces */
-  --surface-1: rgba(255,255,255,0.07);  /* cards */
-  --surface-2: rgba(255,255,255,0.05);  /* header/sidebar/footer */
-  --surface-3: rgba(255,255,255,0.04);  /* inputs */
+  --surface-1: rgba(255,255,255,0.075); /* cards */
+  --surface-2: rgba(255,255,255,0.055); /* header/sidebar/footer */
+  --surface-3: rgba(255,255,255,0.045); /* inputs */
 
   /* Borders */
   --border: rgba(255,255,255,0.12);
-  --border-strong: rgba(255,255,255,0.18);
+  --border-strong: rgba(255,255,255,0.22);
 
   /* Text */
   --text: rgba(255,255,255,0.92);
@@ -44,10 +46,18 @@ PURPOSE:
   --sidebar-w: 260px;
   --gap: 16px;
 
-  /* Button accents */
-  --blue: #78B0FF;
-  --purple: #B58BFF;
-  --green: #66F0C2;
+  /* Main card max width (RESPONSIVE) */
+  --content-max: clamp(920px, 86vw, 1320px);
+
+  /* Accents (used by pills/buttons) */
+  --blue:  rgba(130,190,255,1);
+  --purple: rgba(190,150,255,1);
+  --green: rgba(120,255,215,1);
+
+  /* Pill glow colors */
+  --pill-a: rgba(130,190,255,0.55);
+  --pill-b: rgba(190,150,255,0.50);
+  --pill-c: rgba(120,255,215,0.45);
 }
 
 /* =========================
@@ -61,44 +71,38 @@ body{
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  /* Solid fallback + also used by fixed background layer */
   background: var(--bg-0);
 }
 
-/* Fixed global background so no “bottom band” appears */
+/* Global fixed background so no “bottom band” appears */
 body::before{
   content:"";
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(900px 520px at 14% 10%, var(--glow-a), transparent 60%),
-    radial-gradient(820px 520px at 86% 12%, var(--glow-b), transparent 62%),
-    radial-gradient(900px 520px at 50% 110%, var(--glow-c), transparent 60%),
+    radial-gradient(980px 560px at 14% 10%, var(--glow-a), transparent 62%),
+    radial-gradient(920px 560px at 86% 12%, var(--glow-b), transparent 64%),
+    radial-gradient(980px 560px at 50% 112%, var(--glow-c), transparent 62%),
     linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 40%, var(--bg-0) 100%);
 }
 
 /* Links */
 a{ color: inherit; text-decoration: none; }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{
-  outline: 2px solid rgba(120,176,255,0.45);
+  outline: 2px solid rgba(130,190,255,0.50);
   outline-offset: 2px;
 }
 
 /* =========================
-   3) APP LAYOUT (FIX FOOTER)
+   3) APP LAYOUT (FOOTER FIX)
 ========================= */
-/* IMPORTANT:
-   - app-shell is a full-height column
-   - footer stays at bottom even when content is short */
 .app-shell{
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Header fixed height area */
 .app-header{
   height: var(--header-h);
   padding: 10px 16px;
@@ -107,38 +111,36 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   backdrop-filter: blur(10px);
 }
 
-/* Middle area grows to fill remaining space */
 .app-content{
   flex: 1;
-  display: flex;          /* KEY: sidebar optional, main auto expands */
+  display: flex;          /* sidebar optional, main auto expands */
   gap: var(--gap);
   padding: var(--gap);
   align-items: stretch;
 }
 
-/* Sidebar */
 .app-sidebar{
   width: var(--sidebar-w);
   flex: 0 0 var(--sidebar-w);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.028));
   backdrop-filter: blur(10px);
   overflow: hidden;
 }
 
-/* Main always expands */
+/* Main expands; use stretch so big cards can actually use the space */
 .app-main{
   flex: 1;
   min-width: 0;
   display: flex;
-  justify-content: center;
+  justify-content: center;     /* ✅ always centered */
   align-items: flex-start;
+  padding: 0;                  /* gutter is controlled by card width below */
 }
 
-/* Footer always at bottom */
 .app-footer{
-  margin-top: auto; /* KEY: pushes footer to bottom */
+  margin-top: auto; /* pushes footer to bottom */
   padding: 14px 16px;
   border-top: 1px solid var(--border);
   background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.05));
@@ -147,24 +149,24 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   color: var(--muted);
 }
 
-/* Responsive: sidebar becomes full width on small screens */
+/* Responsive: stack sidebar above main */
 @media (max-width: 920px){
+  :root{ --content-max: 92vw; }
   .app-content{ flex-direction: column; }
   .app-sidebar{ width: 100%; flex: 0 0 auto; }
-  .app-main{ justify-content: stretch; }
 }
 
 /* =========================
    4) MAIN CARD (STANDARD)
 ========================= */
 .main-card{
-  width: 100%;
-  max-width: 960px;
+  width: min(1100px, calc(100vw - 2 * var(--gap))); /* ✅ ideal max + responsive gutter */
   border-radius: var(--r-lg);
   border: 1px solid var(--border);
   background: linear-gradient(180deg, var(--surface-1), rgba(255,255,255,0.03));
   box-shadow: var(--shadow);
   padding: 18px;
+  margin: 0 auto; /* ✅ extra safety */
 }
 
 /* =========================
@@ -207,7 +209,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   letter-spacing: 0.2px;
 }
 
-/* Right side */
+/* Middle pills */
 .header-actions{
   margin-left: auto;
   display: flex;
@@ -216,6 +218,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   flex-wrap: wrap;
 }
 
+/* Right zone */
 .header-right{
   display: flex;
   gap: 12px;
@@ -229,17 +232,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border-radius: 14px;
   padding: 8px 10px;
   line-height: 1.25;
-  max-width: 320px;
+  max-width: 340px;
 }
 .user-line{ font-size: 12px; color: var(--muted); }
-.user-line .value{ color: var(--text); font-weight: 800; }
+.user-line .value{ color: var(--text); font-weight: 900; }
 .user-line .label{ color: var(--muted); }
 
 /* Language buttons */
-.lang-switch{
-  display: flex;
-  gap: 8px;
-}
+.lang-switch{ display: flex; gap: 8px; }
 .icon-btn{
   width: 38px;
   height: 38px;
@@ -255,29 +255,112 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 /* =========================
-   6) NAV PILLS (HEADER BUTTONS)
+   6) NAV PILLS (VISIBLE + SELECTED)
 ========================= */
 .hdr-pill{
+  position: relative;
+  overflow: hidden; /* CRITICAL: allows ::before glow to show */
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 10px 16px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
-  backdrop-filter: blur(10px);
-  transition: 0.16s ease;
+
+  /* Base glass */
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04));
+  border: 1px solid rgba(255,255,255,0.18);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    0 10px 24px rgba(0,0,0,0.38);
+
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
+
+/* Soft but more visible color layer */
+.hdr-pill::before{
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    var(--pill-a),
+    var(--pill-b),
+    var(--pill-c)
+  );
+  opacity: 0.18; /* visible even without hover */
+  filter: blur(0px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  transform: translateX(-6px);
+  pointer-events: none;
+}
+
+/* Hover: stronger + slight motion */
 .hdr-pill:hover{
   transform: translateY(-1px);
-  border-color: var(--border-strong);
+  border-color: rgba(255,255,255,0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    0 14px 30px rgba(0,0,0,0.46);
 }
-.hdr-pill-label{ font-size: 13px; font-weight: 900; }
+.hdr-pill:hover::before{
+  opacity: 0.55;
+  transform: translateX(0px);
+}
 
-/* Optional accent variants */
-.hdr-pill-blue{ box-shadow: 0 0 0 1px rgba(120,176,255,0.10) inset; }
-.hdr-pill-purple{ box-shadow: 0 0 0 1px rgba(181,139,255,0.10) inset; }
-.hdr-pill-green{ box-shadow: 0 0 0 1px rgba(102,240,194,0.10) inset; }
+/* Label */
+.hdr-pill-label{
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+/* SELECTED STATE:
+   - Use either .active class OR aria-current="page"
+   - Modern indicator: brighter border + inner glow + small bottom shine */
+.hdr-pill.active,
+.hdr-pill[aria-current="page"]{
+  border-color: rgba(130,190,255,0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(130,190,255,0.26),
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    0 16px 38px rgba(0,0,0,0.55);
+}
+.hdr-pill.active::before,
+.hdr-pill[aria-current="page"]::before{
+  opacity: 0.78;
+  transform: translateX(0px);
+}
+
+/* Tiny selected indicator (modern underline glow) */
+.hdr-pill.active::after,
+.hdr-pill[aria-current="page"]::after{
+  content:"";
+  position:absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 6px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(130,190,255,0.0), rgba(130,190,255,0.85), rgba(120,255,215,0.65), rgba(190,150,255,0.0));
+  opacity: 0.95;
+  pointer-events:none;
+}
+
+/* Optional subtle category hints (keep very soft) */
+.hdr-pill-blue{ box-shadow: inset 0 0 0 1px rgba(130,190,255,0.16), 0 10px 24px rgba(0,0,0,0.38); }
+.hdr-pill-purple{ box-shadow: inset 0 0 0 1px rgba(190,150,255,0.16), 0 10px 24px rgba(0,0,0,0.38); }
+.hdr-pill-green{ box-shadow: inset 0 0 0 1px rgba(120,255,215,0.14), 0 10px 24px rgba(0,0,0,0.38); }
 
 /* =========================
    7) BUTTONS (LOGIN/LOGOUT etc.)
@@ -298,8 +381,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .btn-primary{
-  border: 1px solid rgba(120,176,255,0.28);
-  background: linear-gradient(135deg, rgba(120,176,255,0.22), rgba(181,139,255,0.16));
+  border: 1px solid rgba(130,190,255,0.30);
+  background: linear-gradient(135deg, rgba(130,190,255,0.24), rgba(190,150,255,0.18));
 }
 .btn-ghost{
   background: rgba(255,255,255,0.03);
@@ -320,17 +403,15 @@ input, select, textarea{
 }
 input::placeholder{ color: var(--muted); }
 input:focus, select:focus, textarea:focus{
-  border-color: rgba(120,176,255,0.55);
-  box-shadow: 0 0 0 4px rgba(120,176,255,0.14);
+  border-color: rgba(130,190,255,0.58);
+  box-shadow: 0 0 0 4px rgba(130,190,255,0.16);
   background: rgba(255,255,255,0.055);
 }
 
 /* =========================
    9) SIDEBAR NAV
 ========================= */
-.sidebar-wrap{
-  padding: 14px;
-}
+.sidebar-wrap{ padding: 14px; }
 
 .nav-list{
   display: flex;
@@ -354,8 +435,8 @@ input:focus, select:focus, textarea:focus{
   background: rgba(255,255,255,0.04);
 }
 .nav-item.active{
-  border-color: rgba(120,176,255,0.35);
-  background: rgba(120,176,255,0.10);
+  border-color: rgba(130,190,255,0.42);
+  background: rgba(130,190,255,0.12);
 }
 
 /* Sidebar note */

@@ -9,7 +9,7 @@ PURPOSE:
 /* Card width for create account */
 .ca-card{
   /* main-card global, burada sadece sayfaya özel daraltma */
-  max-width: 560px;
+  max-width: 640px;
 }
 
 /* Title area */
