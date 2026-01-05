@@ -1,0 +1,17 @@
+async function loadInto(elId, url) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    el.innerHTML = `<div style="padding:12px; color:#aaa;">Failed to load: ${url}</div>`;
+    return;
+  }
+  el.innerHTML = await res.text();
+}
+
+(async function initLayout() {
+  await loadInto("appHeader", "/components/header.html");
+  await loadInto("appSidebar", "/components/sidebar.html");
+  await loadInto("appFooter", "/components/footer.html");
+})();

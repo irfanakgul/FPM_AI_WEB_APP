@@ -1,110 +1,176 @@
-/* ============================================================
-   LOAD HEADER / SIDEBAR / FOOTER
-============================================================ */
+// js/app.js
+window.addEventListener("layout:ready", () => {
+  // ====== i18n (TR/EN) ======
+  const translations = {
+    en: {
+      // Sidebar
+      nav_home: "Home",
+      nav_about: "About",
+      sidebar_note_title: "Note",
+      sidebar_note_desc: "Later we will show/hide menu items based on user_type.",
 
-async function loadComponent(id, file) {
-    try {
-        const res = await fetch(`/components/${file}`);
-        const html = await res.text();
-        document.getElementById(id).innerHTML = html;
-    } catch (err) {
-        console.error(`Cannot load ${file}`, err);
+      // Pages
+      home_title: "Welcome",
+      home_desc:
+        "This is the Home page. Later we will move your real content here without breaking logic.",
+      about_title: "About",
+      about_desc:
+        "This is the About page. We'll migrate your existing functionality step by step.",
+
+      // Header user box
+      username: "User",
+      usertype: "Type",
+
+      // Auth
+      login: "Login",
+      create_account: "Create account",
+      logout: "Logout",
+    },
+    tr: {
+      // Sidebar
+      nav_home: "Ana Sayfa",
+      nav_about: "Hakkında",
+      sidebar_note_title: "Not",
+      sidebar_note_desc:
+        "Daha sonra user_type’a göre menüleri gösterip gizleyeceğiz.",
+
+      // Pages
+      home_title: "Hoş geldin",
+      home_desc:
+        "Bu Ana Sayfa. Daha sonra mevcut içeriğini mantığı bozmadan buraya taşıyacağız.",
+      about_title: "Hakkında",
+      about_desc:
+        "Bu Hakkında sayfası. Mevcut işlevlerini adım adım aktaracağız.",
+
+      // Header user box
+      username: "Kullanıcı",
+      usertype: "Tip",
+
+      // Auth
+      login: "Giriş",
+      create_account: "Hesap oluştur",
+      logout: "Çıkış",
+    },
+  };
+
+  function getLang() {
+    return localStorage.getItem("lang") || "en";
+  }
+
+  function t(key) {
+    const lang = getLang();
+    return translations[lang]?.[key] ?? translations.en[key] ?? key;
+  }
+
+  function applyTranslations() {
+    const lang = getLang();
+    document.documentElement.lang = lang;
+
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const key = el.getAttribute("data-i18n");
+      const value = translations[lang]?.[key];
+      if (value) el.textContent = value;
+    });
+  }
+
+  function setLanguage(lang) {
+    localStorage.setItem("lang", lang);
+    applyTranslations();
+    // auth buton yazıları da güncellensin
+    renderAuth();
+  }
+
+  // Default EN
+  applyTranslations();
+
+  // Dil butonları
+  const btnLangEn = document.getElementById("btnLangEn");
+  const btnLangTr = document.getElementById("btnLangTr");
+  btnLangEn?.addEventListener("click", () => setLanguage("en"));
+  btnLangTr?.addEventListener("click", () => setLanguage("tr"));
+
+  // ====== Auth UI (Mock) ======
+  // Daha sonra gerçek login/logout yapını buraya bağlayacağız.
+  // Şimdilik butonlara basınca state değişsin diye mock yapıyoruz.
+  let authState = {
+    isLoggedIn: false,
+    user_name: "demo_user",
+    user_type: "admin",
+  };
+
+  function renderAuth() {
+    const authActions = document.getElementById("authActions");
+    const userBox = document.getElementById("userBox");
+
+    if (!authActions) return;
+
+    authActions.innerHTML = "";
+
+    if (authState.isLoggedIn) {
+      // user box göster
+      if (userBox) {
+        userBox.style.display = "block";
+        const uName = document.getElementById("userName");
+        const uType = document.getElementById("userType");
+        if (uName) uName.textContent = authState.user_name;
+        if (uType) uType.textContent = authState.user_type;
+      }
+
+      const btnLogout = document.createElement("button");
+      btnLogout.className = "btn btn-primary";
+      btnLogout.textContent = t("logout");
+      btnLogout.addEventListener("click", () => {
+        authState.isLoggedIn = false;
+        renderAuth();
+        applyTranslations();
+      });
+
+      authActions.appendChild(btnLogout);
+    } else {
+      // user box gizle
+      if (userBox) userBox.style.display = "none";
+
+      const btnLogin = document.createElement("button");
+      btnLogin.className = "btn btn-primary";
+      btnLogin.textContent = t("login");
+      btnLogin.addEventListener("click", () => {
+        // mock login
+        authState.isLoggedIn = true;
+        renderAuth();
+        applyTranslations();
+      });
+
+      const btnCreate = document.createElement("button");
+      btnCreate.className = "btn btn-ghost";
+      btnCreate.textContent = t("create_account");
+      btnCreate.addEventListener("click", () => {
+        alert("Create account (mock) — later real flow will be integrated.");
+      });
+
+      authActions.appendChild(btnLogin);
+      authActions.appendChild(btnCreate);
     }
-}
+  }
 
-/* Sayfa açılınca bileşenleri yükle */
-window.addEventListener("DOMContentLoaded", async () => {
-
-    await loadComponent("header", "header.html");
-    await loadComponent("sidebar", "sidebar.html");
-    await loadComponent("footer", "footer.html");
-
-    initializeHeaderLogic();
-    initializeSidebarLogic();
+  // İlk render
+  renderAuth();
 });
 
 
-/* ============================================================
-   HEADER LOGIC (Login, Logout, Timer, Username)
-============================================================ */
-function initializeHeaderLogic() {
-    const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+  // ====== Active page in sidebar ======
+  function normalizePath(p) {
+    // index'e / olarak gelenleri de eşleştirelim
+    if (!p || p === "/") return "/index.html";
+    return p;
+  }
 
-    const nameSpan = document.getElementById("currentUserName");
-    const typeSpan = document.getElementById("currentUserType");
-    const timerSpan = document.getElementById("timer");
+  function setActiveNav() {
+    const current = normalizePath(window.location.pathname);
 
-    const logoutBtn = document.getElementById("headerLogoutBtn");
+    document.querySelectorAll(".nav-item").forEach((a) => {
+      const route = normalizePath(a.getAttribute("data-route") || a.getAttribute("href"));
+      a.classList.toggle("active", route === current);
+    });
+  }
 
-    // Not logged in
-    if (!currentUser) {
-        if (logoutBtn) logoutBtn.style.display = "none";
-        if (nameSpan) nameSpan.textContent = "Guest";
-        if (typeSpan) typeSpan.textContent = "-";
-        return;
-    }
-
-    // Logged in
-    if (nameSpan) nameSpan.textContent = currentUser.username;
-    if (typeSpan) typeSpan.textContent = currentUser.user_type;
-
-    if (logoutBtn) {
-        logoutBtn.style.display = "block";
-        logoutBtn.onclick = () => {
-            sessionStorage.removeItem("currentUser");
-            clearInterval(window.activeTimer);
-            window.location.href = "/index.html";
-        };
-    }
-
-    startGlobalTimer(timerSpan);
-}
-
-
-/* ============================================================
-   GLOBAL TIMER — Works across ALL pages
-============================================================ */
-function startGlobalTimer(timerSpan) {
-    if (!timerSpan) return;
-
-    let seconds = Number(sessionStorage.getItem("activeSeconds") || 0);
-
-    window.activeTimer = setInterval(() => {
-        seconds++;
-        sessionStorage.setItem("activeSeconds", seconds);
-
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-
-        timerSpan.textContent = `Active: ${m}m ${s}s`;
-    }, 1000);
-}
-
-
-/* ============================================================
-   SIDEBAR LOGIC — Show/Hide links depending on login
-============================================================ */
-function initializeSidebarLogic() {
-    const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-
-    const navHome = document.getElementById("navHome");
-    const navResults = document.getElementById("navResults");
-    const navStats = document.getElementById("navStats");
-
-    if (currentUser) {
-        if (navResults) navResults.style.display = "block";
-        if (navStats) navStats.style.display = "block";
-    } else {
-        if (navResults) navResults.style.display = "none";
-        if (navStats) navStats.style.display = "none";
-    }
-}
-
-
-/* ============================================================
-   PAGE LOADER (sidebar tıklayınca)
-============================================================ */
-function loadPage(url) {
-    window.location.href = url;
-}
-
+  setActiveNav();
