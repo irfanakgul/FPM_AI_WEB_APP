@@ -10,9 +10,22 @@ PURPOSE:
   6) Role-based header navigation pills (admin/co-admin rules)
   7) Sidebar active page highlight
   8) GUARANTEED auth button clicks via event delegation (header injected)
+STABILITY FIXES (ADDED):
+- "ui-ready" flag to prevent auth button flicker during load
+- lang:changed listener re-applies translations without re-running full updateUI
+- setLanguage dispatches BOTH CustomEvent and plain Event
+- Added nav_user_panel translations for sidebar
 ========================================================= */
 
 (function () {
+  /* =========================================================
+     SECTION: UI ready flag (prevents flicker)
+     PURPOSE:
+     - Ensure auth area doesn't flash wrong state before updateUI runs
+     - CSS should hide auth area while html:not(.ui-ready)
+  ========================================================= */
+  document.documentElement.classList.remove("ui-ready");
+
   /* =========================================================
      SECTION: i18n dictionary (global text)
      PURPOSE:
@@ -23,6 +36,7 @@ PURPOSE:
       // Sidebar
       nav_home: "Home",
       nav_about: "About",
+      nav_user_panel: "User Panel", // [ADDED] matches sidebar key
       sidebar_note_title: "Note",
       sidebar_note_desc: "Later we will show/hide menu items based on user_type.",
 
@@ -47,7 +61,6 @@ PURPOSE:
       fp_send: "Send",
       fp_back: "Back to Login",
 
-
       // Auth labels
       login: "Login",
       create_account: "Create account",
@@ -57,6 +70,7 @@ PURPOSE:
       // Sidebar
       nav_home: "Ana Sayfa",
       nav_about: "Hakkında",
+      nav_user_panel: "Kullanıcı Paneli", // [ADDED] matches sidebar key
       sidebar_note_title: "Not",
       sidebar_note_desc: "Daha sonra user_type’a göre menüleri gösterip gizleyeceğiz.",
 
@@ -81,7 +95,6 @@ PURPOSE:
       fp_send: "Gönder",
       fp_back: "Girişe Dön",
 
-
       // Auth labels
       login: "Giriş",
       create_account: "Hesap oluştur",
@@ -93,7 +106,9 @@ PURPOSE:
      SECTION: Storage helpers
   ========================================================= */
   function getLang() {
-    return localStorage.getItem("lang") || "en";
+    // [SAFE NORMALIZE] keep your original behavior (en/tr), but ensure only these two
+    const v = (localStorage.getItem("lang") || "en").toLowerCase();
+    return v === "tr" ? "tr" : "en";
   }
 
   function readCurrentUser() {
@@ -115,6 +130,7 @@ PURPOSE:
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
       const value = translations[lang]?.[key];
+      // IMPORTANT: if key not found, do NOT overwrite text (prevents "nav_home" showing)
       if (value) el.textContent = value;
     });
   }
@@ -128,7 +144,9 @@ PURPOSE:
      - Broadcast "lang:changed" so page scripts update placeholders/messages
   ========================================================= */
   function setLanguage(lang, options = { manual: false }) {
-    localStorage.setItem("lang", lang);
+    // Keep existing storage key + expected values (en/tr)
+    const L = String(lang || "").toLowerCase() === "tr" ? "tr" : "en";
+    localStorage.setItem("lang", L);
 
     // Manual override (user clicked flag)
     if (options.manual) {
@@ -139,7 +157,10 @@ PURPOSE:
     updateAuthButtonsText();
 
     // Notify other scripts (login.js, create_account.js etc.)
-    window.dispatchEvent(new CustomEvent("lang:changed", { detail: { lang } }));
+    window.dispatchEvent(new CustomEvent("lang:changed", { detail: { lang: L } }));
+
+    // [ADDED] Plain event for listeners that don't read CustomEvent.detail
+    window.dispatchEvent(new Event("lang:changed"));
   }
 
   /* =========================================================
@@ -348,6 +369,13 @@ PURPOSE:
 
     // Sidebar active highlight
     setActiveNav();
+
+    /* =========================================================
+       SECTION: Mark UI ready (prevents flicker)
+       PURPOSE:
+       - After everything is applied, show header elements
+    ========================================================= */
+    document.documentElement.classList.add("ui-ready");
   }
 
   /* =========================================================
@@ -404,7 +432,26 @@ PURPOSE:
     updateUI();
   });
 
-  // Fallback: if layout:ready somehow doesn’t fire, still try once
-  // (This does not break anything; updateUI will no-op if elements missing)
-  setTimeout(() => updateUI(), 300);
+  /* =========================================================
+     SECTION: Lightweight refresh after language changes
+     PURPOSE:
+     - Re-apply translations for injected header/sidebar
+     - Avoid running full updateUI() to prevent side effects
+  ========================================================= */
+  window.addEventListener("lang:changed", () => {
+    applyTranslations();
+    updateAuthButtonsText();
+    setActiveNav();
+  });
+
+  /* =========================================================
+     SECTION: Fallback init (stability)
+     PURPOSE:
+     - If layout:ready doesn't fire, try once later
+     - Avoid early run that causes flicker
+  ========================================================= */
+  setTimeout(() => {
+    const headerExists = document.getElementById("appHeader") || document.getElementById("loginBtn");
+    if (headerExists) updateUI();
+  }, 600);
 })();

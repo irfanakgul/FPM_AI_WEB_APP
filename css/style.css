@@ -474,3 +474,27 @@ PURPOSE:
 .form{ display: flex; flex-direction: column; gap: 10px; }
 .successMsg{ color: rgba(120,255,200,0.95); font-weight: 900; }
 .errorMsg{ color: rgba(255,120,120,0.95); font-weight: 900; }
+
+/* =========================================================
+FILE: /css/style.css
+SECTION: Prevent auth button flicker (FOUC)
+PURPOSE:
+- While the page is loading and before app.js applies auth state,
+  hide auth buttons/user info so "Login/Create" doesn't flash.
+HOW IT WORKS:
+- JS adds <html class="ui-ready"> after updateUI() runs.
+========================================================= */
+
+/* Hide auth area until UI is ready */
+html:not(.ui-ready) #loginBtn,
+html:not(.ui-ready) #createAccountBtn,
+html:not(.ui-ready) #logoutBtn,
+html:not(.ui-ready) #headerUserInfo,
+html:not(.ui-ready) #roleNav {
+  visibility: hidden !important;
+}
+
+/* Optional: keep header height stable */
+html:not(.ui-ready) #headerAuthArea {
+  min-height: 40px;
+}
