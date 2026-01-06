@@ -107,6 +107,21 @@ STABILITY FIXES (ADDED):
       subs_start: "Start Subscription",
       subs_success: "✔ Subscription created!",
 
+      // =========================================================
+      // SECTION: Pay Success Page (NEW i18n)
+      // PURPOSE: /pages/pay/success.html texts
+      // =========================================================
+      pay_success_title: "Congratulations!",
+      pay_success_desc: "Your payment was successful. Your subscription is being activated.",
+      pay_success_redirect: "Redirecting to Home:",
+
+      cancel_page_title: "Payment Cancelled",
+      cancel_title: "Payment Cancelled",
+      cancel_desc: "Your payment was cancelled. No charge was made.",
+      cancel_hint: "You can return and choose a subscription plan again.",
+      cancel_back: "Back to Subscription Form",
+      cancel_redirect: "Redirecting in"
+
     },
     tr: {
       // Sidebar
@@ -181,6 +196,23 @@ STABILITY FIXES (ADDED):
       subs_plan_hint: "Aboneliği Başlat’a tıkladıktan sonra ödeme sayfasına yönlendirileceksiniz.",
       subs_start: "Aboneliği Başlat",
       subs_success: "✔ Abonelik oluşturuldu!",
+
+      // =========================================================
+      // SECTION: Pay Success Page (NEW i18n)
+      // PURPOSE: /pages/pay/success.html texts
+      // =========================================================
+      pay_success_title: "Tebrikler!",
+      pay_success_desc: "Ödemeniz başarılı. Aboneliğiniz aktif ediliyor.",
+      pay_success_redirect: "Ana sayfaya yönlendiriliyorsunuz:",
+
+      cancel_page_title: "Ödeme İptal Edildi",
+      cancel_title: "Ödeme İptal Edildi",
+      cancel_desc: "Ödeme işlemi iptal edildi. Herhangi bir ücret alınmadı.",
+      cancel_hint: "Geri dönüp abonelik planınızı tekrar seçebilirsiniz.",
+      cancel_back: "Abonelik Formuna Dön",
+      cancel_redirect: "Yönlendiriliyorsunuz"
+
+
 
     },
   };

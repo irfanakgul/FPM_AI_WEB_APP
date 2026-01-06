@@ -1,0 +1,123 @@
+/* =========================================================
+FILE: /css/pay_cancel.css
+PURPOSE:
+- Payment cancelled page styling (no scroll)
+- Dark theme friendly, red/amber vibe
+========================================================= */
+
+/* No scrolling */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Center card between header/footer */
+.pay-cancel-main{
+  height: calc(100vh - 64px - 44px); /* header/footer */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+/* Card */
+.pay-cancel-card{
+  width: min(560px, 92vw);
+  text-align: center;
+  padding: 26px 22px;
+  border-radius: 16px;
+
+  background: rgba(30,36,56,0.92);
+  border: 1px solid rgba(248,113,113,0.22);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+}
+
+/* Icon */
+.pay-cancel-icon{
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+
+  background: rgba(248,113,113,0.12);
+  border: 1px solid rgba(248,113,113,0.30);
+  color: #ff9b9b;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+/* Text */
+.pay-cancel-title{
+  margin: 0 0 10px;
+  font-size: 24px;
+  letter-spacing: 0.2px;
+}
+
+.pay-cancel-desc{
+  margin: 0 0 10px;
+  opacity: 0.86;
+  line-height: 1.55;
+}
+
+.pay-cancel-hint{
+  margin: 0 0 16px;
+  opacity: 0.70;
+  line-height: 1.55;
+}
+
+/* Link as button */
+.pay-cancel-link{
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #e6e9f5;
+  font-weight: 800;
+
+  transition: transform .16s ease, background .16s ease;
+}
+.pay-cancel-link:hover{
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+}
+
+/* Countdown */
+.pay-cancel-redirect{
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  font-weight: 800;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.pay-cancel-count{
+  min-width: 18px;
+  display: inline-block;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Optional: hide header auth/nav buttons on this page too */
+.pay-cancel-page #loginBtn,
+.pay-cancel-page #createAccountBtn,
+.pay-cancel-page #logoutBtn,
+.pay-cancel-page #headerUserInfo,
+.pay-cancel-page #modelNavBtn,
+.pay-cancel-page #adminNavBtn,
+.pay-cancel-page #statsNavBtn,
+.pay-cancel-page #resultsNavBtn,
+.pay-cancel-page #userDashNavBtn{
+  display: none !important;
+}

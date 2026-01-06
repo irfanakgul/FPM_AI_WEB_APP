@@ -1,0 +1,83 @@
+<!-- =========================================================
+FILE: /pages/pay/success.html
+PURPOSE:
+- Stripe payment success page
+- Uses central layout (header+footer injected)
+- NO sidebar
+- Shows animated success UI + auto redirect to home
+- Calls /api/subscription_finalize with session_id from URL (keeps your logic)
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Payment Success</title>
+
+  <!-- =========================================================
+  GLOBAL CSS + PAGE CSS
+  ========================================================= -->
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/pay_success.css">
+</head>
+
+<body>
+  <!-- =========================================================
+  Central layout shell (NO SIDEBAR in this page)
+  ========================================================= -->
+  <div class="app-shell app-shell--no-sidebar">
+    <header class="app-header" id="appHeader"></header>
+
+    <main class="app-main app-main--full">
+      <div class="main-card pay-success-card">
+        <!-- Confetti container -->
+        <div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
+
+        <!-- Animated check -->
+        <div class="success-hero">
+          <div class="check-wrap" aria-hidden="true">
+            <svg class="check-svg" viewBox="0 0 80 80">
+              <circle class="check-circle" cx="40" cy="40" r="28"></circle>
+              <path class="check-mark" d="M28 41 L36 49 L53 32"></path>
+            </svg>
+          </div>
+
+          <h1 class="success-title" data-i18n="pay_success_title">Congratulations!</h1>
+          <p class="success-desc" data-i18n="pay_success_desc">
+            Your payment was successful. Your subscription is being activated.
+          </p>
+
+          <div class="success-status">
+            <span class="dot dot--pulse" aria-hidden="true"></span>
+            <span id="finalizeText" data-i18n="pay_success_finalize">Finalizing your subscription...</span>
+          </div>
+
+          <div class="redirect-row">
+            <div class="redirect-msg">
+              <span data-i18n="pay_success_redirect">Redirecting to Home</span>
+              <span id="countdown" class="countdown">5</span>
+            </div>
+
+            <button id="btnGoHome" class="btn-secondary" type="button" data-i18n="pay_success_go_home">
+              Go to Home
+            </button>
+          </div>
+
+          <div id="finalizeResult" class="inline-result" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- =========================================================
+  Central scripts
+  ========================================================= -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+
+  <!-- Page script -->
+  <script src="/js/pay_success.js"></script>
+</body>
+</html>
