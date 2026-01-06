@@ -1,0 +1,124 @@
+<!-- =========================================================
+FILE: /pages/contact.html
+PURPOSE:
+- Contact form page adapted to new layout system
+- Uses shared header/sidebar/footer via layout.js
+- Keeps old form behavior:
+  * Subject dropdown + subscribe => show subscription type
+  * Username auto-filled from sessionStorage.currentUser (or "Unknown")
+  * POST /api/contact_form with status/date/time etc.
+- Language controlled by global header flags (localStorage.lang + lang:changed)
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- ===== Meta ===== -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FPM - Contact</title>
+
+  <!-- ===== Global CSS (layout + header + sidebar + footer) ===== -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <!-- ===== Page CSS (only contact page) ===== -->
+  <link rel="stylesheet" href="/css/contact.css" />
+</head>
+
+<body>
+  <!-- ===== App shell (injected header/sidebar/footer) ===== -->
+  <div class="app-shell">
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="app-content">
+      <aside class="app-sidebar" id="appSidebar"></aside>
+
+      <main class="app-main">
+        <!-- =====================================================
+             MAIN CARD (shared sizing, page adds its own styling)
+        ====================================================== -->
+        <div class="main-card contact-card">
+
+          <!-- ===== Title ===== -->
+          <h2 id="title" data-i18n="contact_title">Contact Form</h2>
+
+          <!-- =================================================
+               FORM (IDs preserved from old page)
+          ================================================== -->
+          <form id="contactForm" class="contact-form">
+
+            <!-- Subject -->
+            <div class="form-group">
+              <label id="lblSubject" data-i18n="contact_lbl_subject">Subject</label>
+              <select id="subject" required>
+                <!-- NOTE: option texts will be set by /js/contact.js based on language -->
+                <option value="question">I want to ask a question</option>
+                <option value="subscribe">I want to subscribe</option>
+                <option value="broken">Website not working properly</option>
+                <option value="delete">I want my data removed</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <!-- Subscription Type (only visible when subject=subscribe) -->
+            <div class="form-group" id="subsTypeGroup" style="display:none;">
+              <label id="lblSubsType" data-i18n="contact_lbl_substype">Subscription Type</label>
+              <select id="subsType">
+                <option value="trial">Trial</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+
+            <!-- Username (auto filled) -->
+            <div class="form-group">
+              <label id="lblUsername" data-i18n="contact_lbl_username">Username</label>
+              <input id="username" value="Unknown" readonly />
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+              <label id="lblMail" data-i18n="contact_lbl_mail">Email</label>
+              <input id="mail" type="email" required />
+            </div>
+
+            <!-- Repeat Email -->
+            <div class="form-group">
+              <label id="lblMail2" data-i18n="contact_lbl_mail2">Repeat Email</label>
+              <input id="mail2" type="email" required />
+            </div>
+
+            <!-- Name (optional) -->
+            <div class="form-group">
+              <label id="lblName" data-i18n="contact_lbl_name">Name (Optional)</label>
+              <input id="name" />
+            </div>
+
+            <!-- Message -->
+            <div class="form-group">
+              <label id="lblMsg" data-i18n="contact_lbl_message">Message</label>
+              <textarea id="message" required></textarea>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" id="btnSubmit" class="contact-submit" data-i18n="contact_btn_submit">
+              Send
+            </button>
+
+            <!-- Success -->
+            <div id="successMsg" class="contact-success" data-i18n="contact_success">
+              ✔ Your message has been sent!
+            </div>
+          </form>
+
+        </div>
+      </main>
+    </div>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- ===== Scripts (order important) ===== -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/contact.js"></script>
+</body>
+</html>

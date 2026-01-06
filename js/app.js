@@ -68,6 +68,23 @@ STABILITY FIXES (ADDED):
       login: "Login",
       create_account: "Create account",
       logout: "Logout",
+
+      nav_contact: "Contact",   // en
+
+      // =========================================================
+      // SECTION: Contact page (EN)
+      // PURPOSE: Translate contact page form labels/buttons/messages
+      // =========================================================
+      contact_title: "Contact Form",
+      contact_lbl_subject: "Subject",
+      contact_lbl_substype: "Subscription Type",
+      contact_lbl_username: "Username",
+      contact_lbl_mail: "Email",
+      contact_lbl_mail2: "Repeat Email",
+      contact_lbl_name: "Name (Optional)",
+      contact_lbl_message: "Message",
+      contact_btn_submit: "Send",
+      contact_success: "✔ Your message has been sent!",
     },
     tr: {
       // Sidebar
@@ -79,7 +96,7 @@ STABILITY FIXES (ADDED):
 
       userpanel_title: "Kullanıcı Paneli",
       userpanel_hint: "Kullanıcı paneline gitmek için tıklayınız.",
-
+      
 
       // Pages (demo)
       home_title: "Hoş geldin",
@@ -106,6 +123,23 @@ STABILITY FIXES (ADDED):
       login: "Giriş",
       create_account: "Hesap oluştur",
       logout: "Çıkış",
+
+      nav_contact: "İletişim",  // tr
+      // =========================================================
+      // SECTION: Contact page (TR)
+      // PURPOSE: Translate contact page form labels/buttons/messages
+      // =========================================================
+      contact_title: "İletişim Formu",
+      contact_lbl_subject: "Konu",
+      contact_lbl_substype: "Abonelik Türü",
+      contact_lbl_username: "Kullanıcı Adı",
+      contact_lbl_mail: "E-posta",
+      contact_lbl_mail2: "E-posta Tekrar",
+      contact_lbl_name: "İsim (Opsiyonel)",
+      contact_lbl_message: "Mesaj",
+      contact_btn_submit: "Gönder",
+      contact_success: "✔ Mesajınız gönderildi!",
+
     },
   };
 
