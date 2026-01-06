@@ -38,89 +38,117 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================================================
-     [UI BUILD] Same UI as old model.html (sidebar removed)
-     ========================================================= */
-  main.innerHTML = `
-    <!-- [PAGE TITLE] -->
-    <h2>Model Executive</h2>
+   [UI BUILD] Same UI as old model.html (sidebar removed)
+   NOTE: Button styling is controlled by model.css via classes
+   ========================================================= */
+main.innerHTML = `
+  <!-- [PAGE TITLE] -->
+  <h2>Model Executive</h2>
 
-    <!-- [MODEL PANEL WRAP] -->
-    <div class="model-panel">
+  <!-- [MODEL PANEL WRAP] -->
+  <div class="model-panel">
 
-      <!-- [BUTTONS CARD] -->
-      <div class="model-card">
+    <!-- [BUTTONS CARD] -->
+    <div class="model-card">
 
-        <!-- [TOP BUTTON GROUP] -->
-        <div class="model-buttons top-actions">
-          <button class="action-btn" data-action="Game PULL">⚽️ Game PULL</button>
-          <button class="action-btn" data-action="Standing PULL">📊 Standing PULL</button>
-          <button class="action-btn" data-action="Predict">🎯 Predict</button>
-          <button class="action-btn" data-action="Analysis">📈 Analysis</button>
-          <button class="action-btn" data-action="League PULL">🏆 League PULL</button>
+      <!-- [TOP BUTTON GROUP] -->
+      <div class="model-buttons top-actions">
+        <button class="action-btn game" data-action="Game PULL">
+          ⚽️ Game PULL <span class="active-dot" aria-hidden="true"></span>
+        </button>
 
-          <button class="action-btn t-indigo" data-action="UPDATE_PULL">
-            <span class="active-dot">●</span> 🔄 Update PULL
-          </button>
-        </div>
+        <button class="action-btn standing" data-action="Standing PULL">
+          📊 Standing PULL <span class="active-dot" aria-hidden="true"></span>
+        </button>
 
-        <div class="buttons-separator"></div>
+        <button class="action-btn predict" data-action="Predict">
+          🎯 Predict <span class="active-dot" aria-hidden="true"></span>
+        </button>
 
-        <!-- [BOTTOM BUTTON GROUP] -->
-        <div class="model-buttons bottom-actions">
+        <button class="action-btn analysis" data-action="Analysis">
+          📈 Analysis <span class="active-dot" aria-hidden="true"></span>
+        </button>
 
-          <button class="action-btn t-indigo" data-action="SHOW_CURRENT">
-            <span class="active-dot">●</span> Show Current
-          </button>
+        <button class="action-btn league" data-action="League PULL">
+          🏆 League PULL <span class="active-dot" aria-hidden="true"></span>
+        </button>
 
-          <button class="action-btn" data-action="MODEL_FIT">🧠 Model FIT</button>
-
-          <button class="action-btn t-clear-table" data-action="CLEAR_TABLE">
-            <span class="active-dot">●</span> 🗑️ Clear Table
-          </button>
-
-          <button class="action-btn t-purple" data-action="Backup">
-            <span class="active-dot">●</span> 🧩 Backup Cloud
-          </button>
-
-          <button id="btnConfiguration" class="action-btn">⚙️ Configration</button>
-
-          <button class="action-btn t-red" data-action="STOP">
-            <span class="active-dot">●</span> 🚨 STOP RUN
-          </button>
-
-        </div>
+        <button class="action-btn update" data-action="UPDATE_PULL">
+          🔄 Update PULL <span class="active-dot" aria-hidden="true"></span>
+        </button>
       </div>
 
-      <!-- [LOG PANEL CARD] -->
-      <div class="model-card">
-        <div class="log-panel" id="logPanel">
-          <div class="log-line system">
-            [SYSTEM] Ready for any action. Please press any action button! ☝️☝️☝️
-          </div>
-        </div>
-      </div>
+      <div class="buttons-separator"></div>
 
-      <!-- [INPUT CARD] -->
-      <div class="model-card model-input">
-        <input id="modelInput" type="text" placeholder="provide your input from here ➡️ [ENTER]" />
-        <div class="model-input-actions">
-          <button class="action-btn t-amber" id="btnClear">
-            <span class="active-dot">●</span> Clear Logs
-          </button>
-        </div>
-      </div>
+      <!-- [BOTTOM BUTTON GROUP] -->
+      <div class="model-buttons bottom-actions">
 
-    </div>
+        <button class="action-btn show" data-action="SHOW_CURRENT">
+          👁️ Show Current <span class="active-dot" aria-hidden="true"></span>
+        </button>
 
-    <!-- [LOADER OVERLAY] (for SHOW_CURRENT) -->
-    <div id="loaderOverlay" aria-hidden="true">
-      <div class="loaderCard">
-        <div class="spinner"></div>
-        <div style="font-weight:650;">Loading current period games...</div>
-        <div style="opacity:.75;font-size:13px;margin-top:6px;">Please wait</div>
+        <button class="action-btn fit" data-action="MODEL_FIT">
+          🧠 Model FIT <span class="active-dot" aria-hidden="true"></span>
+        </button>
+
+        <button class="action-btn clear-table" data-action="CLEAR_TABLE">
+          🗑️ Clear Table <span class="active-dot" aria-hidden="true"></span>
+        </button>
+
+        <button class="action-btn backup" data-action="Backup">
+          🧩 Backup Cloud <span class="active-dot" aria-hidden="true"></span>
+        </button>
+
+        <button id="btnConfiguration" class="action-btn config" type="button">
+          ⚙️ Configuration <span class="active-dot" aria-hidden="true"></span>
+        </button>
+
+        <button class="action-btn stop" data-action="STOP">
+          🚨 STOP RUN <span class="active-dot" aria-hidden="true"></span>
+        </button>
+
       </div>
     </div>
-  `;
+
+    <!-- [LOG PANEL CARD] -->
+    <div class="model-card">
+      <div class="log-panel" id="logPanel">
+        <div class="log-line system">
+          [SYSTEM] Ready for any action. Please press any action button! ☝️☝️☝️
+        </div>
+      </div>
+    </div>
+
+    <!-- [INPUT CARD] -->
+    <div class="model-card model-input">
+      <input id="modelInput" type="text" placeholder="provide your input from here ➡️ [ENTER]" />
+      <div class="model-input-actions">
+        <button class="action-btn clear-logs" id="btnClear" type="button">
+          🧽 Clear Logs <span class="active-dot" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- [LOADER OVERLAY] (for SHOW_CURRENT) -->
+  <div id="loaderOverlay" aria-hidden="true">
+    <div class="loaderCard">
+      <div class="spinner"></div>
+      <div style="font-weight:650;">Loading current period games...</div>
+      <div style="opacity:.75;font-size:13px;margin-top:6px;">Please wait</div>
+    </div>
+  </div>
+`;
+
+// last pressed button indicator (.active) - visuals in model.css
+const allActionButtons = main.querySelectorAll(".model-buttons .action-btn");
+allActionButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    allActionButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  });
+});
 
   /* =========================================================
      [CONFIG BUTTON] Same redirect as old model.html
