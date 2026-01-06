@@ -39,6 +39,14 @@ STABILITY FIXES (ADDED):
       nav_user_panel: "User Panel", // [ADDED] matches sidebar key
       sidebar_note_title: "Note",
       sidebar_note_desc: "Later we will show/hide menu items based on user_type.",
+      /* =========================================================
+        FILE: /js/app.js
+        SECTION: Sidebar labels (NEW)
+        PURPOSE:
+        - Sidebar subscription label translation
+        ========================================================= */
+        nav_subscription: "Subscription",
+
 
       userpanel_title: "User Panel",
       userpanel_hint: "Click to open the user panel.",
@@ -120,7 +128,31 @@ STABILITY FIXES (ADDED):
       cancel_desc: "Your payment was cancelled. No charge was made.",
       cancel_hint: "You can return and choose a subscription plan again.",
       cancel_back: "Back to Subscription Form",
-      cancel_redirect: "Redirecting in"
+      cancel_redirect: "Redirecting in",
+
+      /* =========================================================
+      FILE: /js/app.js
+      SECTION: Subscription Info Page (EN)
+      ========================================================= */
+      subsinfo_page_title: "Subscription",
+      subsinfo_badge: "AI • Football • Insights",
+      subsinfo_title: "Subscription",
+      subsinfo_desc:
+        "This platform shares AI & ML based football match predictions, analysis, and the model’s daily/weekly selected games for subscribers.",
+      subsinfo_btn_to_form: "Go to Subscription Form",
+      subsinfo_btn_trial: "Request 1-Week Free Trial (via Contact)",
+      subsinfo_trial_note:
+        "Free 1-week trial is only by request via Contact. Paid plans are activated via the subscription form.",
+      subsinfo_m1_title: "Daily",
+      subsinfo_m1_desc: "Model outputs & analysis",
+      subsinfo_m2_title: "Weekly",
+      subsinfo_m2_desc: "Selected games for subscribers",
+      subsinfo_m3_title: "Results",
+      subsinfo_m3_desc: "Track trends over time",
+      subsinfo_plans_title: "Plans",
+      subsinfo_plans_sub: "Choose a plan length. Prices change automatically by language (TR: ₺, EN: €).",
+
+
 
     },
     tr: {
@@ -133,6 +165,8 @@ STABILITY FIXES (ADDED):
 
       userpanel_title: "Kullanıcı Paneli",
       userpanel_hint: "Kullanıcı paneline gitmek için tıklayınız.",
+      nav_subscription : "Abonelik",
+
       
 
       // Pages (demo)
@@ -210,8 +244,29 @@ STABILITY FIXES (ADDED):
       cancel_desc: "Ödeme işlemi iptal edildi. Herhangi bir ücret alınmadı.",
       cancel_hint: "Geri dönüp abonelik planınızı tekrar seçebilirsiniz.",
       cancel_back: "Abonelik Formuna Dön",
-      cancel_redirect: "Yönlendiriliyorsunuz"
+      cancel_redirect: "Yönlendiriliyorsunuz",
 
+      /* =========================================================
+      FILE: /js/app.js
+      SECTION: Subscription Info Page (TR)
+      ========================================================= */
+      subsinfo_page_title: "Abonelik",
+      subsinfo_badge: "AI • Futbol • İçgörü",
+      subsinfo_title: "Abonelik",
+      subsinfo_desc:
+        "Bu platform, yapay zeka ve makine öğrenmesi ile futbol maçlarına dair tahmin, analiz ve modelin günlük/haftalık seçtiği oyunları abonelere sunar.",
+      subsinfo_btn_to_form: "Abonelik Formuna Git",
+      subsinfo_btn_trial: "1 Haftalık Ücretsiz Deneme (İletişimden)",
+      subsinfo_trial_note:
+        "1 haftalık ücretsiz deneme yalnızca İletişim sayfasından talep ile verilir. Ücretli paketler abonelik formu üzerinden başlatılır.",
+      subsinfo_m1_title: "Günlük",
+      subsinfo_m1_desc: "Model çıktıları & analiz",
+      subsinfo_m2_title: "Haftalık",
+      subsinfo_m2_desc: "Abonelere seçili oyunlar",
+      subsinfo_m3_title: "Sonuçlar",
+      subsinfo_m3_desc: "Zamanla trend takibi",
+      subsinfo_plans_title: "Paketler",
+      subsinfo_plans_sub: "Süre seçin. Fiyatlar dile göre otomatik değişir (TR: ₺, EN: €).",
 
 
     },

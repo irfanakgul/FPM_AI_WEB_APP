@@ -1,9 +1,15 @@
 /* =========================================================
 FILE: /js/subscription_form.js
 PURPOSE:
-- Load subscription plans from Google Sheet (subs_prices)
+- Load subscription plans from server endpoint:
+    GET /api/subs/prices
+  (which reads Google Sheet subs_prices)
 - Show detailed error if load fails
-- Fallback sheetName attempts (case/space issues)
+- Keep existing working flow:
+  * login guard
+  * /api/user/get-info autofill
+  * lang:changed rerender (no refetch)
+  * submit -> POST /payment (server will lookup price from subs_prices)
 ========================================================= */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -18,12 +24,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   // UI helper
   // =========================================================
   function showStatus(msg, type = "info") {
+    if (!statusEl) return;
     statusEl.className = `subs-status ${type}`;
     statusEl.textContent = msg;
     statusEl.style.display = "block";
   }
 
   function hideStatus() {
+    if (!statusEl) return;
     statusEl.style.display = "none";
   }
 
@@ -44,10 +52,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // =========================================================
   // Autofill username
   // =========================================================
-  usernameEl.value = currentUser.username || "";
+  if (usernameEl) usernameEl.value = currentUser.username || "";
 
   // =========================================================
-  // Fetch mail + name (existing endpoint)
+  // Fetch mail + name (existing endpoint) - DO NOT BREAK
   // =========================================================
   try {
     const res = await fetch("/api/user/get-info", {
@@ -58,20 +66,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const json = await res.json();
     if (json.success) {
-      mailEl.value = json.mail || "";
-      nameEl.value = json.name || "";
+      if (mailEl) mailEl.value = json.mail || "";
+      if (nameEl) nameEl.value = json.name || "";
     }
   } catch (e) {
     console.warn("get-info failed:", e);
   }
 
   // =========================================================
-  // IMPORTANT: Put the correct sheetId that contains "subs_prices"
-  // If subs_prices is in your "admin info" spreadsheet, use THAT ID here.
-  // =========================================================
-  const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-
   // Cache rows
+  // =========================================================
   let subsRows = [];
 
   function normalizePrice(value) {
@@ -93,7 +97,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (lang === "tr") {
       const monthText = months ? `${months} Ay` : String(subsType);
-      const priceText = priceTry !== "" ? ` (${priceTry} TL)` : "";
+      const priceText = priceTry !== "" ? ` (${priceTry} ₺)` : "";
       return `${monthText}${priceText}`;
     } else {
       const monthText = months
@@ -106,6 +110,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function renderOptions() {
     const lang = getLang();
+    if (!selectEl) return;
+
     selectEl.innerHTML = "";
 
     if (!subsRows.length) {
@@ -116,77 +122,70 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    subsRows.forEach((row) => {
+    // Sort by months if possible (UI only)
+    const sorted = [...subsRows].sort((a, b) => {
+      const am = extractMonths(a.SUBS_TYPE ?? a.subs_type ?? "") ?? 999;
+      const bm = extractMonths(b.SUBS_TYPE ?? b.subs_type ?? "") ?? 999;
+      return am - bm;
+    });
+
+    sorted.forEach((row) => {
       const subsType = row.SUBS_TYPE ?? row.subs_type ?? "";
       if (!subsType) return;
 
       const opt = document.createElement("option");
-      opt.value = String(subsType).trim(); // plan = SUBS_TYPE
+      opt.value = String(subsType).trim(); // plan = SUBS_TYPE (unchanged)
       opt.textContent = buildLabel(row, lang);
       selectEl.appendChild(opt);
     });
   }
 
   // =========================================================
-  // Load subs_prices (with fallback sheet names)
+  // Load subs_prices (UPDATED: uses GET /api/subs/prices)
   // =========================================================
-  async function tryLoadSheet(sheetName) {
-    const res = await fetch("/api/load-sheet", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sheetId: SHEET_ID, sheetName }),
-    });
-
-    // If server returns non-200, show it
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`HTTP ${res.status} ${res.statusText} ${text}`.trim());
-    }
-
-    const json = await res.json();
-    return json;
-  }
-
   async function loadSubsPrices() {
     const lang = getLang();
     showStatus(lang === "tr" ? "Planlar yükleniyor..." : "Loading plans...", "info");
-    btnSubmit.disabled = true;
+    if (btnSubmit) btnSubmit.disabled = true;
 
-    // Try multiple possible sheet names (case/space issues)
-    const candidates = [
-      "subs_prices",
-      "SUBS_PRICES",
-      "Subs_Prices",
-      "subs_prices ",
-      "SUBS_PRICES ",
-    ];
+    try {
+      const res = await fetch("/api/subs/prices", { cache: "no-store" });
 
-    let lastErr = null;
-
-    for (const name of candidates) {
+      // Support non-JSON unexpected responses
+      const text = await res.text().catch(() => "");
+      let json = null;
       try {
-        const json = await tryLoadSheet(name);
-
-        if (json && json.success && Array.isArray(json.data)) {
-          subsRows = json.data;
-          renderOptions();
-          hideStatus();
-          btnSubmit.disabled = false;
-          console.log("subs_prices loaded with sheetName:", name, "rows:", subsRows.length);
-          return;
-        } else {
-          lastErr = new Error(json?.error || `Returned success=false for sheetName="${name}"`);
-        }
+        json = JSON.parse(text);
       } catch (e) {
-        lastErr = e;
+        json = null;
       }
-    }
 
-    // If all failed, show detailed error on screen
-    const msgTR = `Planlar yüklenemedi. Hata: ${lastErr?.message || "Bilinmeyen"}`;
-    const msgEN = `Plans could not be loaded. Error: ${lastErr?.message || "Unknown"}`;
-    showStatus(lang === "tr" ? msgTR : msgEN, "error");
-    btnSubmit.disabled = false;
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText} ${text}`.trim());
+      }
+
+      if (!json || !json.success || !Array.isArray(json.rows)) {
+        throw new Error(json?.error || "Invalid response from /api/subs/prices");
+      }
+
+      subsRows = json.rows;
+
+      renderOptions();
+      hideStatus();
+      if (btnSubmit) btnSubmit.disabled = false;
+
+      console.log("subs_prices loaded via /api/subs/prices rows:", subsRows.length);
+
+    } catch (err) {
+      console.error("subs_prices load failed:", err);
+
+      const msgTR = `Planlar yüklenemedi. Hata: ${err?.message || "Bilinmeyen"}`;
+      const msgEN = `Plans could not be loaded. Error: ${err?.message || "Unknown"}`;
+      showStatus(lang === "tr" ? msgTR : msgEN, "error");
+
+      // Keep submit enabled so user can retry or you can debug easily
+      if (btnSubmit) btnSubmit.disabled = false;
+    }
   }
 
   await loadSubsPrices();
@@ -199,46 +198,50 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // =========================================================
-  // Submit -> /payment (server will lookup price from subs_prices)
+  // Submit -> /payment (DO NOT BREAK)
+  // Server will lookup price from subs_prices
   // =========================================================
-  document.getElementById("subsForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  const formEl = document.getElementById("subsForm");
+  if (formEl) {
+    formEl.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    const plan = selectEl.value;
-    if (!plan) {
-      showStatus(getLang() === "tr" ? "Lütfen bir plan seçin." : "Please select a plan.", "error");
-      return;
-    }
+      const plan = selectEl ? selectEl.value : "";
+      if (!plan) {
+        showStatus(getLang() === "tr" ? "Lütfen bir plan seçin." : "Please select a plan.", "error");
+        return;
+      }
 
-    btnSubmit.disabled = true;
-    showStatus(getLang() === "tr" ? "Ödeme sayfasına yönlendiriliyorsunuz..." : "Redirecting to payment...", "info");
+      if (btnSubmit) btnSubmit.disabled = true;
+      showStatus(getLang() === "tr" ? "Ödeme sayfasına yönlendiriliyorsunuz..." : "Redirecting to payment...", "info");
 
-    const fullName = (nameEl.value || "").trim();
-    const firstName = fullName.split(" ")[0] || "";
-    const lastName = fullName.split(" ")[1] || "";
-    const email = mailEl.value || "";
-    const lang = getLang();
+      const fullName = (nameEl?.value || "").trim();
+      const firstName = fullName.split(" ")[0] || "";
+      const lastName = fullName.split(" ")[1] || "";
+      const email = mailEl?.value || "";
+      const lang = getLang();
 
-    try {
-      const res = await fetch("/payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: usernameEl.value,
-          firstName,
-          lastName,
-          email,
-          plan,
-          lang,
-        }),
-      });
+      try {
+        const res = await fetch("/payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: usernameEl?.value || "",
+            firstName,
+            lastName,
+            email,
+            plan,
+            lang,
+          }),
+        });
 
-      const stripeUrl = await res.text();
-      window.location.assign(stripeUrl);
-    } catch (err) {
-      console.error(err);
-      btnSubmit.disabled = false;
-      showStatus(getLang() === "tr" ? "Ödeme yönlendirmesi başarısız." : "Payment redirect failed.", "error");
-    }
-  });
+        const stripeUrl = await res.text();
+        window.location.assign(stripeUrl);
+      } catch (err) {
+        console.error(err);
+        if (btnSubmit) btnSubmit.disabled = false;
+        showStatus(getLang() === "tr" ? "Ödeme yönlendirmesi başarısız." : "Payment redirect failed.", "error");
+      }
+    });
+  }
 });
