@@ -1,40 +1,103 @@
 <!-- =========================================================
 FILE: /pages/results.html
 PURPOSE:
-- Results page shell (content later)
-- Uses shared header/sidebar/footer via layout.js
+- Results page converted to central layout (header/sidebar/footer injected)
+- Flat layout: NO central "main-card" body box on this page
+- Keeps ALL existing logic and element IDs
 ========================================================= -->
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Results • FPM AI</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FPM - Results</title>
 
-  <!-- Global + page CSS -->
+  <!-- GLOBAL CSS + PAGE CSS -->
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/results.css" />
+
+  <!-- XLSX (Excel Export) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
   <div class="app-shell">
+    <!-- Central header -->
     <header class="app-header" id="appHeader"></header>
 
     <div class="app-content">
+      <!-- Central sidebar -->
       <aside class="app-sidebar" id="appSidebar"></aside>
 
+      <!-- Main -->
       <main class="app-main">
-        <div class="main-card results-card">
-          <h1>Results</h1>
-          <p>This page will show results (admin + co-admin).</p>
+        <!-- =========================================================
+        FLAT PAGE WRAP (no main-card)
+        ========================================================= -->
+        <div class="results-page">
 
-          <div class="results-placeholder">
-            Coming soon…
+          <!-- Top bar -->
+          <div class="results-head">
+            <div>
+              <h2 class="results-title" data-i18n="results_title">Results</h2>
+              <div class="results-sub" data-i18n="results_desc">
+                Load sheets, filter by match date, edit permitted fields and export to Excel.
+              </div>
+            </div>
+
+            <!-- SheetId label (admin only - logic unchanged) -->
+            <div id="sheetIdLabel" class="sheetid-pill"></div>
           </div>
+
+          <!-- Permission box (logic unchanged) -->
+          <div id="noPermissionBox" class="perm-box" data-i18n="results_no_permission">
+            You do not have permission to access this page.
+          </div>
+
+          <!-- Selected sheet label (logic unchanged) -->
+          <div id="selectedSheetLabel" class="selected-sheet"></div>
+
+          <!-- Actions row (IDs must remain) -->
+          <div class="results-actions">
+            <button id="loadSheetsBtn" class="btn-primary" data-i18n="load_sheets">Load Sheets</button>
+
+            <label class="field">
+              <span class="field-label" data-i18n="sheet_label">Sheet</span>
+              <select id="sheetSelect"></select>
+            </label>
+
+            <button id="updateBtn" class="btn-success" data-i18n="update">Update</button>
+
+            <button id="syncStatusBtn" class="btn-purple" style="display:none;" data-i18n="sync">Sync</button>
+
+            <button id="exportExcelBtn" class="btn-primary" data-i18n="export_excel">Export Excel</button>
+          </div>
+
+          <!-- Filters -->
+          <div class="results-filters">
+            <label class="field">
+              <span class="field-label" data-i18n="match_date">Match Date</span>
+              <select id="dateSelect" multiple size="6"></select>
+            </label>
+
+            <div class="filter-actions">
+              <button id="selectAllBtn" class="btn-soft" data-i18n="all">All</button>
+              <button id="filterBtn" class="btn-primary" data-i18n="filter">Filter</button>
+              <button id="clearBtn" class="btn-soft" data-i18n="clear">Clear</button>
+            </div>
+          </div>
+
+          <!-- Status line (logic unchanged) -->
+          <div id="status" class="results-status">Ready.</div>
+
+          <!-- Table -->
+          <div id="tableWrap" class="results-table-wrap"></div>
+
         </div>
       </main>
     </div>
 
+    <!-- Central footer -->
     <footer class="app-footer" id="appFooter"></footer>
   </div>
 
