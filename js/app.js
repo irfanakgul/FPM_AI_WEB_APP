@@ -88,6 +88,25 @@ STABILITY FIXES (ADDED):
 
       nav_weekly: "Weekly Games",
 
+      // =========================================================
+      // SECTION: Subscription Form (NEW i18n)
+      // PURPOSE: Texts for /pages/subscription_form.html
+      // =========================================================
+      subs_title: "Subscription Form",
+      subs_desc: "Choose a plan and continue to secure payment.",
+      subs_username: "Username (AUTO FILL)",
+      subs_email: "E-mail (AUTO FILL)",
+      subs_fullname: "Full Name",
+      subs_fullname_ph: "Your full name (optional)",
+      subs_type: "Subscription Type",
+      subs_plan_1: "1 Month",
+      subs_plan_3: "3 Months",
+      subs_plan_6: "6 Months",
+      subs_plan_12: "12 Months",
+      subs_plan_hint: "You will be redirected to payment after clicking Start Subscription.",
+      subs_start: "Start Subscription",
+      subs_success: "✔ Subscription created!",
+
     },
     tr: {
       // Sidebar
@@ -143,6 +162,25 @@ STABILITY FIXES (ADDED):
       contact_btn_submit: "Gönder",
       contact_success: "✔ Mesajınız gönderildi!",
       nav_weekly: "Haftalık Maçlar",
+      
+      // =========================================================
+      // SECTION: Subscription Form (NEW i18n)
+      // PURPOSE: Texts for /pages/subscription_form.html
+      // =========================================================
+      subs_title: "Abonelik Formu",
+      subs_desc: "Paket seçin ve güvenli ödeme sayfasına geçin.",
+      subs_username: "Kullanıcı Adı (OTO. DOLDURULUR)",
+      subs_email: "E-posta (OTO. DOLDURULUR)",
+      subs_fullname: "Ad Soyad",
+      subs_fullname_ph: "Ad Soyad (opsiyonel)",
+      subs_type: "Abonelik Tipi",
+      subs_plan_1: "1 Ay",
+      subs_plan_3: "3 Ay",
+      subs_plan_6: "6 Ay",
+      subs_plan_12: "12 Ay",
+      subs_plan_hint: "Aboneliği Başlat’a tıkladıktan sonra ödeme sayfasına yönlendirileceksiniz.",
+      subs_start: "Aboneliği Başlat",
+      subs_success: "✔ Abonelik oluşturuldu!",
 
     },
   };

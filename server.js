@@ -1927,8 +1927,25 @@ app.post("/api/admin/add-member", async (req, res) => {
 // PAYMENT AREA
 // =====================================
 
-const stripe = require("stripe")("sk_test_51SaiE3ReWYfwVBdgIUg7NQXbxJGlsoRxVICd8OgPkxUkMrDN82c174hxyQTQ0ipyr4h5xSNyGjP8FxWYbaq0jlpS008Ca2DQA3");
+// =========================================================
+// PURPOSE:
+// - Stripe checkout session create
+// - Subscription plan + price comes from Google Sheet: subs_prices
+// - Currency depends on language:
+//    * TR -> PRICE_TRY, currency "try"
+//    * EN -> PRICE_EURO, currency "eur"
+// - Metadata keeps username + plan so finalize can write to sheet
+// IMPORTANT:
+// - amount must be calculated on server (never trust client price)
+// =========================================================
 
+const stripe = require("stripe")(
+  "sk_test_51SaiE3ReWYfwVBdgIUg7NQXbxJGlsoRxVICd8OgPkxUkMrDN82c174hxyQTQ0ipyr4h5xSNyGjP8FxWYbaq0jlpS008Ca2DQA3"
+);
+
+// =========================================================
+// PURPOSE: Static pages for Stripe results
+// =========================================================
 app.get("/success", (req, res) => {
   res.sendFile(__dirname + "/success.html");
 });
@@ -1937,71 +1954,178 @@ app.get("/cancel", (req, res) => {
   res.sendFile(__dirname + "/cancel.html");
 });
 
-
-
-app.get("/payment", (req, res) => {
-  res.sendFile(__dirname + "/pages/pay/payment.html");
-});
 app.get("/payment", (req, res) => {
   res.sendFile(__dirname + "/pages/pay/payment.html");
 });
 
+// =========================================================
+// HELPER: price parse -> minor units (cents/kuruş)
+// EX: "5" -> 500, "5.00" -> 500, "5,00" -> 500
+// =========================================================
+function toMinorUnits(priceValue) {
+  const normalized = String(priceValue ?? "")
+    .trim()
+    .replace(/\s/g, "")
+    .replace(",", ".");
+  const num = Number(normalized);
+  if (!Number.isFinite(num) || num < 0) return null;
+  return Math.round(num * 100);
+}
 
-// post payment /////
+// =========================================================
+// HELPER: load subs_prices rows from Google Sheet
+// - First tries local function loadSheetData(sheetId, sheetName) if exists
+// - Otherwise calls existing endpoint POST /api/load-sheet
+// =========================================================
+async function loadSubsPricesRows(req) {
+  const sheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+  const sheetName = "subs_prices";
+
+  // 1) If you already have a server-side function, use it directly
+  if (typeof loadSheetData === "function") {
+    const rows = await loadSheetData(sheetId, sheetName);
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  // 2) Otherwise, call your own API endpoint
+  // NOTE: Node v25 has fetch built-in.
+  const baseUrl = `${req.protocol}://${req.get("host")}`;
+  const resp = await fetch(`${baseUrl}/api/load-sheet`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sheetId, sheetName })
+  });
+
+  const json = await resp.json();
+  if (!json.success) return [];
+  return Array.isArray(json.data) ? json.data : [];
+}
+
+// =========================================================
+// POST /payment
+// PURPOSE:
+// - Receives: username, firstName, lastName, email, plan(SUBS_TYPE), lang("tr"/"en")
+// - Looks up plan price from subs_prices sheet
+// - Creates Stripe checkout session with correct currency + amount
+// =========================================================
 app.post("/payment", async (req, res) => {
   console.log("POST /payment çalıştı!");
 
-  // 📌 BURASI ÇOK ÖNEMLİ
-  const { username, firstName, lastName, email, plan } = req.body;
-  console.log("Gelen username:", username);
+  // =========================================================
+  // INPUTS (client sends plan=SUBS_TYPE and lang="tr"/"en")
+  // =========================================================
+  const { username, firstName, lastName, email, plan, lang } = req.body;
 
-  let amount = 0;
-  if (plan === "monthly") amount = 4000;
-  if (plan === "yearly") amount = 8000;
-  if (plan === "trial") amount = 0;
+  console.log("Gelen username:", username);
+  console.log("Gelen plan (SUBS_TYPE):", plan);
+  console.log("Gelen lang:", lang);
+
+  if (!username || !email || !plan) {
+    return res.status(400).send("Missing required fields: username/email/plan");
+  }
+
+  // =========================================================
+  // LOAD subs_prices + find matching plan row
+  // Columns: SUBS_TYPE, PRICE_EURO, PRICE_TRY
+  // =========================================================
+  let subsRows = [];
+  try {
+    subsRows = await loadSubsPricesRows(req);
+  } catch (e) {
+    console.error("subs_prices load error:", e);
+    return res.status(500).send("Cannot load subs_prices sheet.");
+  }
+
+  const row = subsRows.find(
+    (r) => String(r.SUBS_TYPE ?? "").trim() === String(plan).trim()
+  );
+
+  if (!row) {
+    return res.status(400).send("Invalid plan: SUBS_TYPE not found in subs_prices.");
+  }
+
+  // =========================================================
+  // CURRENCY + PRICE selection by language
+  // TR -> TRY, EN -> EUR
+  // =========================================================
+  const isTR = String(lang || "").toLowerCase() === "tr";
+  const currency = isTR ? "try" : "eur";
+  const priceRaw = isTR ? row.PRICE_TRY : row.PRICE_EURO;
+
+  const amountMinor = toMinorUnits(priceRaw);
+  if (amountMinor === null) {
+    return res.status(400).send("Invalid price in subs_prices for selected plan.");
+  }
+
+  // =========================================================
+  // Stripe mode:
+  // - If amount > 0 => "payment"
+  // - If amount == 0 => "setup" (keeps your previous behavior)
+  // =========================================================
+  const mode = amountMinor === 0 ? "setup" : "payment";
 
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      mode: amount === 0 ? "setup" : "payment",
+      mode,
 
-      line_items: amount > 0 ? [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: { name: `${plan} subscription` },
-            unit_amount: amount,
-          },
-          quantity: 1,
-        },
-      ] : [],
+      // Only include line_items if payment amount > 0
+      line_items:
+        amountMinor > 0
+          ? [
+              {
+                price_data: {
+                  currency,
+                  product_data: {
+                    // Display nice name in Stripe checkout
+                    name: `FPM Subscription - ${plan}`
+                  },
+                  unit_amount: amountMinor
+                },
+                quantity: 1
+              }
+            ]
+          : [],
 
       customer_email: email,
 
-      // 📌 username buraya GELMEK ZORUNDA
+      // =========================================================
+      // METADATA (used later in subscription_finalize)
+      // Keep it stable!
+      // =========================================================
       metadata: {
         username: username,
-        firstName: firstName,
-        lastName: lastName,
+        firstName: firstName || "",
+        lastName: lastName || "",
         email: email,
-        plan: plan
+        plan: plan, // SUBS_TYPE
+        lang: isTR ? "TR" : "EN",
+        currency: currency,
+        amountMinor: String(amountMinor)
       },
 
-      success_url: "http://127.0.0.1:3000/pages/pay/success.html?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "http://127.0.0.1:3000/pages/pay/cancel.html",
+      // Keep your existing URLs
+      success_url:
+        "http://127.0.0.1:3000/pages/pay/success.html?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "http://127.0.0.1:3000/pages/pay/cancel.html"
     });
 
     return res.send(session.url);
-
   } catch (err) {
     console.error("Stripe Error:", err);
     return res.status(500).send("Stripe Error: " + err.message);
   }
 });
 
-
 // =====================================================
 // ÖDEME SONRASI: SUCCESS.HTML → Sheet'e Kayıt
+// =====================================================
+// PURPOSE:
+// - success.html sends sessionId
+// - we retrieve Stripe session metadata
+// - write subscription type to sheet
+// NOTE:
+// - md.plan is SUBS_TYPE now
 // =====================================================
 app.post("/api/subscription_finalize", async (req, res) => {
   try {
@@ -2013,19 +2137,18 @@ app.post("/api/subscription_finalize", async (req, res) => {
     console.log("Finalize METADATA:", md);
 
     await writeSubscriptionToSheet({
-    username: md.username,
-    mail: md.email,
-    subs_type: md.plan
-});
+      username: md.username,
+      mail: md.email,
+      subs_type: md.plan // SUBS_TYPE
+      // If you want later: currency/md.amountMinor/md.lang etc.
+    });
 
     res.json({ success: true });
-
   } catch (err) {
     console.error("Finalize error:", err);
     res.json({ success: false, error: err.message });
   }
 });
-
 
 // =====================================
 // MODEL CHAPTER
@@ -2978,6 +3101,9 @@ app.post("/api/user/update-profile", async (req, res) => {
 
 //
 
+
+
+
 // =========================================================
 // [USER] DELETE ACCOUNT (requires password match)
 // - Verifies password from USER_TAB
@@ -3036,7 +3162,6 @@ app.post("/api/user/delete-account", async (req, res) => {
   }
 });
 //
-
 
 
 

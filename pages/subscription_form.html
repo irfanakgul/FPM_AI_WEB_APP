@@ -1,0 +1,102 @@
+<!-- =========================================================
+FILE: /pages/subscription_form.html
+PURPOSE:
+- Subscription form (central layout)
+- Main-card stays on this page
+- Subscription options + prices are loaded from Google Sheet: subs_prices
+- Language-aware display (TR uses TRY, EN uses EUR)
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FPM - Subscription</title>
+
+  <!-- =========================================================
+  GLOBAL CSS + PAGE CSS
+  ========================================================= -->
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/subscription_form.css">
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- Central header -->
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="app-content">
+      <!-- Central sidebar -->
+      <aside class="app-sidebar" id="appSidebar"></aside>
+
+      <!-- Main -->
+      <main class="app-main">
+        <!-- =========================================================
+        main-card stays for this page
+        ========================================================= -->
+        <div class="main-card subs-card">
+
+          <div class="subs-head">
+            <h2 class="subs-title" data-i18n="subs_title">Subscription Form</h2>
+            <div class="subs-sub" data-i18n="subs_desc">
+              Choose a plan and continue to secure payment.
+            </div>
+          </div>
+
+          <!-- Inline status (no alert) -->
+          <div id="subsStatus" class="subs-status"></div>
+
+          <form id="subsForm" class="subs-form">
+            <!-- Username (readonly) -->
+            <div class="form-group">
+              <label for="username" data-i18n="subs_username">Username</label>
+              <input id="username" readonly>
+            </div>
+
+            <!-- Mail (readonly) -->
+            <div class="form-group">
+              <label for="mail" data-i18n="subs_email">E-mail</label>
+              <input id="mail" readonly>
+            </div>
+
+            <!-- Full name (optional) -->
+            <div class="form-group">
+              <label for="name" data-i18n="subs_fullname">Full Name</label>
+              <input id="name" placeholder="Your full name (optional)" data-i18n-placeholder="subs_fullname_ph">
+            </div>
+
+            <!-- Subscription type (dynamic options from subs_prices) -->
+            <div class="form-group">
+              <label for="subsType" data-i18n="subs_type">Subscription Type</label>
+
+              <select id="subsType" required>
+                <!-- Options will be injected by /js/subscription_form.js -->
+              </select>
+
+              <div class="subs-hint" data-i18n="subs_plan_hint">
+                You will be redirected to payment after clicking Start Subscription.
+              </div>
+            </div>
+
+            <button id="btnSubmit" class="btn-primary-wide" data-i18n="subs_start">
+              Start Subscription
+            </button>
+
+            <div id="successMsg" class="subs-success" data-i18n="subs_success">
+              ✔ Subscription created!
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+
+    <!-- Central footer -->
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/subscription_form.js"></script>
+</body>
+</html>

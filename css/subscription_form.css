@@ -1,0 +1,136 @@
+/* =========================================================
+FILE: /css/subscription_form.css
+PURPOSE:
+- Subscription form page styling only
+- Main-card stays here
+========================================================= */
+
+.subs-card{
+  max-width: 720px;
+  padding: 22px;
+}
+
+.subs-head{
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.subs-title{
+  margin: 0;
+}
+
+.subs-sub{
+  margin-top: 8px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+/* Status messages (no alert) */
+.subs-status{
+  display:none;
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  color: rgba(214,219,255,0.92);
+  font-weight: 750;
+}
+
+.subs-status.error{
+  display:block;
+  border-color: rgba(239,68,68,0.25);
+  background: rgba(239,68,68,0.10);
+  color: #ff9b9b;
+}
+.subs-status.info{
+  display:block;
+  border-color: rgba(122,162,255,0.25);
+  background: rgba(122,162,255,0.10);
+  color: rgba(214,219,255,0.92);
+}
+
+/* Form layout */
+.subs-form{
+  margin-top: 10px;
+}
+
+.form-group{
+  margin-top: 14px;
+}
+
+label{
+  display:block;
+  font-weight: 850;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: rgba(214,219,255,0.92);
+}
+
+input, select{
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #e6e9f5;
+  outline: none;
+  transition: box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+
+input::placeholder{
+  color: rgba(170,176,214,0.85);
+}
+
+input:focus, select:focus{
+  border-color: rgba(122,162,255,0.55);
+  background: rgba(255,255,255,0.085);
+  box-shadow: 0 0 0 4px rgba(122,162,255,0.14);
+}
+
+.subs-hint{
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* Primary submit button */
+.btn-primary-wide{
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 14px;
+
+  background: linear-gradient(135deg, rgba(122,162,255,0.92), rgba(99,102,241,0.65));
+  color: #0b1220;
+
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+.btn-primary-wide:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+  filter: brightness(1.03);
+}
+
+.btn-primary-wide:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Success text (normally payment redirects) */
+.subs-success{
+  display:none;
+  margin-top: 14px;
+  color: #4ade80;
+  text-align: center;
+  font-weight: 900;
+}
