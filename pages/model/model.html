@@ -1,0 +1,46 @@
+<!-- =========================================================
+FILE: /pages/model/model.html
+PURPOSE:
+- Model Panel page with centralized header/footer
+- NO SIDEBAR, but still uses app-shell and app-main
+- Uses standard centered main-card like other pages
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Model Panel • FPM AI</title>
+
+  <!-- GLOBAL CSS -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <!-- PAGE CSS -->
+  <link rel="stylesheet" href="/css/model.css" />
+</head>
+
+<body class="no-sidebar">
+  <div class="app-shell">
+    <!-- Header inject point (with correct class) -->
+    <header class="app-header" id="appHeader"></header>
+
+    <!-- Content area (NO SIDEBAR => single column) -->
+    <div class="app-content no-sidebar-content">
+      <main class="app-main">
+        <!-- STANDARD CENTERED MAIN CARD (same in all pages) -->
+        <div class="main-card">
+          <!-- Old logic expects #main to exist -->
+          <div id="main"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Footer inject point (with correct class) -->
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/model.js"></script>
+</body>
+</html>

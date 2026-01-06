@@ -8,7 +8,7 @@ PURPOSE:
 /* Login card tweaks (still uses .main-card base from style.css) */
 .login-card{
   /* Login için biraz daha dar ve ortalı */
-  max-width: 520px;
+  max-width: 560px;
 }
 
 /* Top area */

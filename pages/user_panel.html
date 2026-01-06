@@ -1,0 +1,192 @@
+<!-- =========================================================
+FILE: /pages/user_panel.html
+PURPOSE:
+- User Panel (central header/sidebar/footer)
+- UPDATED:
+  * Inline-edit Account Overview rows + refresh icon
+  * Subscription simplified (only End + Extend -> redirect)
+  * Password change with confirm
+  * Delete requires password
+  * NO alerts/popups (inline messages)
+IMPORTANT:
+- Keeps existing IDs used before where relevant:
+  userBox, subsBox, btnGoSubsForm, subsActions, subsMonths,
+  btnMailUpdate, btnPassUpdate, btnDelete, msg, activeTimerText
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>User Panel • FPM AI</title>
+
+  <!-- [GLOBAL CSS] -->
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <!-- [PAGE CSS] -->
+  <link rel="stylesheet" href="/css/user_panel.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- [CENTRAL HEADER] -->
+    <header class="app-header" id="appHeader"></header>
+
+    <!-- [GRID] sidebar + main -->
+    <div class="app-content">
+      <aside class="app-sidebar" id="appSidebar"></aside>
+
+      <!-- =====================================================
+           MAIN
+      ====================================================== -->
+      <main class="app-main">
+        <div class="main-card userpanel-card">
+
+          <!-- =================================================
+               PAGE HEAD
+          ================================================= -->
+          <div class="page-head">
+            <div>
+              <h2 class="page-title" data-i18n="pageTitle">User Panel</h2>
+              <div class="page-sub" data-i18n="pageSub">Manage your account settings & subscription.</div>
+            </div>
+
+            <div class="page-meta">
+              <!-- [TIMER] JS updates this -->
+              <span class="meta-pill" id="activeTimerText">Active: 0m 0s</span>
+            </div>
+          </div>
+
+          <!-- =================================================
+               GLOBAL INLINE MESSAGE (no popups)
+          ================================================= -->
+          <div id="msg" class="msg-line" aria-live="polite"></div>
+
+          <!-- =================================================
+               ACCOUNT OVERVIEW (editable rows)
+          ================================================= -->
+          <section class="card-surface">
+            <div class="card-head row-between">
+              <div>
+                <div class="card-title" data-i18n="accountOverview">Account Overview</div>
+                <div class="card-hint" data-i18n="accountHint">Click edit to update your details.</div>
+              </div>
+
+              <!-- [REFRESH ICON] -->
+              <button id="btnProfileRefresh" class="icon-btn" type="button" title="Refresh">
+                ⟳
+              </button>
+            </div>
+
+            <!-- JS renders rows into this container -->
+            <div id="userBox" class="kv-list"></div>
+          </section>
+
+          <!-- =================================================
+               SUBSCRIPTION (simplified)
+          ================================================= -->
+          <section class="card-surface">
+            <div class="card-head">
+              <div class="card-title" data-i18n="subscription">Subscription</div>
+              <div class="card-hint" data-i18n="subscriptionHint">Your current subscription status.</div>
+            </div>
+
+            <!-- JS fills this -->
+            <div id="subsBox" class="info-box"></div>
+
+            <!-- No subscription -> show -->
+            <button id="btnGoSubsForm" class="btn btn-primary btn-inline" style="display:none;" type="button">
+              Go to Subscription Form
+            </button>
+
+            <!-- Subscription actions (only if subscription exists) -->
+            <div id="subsActions" class="subs-actions" style="display:none;">
+              <div class="extend-row">
+                <div class="field" style="margin:0;">
+                  <label for="subsMonths" data-i18n="extendDuration">Extend (months)</label>
+                  <select id="subsMonths">
+                    <option value="1">1</option>
+                    <option value="3">3</option>
+                    <option value="6">6</option>
+                    <option value="12">12</option>
+                  </select>
+                </div>
+
+                <button id="btnExtendToForm" class="btn btn-primary" type="button">
+                  <span data-i18n="extendToForm">Extend → Subscription Form</span>
+                </button>
+              </div>
+
+              <button id="btnEndSubscription" class="btn btn-danger" type="button">
+                <span data-i18n="endSubscription">End Subscription</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- =================================================
+               PASSWORD CHANGE (with confirm)
+          ================================================= -->
+          <section class="card-surface">
+            <div class="card-head">
+              <div class="card-title" data-i18n="changePassword">Change Password</div>
+              <div class="card-hint" data-i18n="changePasswordHint">Enter current password, then set a new one.</div>
+            </div>
+
+            <div class="grid-2 tight">
+              <div class="field">
+                <label for="oldPass" data-i18n="currentPassword">Current Password</label>
+                <input id="oldPass" type="password" placeholder="••••••••" />
+              </div>
+
+              <div class="field">
+                <label for="newPass" data-i18n="newPassword">New Password</label>
+                <input id="newPass" type="password" placeholder="min 4 chars" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="newPass2" data-i18n="newPassword2">Confirm New Password</label>
+              <input id="newPass2" type="password" placeholder="repeat new password" />
+            </div>
+
+            <button id="btnPassUpdate" class="btn btn-primary" type="button">
+              <span data-i18n="updatePassword">Update Password</span>
+            </button>
+          </section>
+
+          <!-- =================================================
+               DELETE ACCOUNT (requires password)
+          ================================================= -->
+          <section class="card-surface danger-surface">
+            <div class="card-head">
+              <div class="card-title" data-i18n="dangerZone">Danger Zone</div>
+              <div class="card-hint" data-i18n="dangerZoneHint">Permanent actions.</div>
+            </div>
+
+            <div class="danger-note" data-i18n="deleteWarning">
+              Deleting your account is permanent and cannot be undone.
+            </div>
+
+            <div class="field">
+              <label for="deletePass" data-i18n="deletePasswordLabel">Confirm Password to Delete</label>
+              <input id="deletePass" type="password" placeholder="your password" />
+            </div>
+
+            <button id="btnDelete" class="btn btn-danger" type="button">
+              <span data-i18n="deleteMyAccount">Delete My Account</span>
+            </button>
+          </section>
+
+        </div>
+      </main>
+    </div>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/user_panel.js"></script>
+</body>
+</html>
