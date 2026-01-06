@@ -85,6 +85,9 @@ STABILITY FIXES (ADDED):
       contact_lbl_message: "Message",
       contact_btn_submit: "Send",
       contact_success: "✔ Your message has been sent!",
+
+      nav_weekly: "Weekly Games",
+
     },
     tr: {
       // Sidebar
@@ -139,6 +142,7 @@ STABILITY FIXES (ADDED):
       contact_lbl_message: "Mesaj",
       contact_btn_submit: "Gönder",
       contact_success: "✔ Mesajınız gönderildi!",
+      nav_weekly: "Haftalık Maçlar",
 
     },
   };
