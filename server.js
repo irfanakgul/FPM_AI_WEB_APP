@@ -22,89 +22,140 @@ let standingPullProcess = null;
 // ===============================
 //   FPM SERVER (FULL VERSION)
 // ===============================
+/* =========================================================
+FILE: /server.js  (PAYMENT → SHEET WRITE FIX)
+PURPOSE:
+- Stripe ödeme sonrası subscription satırı eklerken:
+  1) CLIENT_ID'yi "info" tabından USERNAME'e göre doğru çekmek
+  2) SUBS_END'i plan süresine göre doğru hesaplamak (1=30g, 12=365g)
+========================================================= */
 async function writeSubscriptionToSheet({ username, mail, subs_type }) {
-    try {
-        const SUBS_SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-        const TAB = "subscription";
+  try {
+    /* =========================
+       CONFIG
+    ========================= */
+    const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const TAB_INFO = "info";
+    const TAB_SUBS = "subscription";
 
-        const client = await auth.getClient();
-        const sheets = google.sheets({ version: "v4", auth: client });
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
 
-        // Load sheet
-        const read = await sheets.spreadsheets.values.get({
-            spreadsheetId: SUBS_SHEET_ID,
-            range: TAB
-        });
+    /* =========================
+       1) CLIENT_ID'yi info tabından çek
+    ========================= */
+    const infoRead = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: TAB_INFO,
+    });
 
-        const rows = read.data.values || [];
-        const headers = rows[0];
+    const infoRows = infoRead.data.values || [];
+    const infoHeaders = infoRows[0] || [];
 
-        // Column index
-        const idxClientId = headers.indexOf("CLIENT_ID");
+    const idxUser = infoHeaders.indexOf("USERNAME");
+    const idxCID = infoHeaders.indexOf("CLIENT_ID");
+    const idxMail = infoHeaders.indexOf("MAIL");
 
-        // Last client ID
-        const lastClientId = rows
-            .slice(1)
-            .map(r => r[idxClientId])
-            .filter(v => v && v.startsWith("C"))
-            .map(v => parseInt(v.substring(1)))
-            .sort((a, b) => b - a)[0] || 3000;
-
-        const newClientId = "C" + (lastClientId + 1);
-
-        const today = new Date();
-        const subsDate = today.toISOString().split("T")[0];
-
-        let start = subsDate;
-        let end = subsDate;
-
-        if (subs_type === "trial") {
-            const d = new Date(start);
-            d.setDate(d.getDate() + 7);
-            end = d.toISOString().split("T")[0];
-        }
-        if (subs_type === "monthly") {
-            const d = new Date(start);
-            d.setMonth(d.getMonth() + 1);
-            end = d.toISOString().split("T")[0];
-        }
-        if (subs_type === "yearly") {
-            const d = new Date(start);
-            d.setFullYear(d.getFullYear() + 1);
-            end = d.toISOString().split("T")[0];
-        }
-
-        const daysLeft = Math.ceil((new Date(end) - new Date()) / 86400000);
-
-        const newRow = [
-            "NEW",
-            newClientId,
-            username,
-            subsDate,
-            subs_type,
-            start,
-            end,
-            "active",
-            daysLeft,
-            "",
-            mail
-        ];
-
-        await sheets.spreadsheets.values.append({
-            spreadsheetId: SUBS_SHEET_ID,
-            range: TAB,
-            valueInputOption: "USER_ENTERED",
-            requestBody: { values: [newRow] }
-        });
-
-        console.log("Google Sheet kayıt başarılı:", newRow);
-        return true;
-
-    } catch (err) {
-        console.error("writeSubscriptionToSheet ERROR:", err);
-        throw err;
+    if (idxUser === -1 || idxCID === -1) {
+      throw new Error("INFO tab'ında USERNAME veya CLIENT_ID kolonu bulunamadı.");
     }
+
+    const infoMatch = infoRows.find((r, i) => i > 0 && String(r[idxUser] || "").trim() === String(username || "").trim());
+    if (!infoMatch) {
+      throw new Error(`INFO tab'ında kullanıcı bulunamadı: ${username}`);
+    }
+
+    const clientId = String(infoMatch[idxCID] || "").trim();
+    const mailFromInfo = String(infoMatch[idxMail] || "").trim();
+
+    /* =========================
+       2) Plan → gün hesapla
+       - 1 ay = 30 gün
+       - 12 ay = 365 gün
+       - trial = 7 gün
+    ========================= */
+    function parseMonthsFromPlan(plan) {
+      const p = String(plan || "").toLowerCase().trim();
+      if (!p) return null;
+
+      if (p.includes("trial")) return 0; // trial ayrı ele alınacak
+
+      // içinde sayı geçen her şeyi yakala (örn "12", "12 months", "plan_3" ...)
+      const m = p.match(/(\d{1,2})/);
+      if (m && m[1]) return Number(m[1]);
+
+      // Eski isimler kalmış olabilir diye:
+      if (p === "monthly") return 1;
+      if (p === "yearly") return 12;
+
+      return null;
+    }
+
+    const today = new Date();
+    const startISO = today.toISOString().split("T")[0];
+
+    let endDateObj = new Date(startISO);
+
+    const planStr = String(subs_type || "").toLowerCase().trim();
+
+    if (planStr.includes("trial")) {
+      endDateObj.setDate(endDateObj.getDate() + 7);
+    } else {
+      const months = parseMonthsFromPlan(planStr);
+
+      if (!months || Number.isNaN(months) || months <= 0) {
+        // Güvenli fallback: 30 gün
+        endDateObj.setDate(endDateObj.getDate() + 30);
+      } else if (months >= 12) {
+        // 12 ay (ve üzeri) => 365 gün (senin istediğin kural)
+        endDateObj.setDate(endDateObj.getDate() + 365);
+      } else {
+        // 1/3/6/9 gibi => ay * 30 gün
+        endDateObj.setDate(endDateObj.getDate() + months * 30);
+      }
+    }
+
+    const endISO = endDateObj.toISOString().split("T")[0];
+
+    // Days left (bugünden end'e)
+    const daysLeft = Math.max(
+      0,
+      Math.ceil((new Date(endISO) - new Date(startISO)) / 86400000)
+    );
+
+    /* =========================
+       3) Subscription sheet'e append (kolon sırası sabit)
+       VERIFED CLIENT_ID USERNAME SUBS_DATE SUBS_TYPE SUBS_START SUBS_END SUBS_STATUS SUBS_DAYS_LEFT SUBS_NOTES MAIL
+    ========================= */
+    const newRow = [
+      "NEW",                 // VERIFED
+      clientId,              // CLIENT_ID (✅ doğru kaynaktan)
+      username,              // USERNAME
+      startISO,              // SUBS_DATE
+      subs_type,             // SUBS_TYPE (Stripe'dan gelen plan adı)
+      startISO,              // SUBS_START
+      endISO,                // SUBS_END (✅ hesaplandı)
+      "active",              // SUBS_STATUS
+      String(daysLeft),      // SUBS_DAYS_LEFT
+      "",                    // SUBS_NOTES
+      (mail || mailFromInfo) // MAIL (öncelik Stripe metadata, yoksa info)
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: TAB_SUBS,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: [newRow] },
+    });
+
+    console.log("✅ Subscription row appended:", newRow);
+    return true;
+  } catch (err) {
+    console.error("writeSubscriptionToSheet ERROR:", err);
+    throw err;
+  }
 }
+
 
 
 const express = require("express");
