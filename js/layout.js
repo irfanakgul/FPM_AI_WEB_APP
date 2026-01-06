@@ -1,9 +1,9 @@
 /* =========================================================
 FILE: /js/layout.js
 PURPOSE:
-- Inject header/sidebar/footer into placeholders
-- IMPORTANT:
-  - layout:ready event MUST fire AFTER components load
+- Inject shared header/sidebar/footer into page placeholders
+- Emit "layout:ready" ONLY AFTER all components are loaded
+- Anti-FOUC: keeps body hidden until injection finishes
 ========================================================= */
 
 async function loadInto(elId, url) {
@@ -19,10 +19,28 @@ async function loadInto(elId, url) {
 }
 
 (async function initLayout() {
+  // =========================================================
+  // SECTION: Anti-FOUC start
+  // PURPOSE: Hide shell until layout injection finishes
+  // =========================================================
+  document.body.classList.add("is-loading");
+  document.body.classList.remove("is-loaded");
+
+  // =========================================================
+  // SECTION: Inject components
+  // =========================================================
   await loadInto("appHeader", "/components/header.html");
   await loadInto("appSidebar", "/components/sidebar.html");
   await loadInto("appFooter", "/components/footer.html");
 
-  // [EVENT] Now layout is really ready
+  // =========================================================
+  // SECTION: Anti-FOUC end + signal ready
+  // PURPOSE:
+  // - Show shell
+  // - Notify app.js that header/sidebar/footer are in DOM
+  // =========================================================
+  document.body.classList.remove("is-loading");
+  document.body.classList.add("is-loaded");
+
   window.dispatchEvent(new Event("layout:ready"));
 })();
