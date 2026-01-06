@@ -275,38 +275,57 @@ STABILITY FIXES (ADDED):
      - Results: admin + co-admin
   ========================================================= */
   function updateRoleNav(currentUser) {
-    const modelNavBtn = document.getElementById("modelNavBtn");
-    const adminNavBtn = document.getElementById("adminNavBtn");
-    const statsNavBtn = document.getElementById("statsNavBtn");
-    const resultsNavBtn = document.getElementById("resultsNavBtn");
-    const userDashNavBtn = document.getElementById("userDashNavBtn");
+  const modelNavBtn = document.getElementById("modelNavBtn");
+  const adminNavBtn = document.getElementById("adminNavBtn");
+  const statsNavBtn = document.getElementById("statsNavBtn");
+  const resultsNavBtn = document.getElementById("resultsNavBtn");
+  const userDashNavBtn = document.getElementById("userDashNavBtn");
 
-    // Hide all by default
-    if (modelNavBtn) modelNavBtn.style.display = "none";
-    if (adminNavBtn) adminNavBtn.style.display = "none";
-    if (statsNavBtn) statsNavBtn.style.display = "none";
-    if (resultsNavBtn) resultsNavBtn.style.display = "none";
-    if (userDashNavBtn) userDashNavBtn.style.display = "none";
+  // =========================================================
+  // SECTION: Default state
+  // PURPOSE: Hide all buttons before applying role rules
+  // =========================================================
+  if (modelNavBtn) modelNavBtn.style.display = "none";
+  if (adminNavBtn) adminNavBtn.style.display = "none";
+  if (statsNavBtn) statsNavBtn.style.display = "none";
+  if (resultsNavBtn) resultsNavBtn.style.display = "none";
+  if (userDashNavBtn) userDashNavBtn.style.display = "none";
 
-    if (!currentUser) return;
+  if (!currentUser) return;
 
-    const type = String(currentUser.user_type || "").toLowerCase();
+  // =========================================================
+  // SECTION: Normalize user_type
+  // PURPOSE:
+  // - Prevent issues like "Client", "client ", "CLIENT"
+  // =========================================================
+  const type = String(currentUser.user_type || "").trim().toLowerCase();
 
-    // User Dashboard for all logged-in users
+  // =========================================================
+  // SECTION: User Dashboard rule (FIX)
+  // PURPOSE:
+  // - Show for all logged-in users EXCEPT client
+  // =========================================================
+  if (type !== "client") {
     if (userDashNavBtn) userDashNavBtn.style.display = "inline-flex";
-
-    // Admin dashboard only for admin
-    if (type === "admin") {
-      if (adminNavBtn) adminNavBtn.style.display = "inline-flex";
-    }
-
-    // Admin + co-admin: model + stats + results
-    if (type === "admin" || type === "co-admin" || type === "coadmin") {
-      if (modelNavBtn) modelNavBtn.style.display = "inline-flex";
-      if (statsNavBtn) statsNavBtn.style.display = "inline-flex";
-      if (resultsNavBtn) resultsNavBtn.style.display = "inline-flex";
-    }
   }
+
+  // =========================================================
+  // SECTION: Admin Dashboard (admin only)
+  // =========================================================
+  if (type === "admin") {
+    if (adminNavBtn) adminNavBtn.style.display = "inline-flex";
+  }
+
+  // =========================================================
+  // SECTION: Admin + co-admin: model + stats + results
+  // =========================================================
+  if (type === "admin" || type === "co-admin" || type === "coadmin") {
+    if (modelNavBtn) modelNavBtn.style.display = "inline-flex";
+    if (statsNavBtn) statsNavBtn.style.display = "inline-flex";
+    if (resultsNavBtn) resultsNavBtn.style.display = "inline-flex";
+  }
+}
+
 
   /* =========================================================
      SECTION: Active timer
