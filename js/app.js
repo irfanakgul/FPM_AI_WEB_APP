@@ -40,6 +40,9 @@ STABILITY FIXES (ADDED):
       sidebar_note_title: "Note",
       sidebar_note_desc: "Later we will show/hide menu items based on user_type.",
 
+      userpanel_title: "User Panel",
+      userpanel_hint: "Click to open the user panel.",
+
       // Pages (demo)
       home_title: "Welcome",
       home_desc: "This is the Home page. Later we will move your real content here without breaking logic.",
@@ -73,6 +76,10 @@ STABILITY FIXES (ADDED):
       nav_user_panel: "Kullanıcı Paneli", // [ADDED] matches sidebar key
       sidebar_note_title: "Not",
       sidebar_note_desc: "Daha sonra user_type’a göre menüleri gösterip gizleyeceğiz.",
+
+      userpanel_title: "Kullanıcı Paneli",
+      userpanel_hint: "Kullanıcı paneline gitmek için tıklayınız.",
+
 
       // Pages (demo)
       home_title: "Hoş geldin",
@@ -316,9 +323,10 @@ STABILITY FIXES (ADDED):
 
       const m = Math.floor(seconds / 60);
       const s = seconds % 60;
+      const s2 = String(s).padStart(2, "0");
 
       const timerSpan = document.getElementById("activeTimer");
-      if (timerSpan) timerSpan.textContent = `Active: ${m}m ${s}s`;
+      if (timerSpan) timerSpan.textContent = `Active: ${m}m ${s2}s`;
     }, 1000);
   }
 
