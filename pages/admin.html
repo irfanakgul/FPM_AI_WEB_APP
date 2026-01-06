@@ -2,9 +2,9 @@
 FILE: /pages/admin.html
 PURPOSE:
 - Admin Panel page using centralized Header/Footer (layout.js)
-- UPDATED:
-  * NO SIDEBAR (single column layout)
-  * Standard centered main-card exists with a wider max-width
+- UPDATED (FIX):
+  * Sidebar is still injected (for consistency), but will be hidden via CSS
+  * Header will now be identical across all pages
 - IMPORTANT:
   * Keeps old IDs used by admin.js logic (do not change)
 ========================================================= -->
@@ -34,9 +34,16 @@ PURPOSE:
     <header class="app-header" id="appHeader"></header>
 
     <!-- =========================================================
-         CONTENT AREA (NO SIDEBAR)
+         CONTENT AREA
+         FIX:
+         - Keep #appSidebar placeholder so layout is consistent
+         - We will hide it via admin.css (no-sidebar mode)
     ========================================================= -->
     <div class="app-content no-sidebar-content">
+
+      <!-- [SIDEBAR PLACEHOLDER] injected by layout.js, hidden on admin page -->
+      <aside class="app-sidebar" id="appSidebar" aria-hidden="true"></aside>
+
       <main id="main" class="app-main">
         <!-- =====================================================
              STANDARD MAIN CARD (wider for admin tables)

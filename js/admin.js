@@ -3,52 +3,67 @@ FILE: /js/admin.js
 PURPOSE:
 - Admin panel logic (ported from old admin.html)
 - Keeps ALL IDs, endpoints, and behaviors the same
-- IMPORTANT CHANGE:
-  - Header is injected by layout.js, so we run after "layout:ready"
-SOURCE: old admin.html :contentReference[oaicite:3]{index=3}
+IMPORTANT FIX:
+- DO NOT overwrite the centralized header (#headerUserInfo, #logoutBtn etc.)
+  because app.js manages header UI (user box, timer, dropdown, auth)
+- Run after "layout:ready" so injected header/sidebar/footer exist
 ========================================================= */
 
-window.addEventListener("layout:ready", () => {
+/* =========================================================
+SECTION: Shared header protection + refresh hook
+PURPOSE:
+- Ensure admin.js never breaks the shared header UI
+- Ask app.js to re-render header after layout injection
+NOTES:
+- Requires app.js to expose: window.refreshHeaderUI = updateUI;
+========================================================= */
+(function protectSharedHeader() {
+  function safeRefresh() {
+    if (typeof window.refreshHeaderUI === "function") {
+      window.refreshHeaderUI();
+    }
+  }
 
+  // After layout injects header/sidebar/footer
+  window.addEventListener("layout:ready", safeRefresh);
+
+  // Extra safety after DOM ready (covers timing / cache)
+  document.addEventListener("DOMContentLoaded", safeRefresh);
+})();
+
+window.addEventListener("layout:ready", () => {
   /* =========================================================
-     SECTION: ACCESS CONTROL (unchanged)
-     PURPOSE: only admin can access this page
+     SECTION: ACCESS CONTROL (same behavior, safer normalize)
+     PURPOSE: Only admin can access this page
   ========================================================= */
   const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-  if (!currentUser || currentUser.user_type !== "admin") {
+  const userType = String(currentUser?.user_type || "").trim().toLowerCase();
+
+  if (!currentUser || userType !== "admin") {
     window.location.href = "/pages/login.html";
     return;
   }
 
   /* =========================================================
-     SECTION: HEADER USER INFO + LOGOUT (unchanged IDs)
-     NOTE: #headerUserInfo and #logoutBtn exist in our centralized header
+     SECTION: HEADER INTEGRATION (FIX)
+     PURPOSE:
+     - DO NOT set #headerUserInfo.innerHTML here (it destroys shared header UI)
+     - DO NOT override #logoutBtn onclick here (app.js already wires it)
+     - Just request a refresh to ensure user box shows correct data
   ========================================================= */
-  const headerUserInfo = document.getElementById("headerUserInfo");
-  const logoutBtn = document.getElementById("logoutBtn");
-
-  if (headerUserInfo) {
-    headerUserInfo.innerHTML = `Admin: <strong>${currentUser.username}</strong>`;
-    headerUserInfo.style.display = "block";
-  }
-
-  if (logoutBtn) {
-    logoutBtn.onclick = () => {
-      sessionStorage.removeItem("currentUser");
-      sessionStorage.removeItem("activeSeconds");
-      window.location.href = "/index.html";
-    };
+  if (typeof window.refreshHeaderUI === "function") {
+    window.refreshHeaderUI();
   }
 
   /* =========================================================
      SECTION: TAB SWITCHING (unchanged)
   ========================================================= */
-  document.querySelectorAll(".tab-btn").forEach(btn => {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.onclick = () => {
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
 
-      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
       document.getElementById(btn.dataset.tab).classList.add("active");
 
       if (btn.dataset.tab === "panelSubs") loadSubscriptions();
@@ -65,8 +80,8 @@ window.addEventListener("layout:ready", () => {
 
     const colors = {
       success: { bg: "#16a34a", border: "#0f8a3a" },
-      error:   { bg: "#dc2626", border: "#b91c1c" },
-      info:    { bg: "#2563eb", border: "#1d4ed8" }
+      error: { bg: "#dc2626", border: "#b91c1c" },
+      info: { bg: "#2563eb", border: "#1d4ed8" },
     };
 
     toast.style.cssText = `
@@ -133,7 +148,7 @@ window.addEventListener("layout:ready", () => {
         </tr></thead><tbody>
     `;
 
-    rows.forEach(u => {
+    rows.forEach((u) => {
       html += `
         <tr>
           <td>${u.IS_VERIFIED || ""}</td>
@@ -178,7 +193,7 @@ window.addEventListener("layout:ready", () => {
     userStatusTarget = username;
     const rect = ev.target.getBoundingClientRect();
     globalStatusMenu.style.left = rect.left + "px";
-    globalStatusMenu.style.top = (rect.bottom + 4) + "px";
+    globalStatusMenu.style.top = rect.bottom + 4 + "px";
     globalStatusMenu.style.display = "block";
   };
 
@@ -188,7 +203,7 @@ window.addEventListener("layout:ready", () => {
     }
   });
 
-  globalStatusMenu.querySelectorAll("div").forEach(opt => {
+  globalStatusMenu.querySelectorAll("div").forEach((opt) => {
     opt.onclick = async () => {
       const newStatus = opt.dataset.value;
       await updateUserStatus(userStatusTarget, newStatus);
@@ -200,7 +215,7 @@ window.addEventListener("layout:ready", () => {
     const res = await fetch("/api/admin/update-status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, status })
+      body: JSON.stringify({ username, status }),
     });
 
     const json = await res.json();
@@ -219,7 +234,7 @@ window.addEventListener("layout:ready", () => {
     const res = await fetch("/api/admin/delete-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username })
+      body: JSON.stringify({ username }),
     });
 
     const json = await res.json();
@@ -234,7 +249,7 @@ window.addEventListener("layout:ready", () => {
   /* USER SEARCH */
   document.getElementById("searchBar").oninput = function () {
     const q = this.value.toLowerCase();
-    renderUserTable(allUsers.filter(u => (u.USERNAME || "").toLowerCase().includes(q)));
+    renderUserTable(allUsers.filter((u) => (u.USERNAME || "").toLowerCase().includes(q)));
   };
 
   /* =========================================================
@@ -249,8 +264,8 @@ window.addEventListener("layout:ready", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheetId: "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo",
-          sheetName: "contact_form"
-        })
+          sheetName: "contact_form",
+        }),
       });
 
       const json = await res.json();
@@ -261,7 +276,7 @@ window.addEventListener("layout:ready", () => {
 
       const data = json.data || [];
       const withIndex = data.map((row, idx) => ({ ...row, _rowIndex: idx }));
-      contactRows = withIndex.filter(r => Object.values(r).some(v => v && String(v).trim() !== ""));
+      contactRows = withIndex.filter((r) => Object.values(r).some((v) => v && String(v).trim() !== ""));
 
       renderContactTable(contactRows);
     } catch (err) {
@@ -296,11 +311,11 @@ window.addEventListener("layout:ready", () => {
         <tbody>
     `;
 
-    rows.forEach(r => {
+    rows.forEach((r) => {
       const status = r.STATUS || "Pending";
       const fullMsg = r.MESSAGE || "";
       const preview = fullMsg.length > 80 ? fullMsg.slice(0, 80) + "…" : fullMsg;
-      const subsLabel = (r.WANTS_SUBS === "YES") ? `YES (${r.SUBS_TYPE || "-"})` : (r.WANTS_SUBS || "");
+      const subsLabel = r.WANTS_SUBS === "YES" ? `YES (${r.SUBS_TYPE || "-"})` : r.WANTS_SUBS || "";
 
       html += `
         <tr data-rowindex="${r._rowIndex}">
@@ -344,7 +359,7 @@ window.addEventListener("layout:ready", () => {
   document.addEventListener("click", (e) => {
     if (e.target.classList.contains("contact-msg-cell")) {
       const rowIndex = e.target.dataset.rowindex;
-      const row = contactRows.find(r => String(r._rowIndex) === String(rowIndex));
+      const row = contactRows.find((r) => String(r._rowIndex) === String(rowIndex));
       if (!row) return;
 
       contactModalContent.innerHTML = `
@@ -373,7 +388,7 @@ window.addEventListener("layout:ready", () => {
       contactStatusRowIndex = btn.dataset.rowindex;
 
       globalContactStatusMenu.style.left = rect.left + "px";
-      globalContactStatusMenu.style.top = (rect.bottom + 4) + "px";
+      globalContactStatusMenu.style.top = rect.bottom + 4 + "px";
       globalContactStatusMenu.style.display = "block";
       return;
     }
@@ -383,7 +398,7 @@ window.addEventListener("layout:ready", () => {
     }
   });
 
-  globalContactStatusMenu.querySelectorAll("div").forEach(opt => {
+  globalContactStatusMenu.querySelectorAll("div").forEach((opt) => {
     opt.addEventListener("click", async () => {
       const newStatus = opt.dataset.value;
       const rowIndex = contactStatusRowIndex;
@@ -401,8 +416,8 @@ window.addEventListener("layout:ready", () => {
         sheetId: "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo",
         sheetName: "contact_form",
         userType: "admin",
-        changes: { [rowIndex]: { STATUS: status } }
-      })
+        changes: { [rowIndex]: { STATUS: status } },
+      }),
     });
 
     const json = await res.json();
@@ -425,8 +440,16 @@ window.addEventListener("layout:ready", () => {
 
   async function deleteContactRow(rowIndex) {
     const emptyRow = {
-      STATUS: "", DATE: "", TIME: "", NAME: "", MAIL: "",
-      USERNAME: "", SUBJECT: "", WANTS_SUBS: "", SUBS_TYPE: "", MESSAGE: ""
+      STATUS: "",
+      DATE: "",
+      TIME: "",
+      NAME: "",
+      MAIL: "",
+      USERNAME: "",
+      SUBJECT: "",
+      WANTS_SUBS: "",
+      SUBS_TYPE: "",
+      MESSAGE: "",
     };
 
     const res = await fetch("/api/update-cells", {
@@ -436,8 +459,8 @@ window.addEventListener("layout:ready", () => {
         sheetId: "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo",
         sheetName: "contact_form",
         userType: "admin",
-        changes: { [rowIndex]: emptyRow }
-      })
+        changes: { [rowIndex]: emptyRow },
+      }),
     });
 
     const json = await res.json();
@@ -496,7 +519,7 @@ window.addEventListener("layout:ready", () => {
         <tbody>
     `;
 
-    rows.forEach(r => {
+    rows.forEach((r) => {
       let daysLeft = "";
       if (r.SUBS_END) {
         const diff = Math.ceil((new Date(r.SUBS_END) - new Date()) / 86400000);
@@ -552,7 +575,7 @@ window.addEventListener("layout:ready", () => {
     actionMenu.style.display = "block";
   };
 
-  actionMenu.querySelectorAll("div").forEach(item => {
+  actionMenu.querySelectorAll("div").forEach((item) => {
     item.onclick = () => {
       const action = item.dataset.action;
       actionMenu.style.display = "none";
@@ -572,7 +595,7 @@ window.addEventListener("layout:ready", () => {
     const res = await fetch("/api/admin/subs-start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, type })
+      body: JSON.stringify({ username, type }),
     });
 
     const json = await res.json();
@@ -589,7 +612,7 @@ window.addEventListener("layout:ready", () => {
     const res = await fetch("/api/admin/subs-extend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, months })
+      body: JSON.stringify({ username, months }),
     });
 
     const json = await res.json();
@@ -605,7 +628,7 @@ window.addEventListener("layout:ready", () => {
     const res = await fetch("/api/admin/subs-cancel", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username })
+      body: JSON.stringify({ username }),
     });
 
     if ((await res.json()).success) {
@@ -621,7 +644,7 @@ window.addEventListener("layout:ready", () => {
     const res = await fetch("/api/admin/subs-note", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, note })
+      body: JSON.stringify({ username, note }),
     });
 
     if ((await res.json()).success) {
@@ -636,7 +659,7 @@ window.addEventListener("layout:ready", () => {
     const res = await fetch("/api/admin/subs-delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username })
+      body: JSON.stringify({ username }),
     });
 
     const json = await res.json();
@@ -648,7 +671,7 @@ window.addEventListener("layout:ready", () => {
 
   document.getElementById("subsSearch").oninput = (e) => {
     const q = e.target.value.toLowerCase();
-    const filtered = subsData.filter(r => (r.USERNAME || "").toLowerCase().includes(q));
+    const filtered = subsData.filter((r) => (r.USERNAME || "").toLowerCase().includes(q));
     renderSubsTable(filtered);
   };
 
@@ -668,7 +691,7 @@ window.addEventListener("layout:ready", () => {
       if (!json.success) return;
 
       const users = json.users;
-      const u = users.find(x => x.USERNAME === username);
+      const u = users.find((x) => x.USERNAME === username);
       if (!u) return;
 
       const html = `

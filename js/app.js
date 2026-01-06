@@ -439,6 +439,8 @@ STABILITY FIXES (ADDED):
     document.documentElement.classList.add("ui-ready");
   }
 
+window.refreshHeaderUI = updateUI;
+
   /* =========================================================
      SECTION: GUARANTEED click delegation for injected header
      PURPOSE:
