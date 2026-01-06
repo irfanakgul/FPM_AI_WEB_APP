@@ -2791,6 +2791,253 @@ app.post("/api/backup-from-cloud", (req, res) => {
     res.json({ status: "started" });
 });
 
+//
+
+// =========================================================
+// [USER] GET PROFILE (for user_panel Account Overview)
+// Reads USER_TAB ("info") row by USERNAME and returns all columns as object
+// =========================================================
+app.post("/api/user/get-profile", async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username) return res.json({ success: false, error: "Missing username" });
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const read = await sheets.spreadsheets.values.get({
+      spreadsheetId: USER_SHEET_ID,
+      range: USER_TAB
+    });
+
+    const rows = read.data.values || [];
+    const headers = rows[0] || [];
+    const idxUser = headers.indexOf("USERNAME");
+
+    const row = rows.find((r, i) => i > 0 && (r[idxUser] || "").trim() === username.trim());
+    if (!row) return res.json({ success: false, error: "User not found" });
+
+    const profile = {};
+    headers.forEach((h, i) => (profile[h] = row[i] || ""));
+
+    return res.json({ success: true, profile });
+  } catch (err) {
+    console.error("GET PROFILE ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+
+//
+
+// =========================================================
+// [USER] UPDATE USERNAME
+// Updates USER_TAB ("info") and SUBS_TAB ("subscription") where USERNAME matches
+// =========================================================
+app.post("/api/user/update-username", async (req, res) => {
+  try {
+    const { oldUsername, newUsername } = req.body;
+
+    if (!oldUsername || !newUsername) {
+      return res.json({ success: false, error: "Missing fields" });
+    }
+
+    const oldU = oldUsername.trim();
+    const newU = newUsername.trim();
+
+    if (oldU === newU) {
+      return res.json({ success: false, error: "Same username" });
+    }
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    // ---------- 1) Update USER_TAB (info) ----------
+    const readInfo = await sheets.spreadsheets.values.get({
+      spreadsheetId: USER_SHEET_ID,
+      range: USER_TAB
+    });
+
+    const infoRows = readInfo.data.values || [];
+    const infoHeaders = infoRows[0] || [];
+    const idxInfoUser = infoHeaders.indexOf("USERNAME");
+
+    // Check if new username already exists
+    const exists = infoRows.some((r, i) => i > 0 && (r[idxInfoUser] || "").trim() === newU);
+    if (exists) {
+      return res.json({ success: false, error: "Username already exists" });
+    }
+
+    const infoRowIndex = infoRows.findIndex((r, i) => i > 0 && (r[idxInfoUser] || "").trim() === oldU);
+    if (infoRowIndex === -1) {
+      return res.json({ success: false, error: "User not found" });
+    }
+
+    infoRows[infoRowIndex][idxInfoUser] = newU;
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: USER_SHEET_ID,
+      range: USER_TAB,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: infoRows }
+    });
+
+    // ---------- 2) Update SUBS_TAB (subscription) ----------
+    const readSubs = await sheets.spreadsheets.values.get({
+      spreadsheetId: SUBS_SHEET_ID,
+      range: SUBS_TAB
+    });
+
+    const subsRows = readSubs.data.values || [];
+    const subsHeaders = subsRows[0] || [];
+    const idxSubsUser = subsHeaders.indexOf("USERNAME");
+
+    // Update all matching rows (user may have multiple entries)
+    let changed = 0;
+    subsRows.forEach((r, i) => {
+      if (i > 0 && (r[idxSubsUser] || "").trim() === oldU) {
+        r[idxSubsUser] = newU;
+        changed++;
+      }
+    });
+
+    if (changed > 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SUBS_SHEET_ID,
+        range: SUBS_TAB,
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: subsRows }
+      });
+    }
+
+    return res.json({ success: true, updatedSubsRows: changed });
+  } catch (err) {
+    console.error("UPDATE USERNAME ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+//
+
+// =========================================================
+// [USER] UPDATE PROFILE FIELDS
+// Updates a single user's row in USER_TAB by USERNAME
+// Allowed fields: MAIL, NAME, BIRTHYEAR, PREFERED_LANG
+// =========================================================
+app.post("/api/user/update-profile", async (req, res) => {
+  try {
+    const { username, changes } = req.body;
+    if (!username || !changes || typeof changes !== "object") {
+      return res.json({ success: false, error: "Missing username/changes" });
+    }
+
+    const allowed = new Set(["MAIL", "NAME", "BIRTHYEAR", "PREFERED_LANG"]);
+    for (const k of Object.keys(changes)) {
+      if (!allowed.has(k)) {
+        return res.json({ success: false, error: `Field not allowed: ${k}` });
+      }
+    }
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const read = await sheets.spreadsheets.values.get({
+      spreadsheetId: USER_SHEET_ID,
+      range: USER_TAB
+    });
+
+    const rows = read.data.values || [];
+    const headers = rows[0] || [];
+    const idxUser = headers.indexOf("USERNAME");
+    if (idxUser === -1) return res.json({ success: false, error: "USERNAME column not found" });
+
+    const rowIndex = rows.findIndex((r, i) => i > 0 && (r[idxUser] || "").trim() === username.trim());
+    if (rowIndex === -1) return res.json({ success: false, error: "User not found" });
+
+    // Apply changes in-memory
+    for (const [k, v] of Object.entries(changes)) {
+      const idx = headers.indexOf(k);
+      if (idx === -1) return res.json({ success: false, error: `Column not found: ${k}` });
+      rows[rowIndex][idx] = String(v);
+    }
+
+    // Write back whole sheet (same pattern as your other code)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: USER_SHEET_ID,
+      range: USER_TAB,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: rows }
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("UPDATE PROFILE ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+//
+
+// =========================================================
+// [USER] DELETE ACCOUNT (requires password match)
+// - Verifies password from USER_TAB
+// - Then deletes user using your existing logic OR marks as deleted
+// =========================================================
+app.post("/api/user/delete-account", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.json({ success: false, error: "Missing fields" });
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    // 1) Read user info
+    const read = await sheets.spreadsheets.values.get({
+      spreadsheetId: USER_SHEET_ID,
+      range: USER_TAB
+    });
+
+    const rows = read.data.values || [];
+    const headers = rows[0] || [];
+    const idxUser = headers.indexOf("USERNAME");
+    const idxPass = headers.indexOf("PASSWORD"); // <-- change if your column differs
+
+    if (idxUser === -1 || idxPass === -1) {
+      return res.json({ success: false, error: "USERNAME/PASSWORD column not found" });
+    }
+
+    const rowIndex = rows.findIndex((r, i) => i > 0 && (r[idxUser] || "").trim() === username.trim());
+    if (rowIndex === -1) return res.json({ success: false, error: "User not found" });
+
+    const storedPass = (rows[rowIndex][idxPass] || "").toString();
+    if (storedPass !== password) {
+      return res.json({ success: false, error: "Password incorrect" });
+    }
+
+    // 2) Call your existing delete logic if you have it:
+    //    Option A) If you have a function used by /api/admin/delete-user, call it here.
+    //    Option B) Mark user row as deleted (example):
+    const idxStatus = headers.indexOf("ACCOUNT_STATUS");
+    if (idxStatus !== -1) {
+      rows[rowIndex][idxStatus] = "DELETED";
+    }
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: USER_SHEET_ID,
+      range: USER_TAB,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: rows }
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("DELETE ACCOUNT ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+//
+
+
 
 
 // import config server

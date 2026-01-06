@@ -1,44 +1,46 @@
 <!-- =========================================================
-     FILE: public/pages/model/model.html
-     PURPOSE: Model Panel page (NO SIDEBAR) - uses centralized header/footer
-     ========================================================= -->
+FILE: /pages/model/model.html
+PURPOSE:
+- Model Panel page with centralized header/footer
+- NO SIDEBAR, but still uses app-shell and app-main
+- Uses standard centered main-card like other pages
+========================================================= -->
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- [MODEL PANEL] Basic meta -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Model Panel - FPM</title>
+  <title>Model Panel • FPM AI</title>
 
-  <!-- [GLOBAL CSS] Header / Footer / common layout styles -->
+  <!-- GLOBAL CSS -->
   <link rel="stylesheet" href="/css/style.css" />
-
-  <!-- [PAGE CSS] Only Model page styles -->
+  <!-- PAGE CSS -->
   <link rel="stylesheet" href="/css/model.css" />
 </head>
 
-<!-- [NO SIDEBAR PAGE] body class lets us adjust layout in CSS -->
 <body class="no-sidebar">
+  <div class="app-shell">
+    <!-- Header inject point (with correct class) -->
+    <header class="app-header" id="appHeader"></header>
 
-  <!-- [CENTRAL HEADER PLACEHOLDER] layout.js will inject header.html -->
-  <div id="appHeader"></div>
+    <!-- Content area (NO SIDEBAR => single column) -->
+    <div class="app-content no-sidebar-content">
+      <main class="app-main">
+        <!-- STANDARD CENTERED MAIN CARD (same in all pages) -->
+        <div class="main-card">
+          <!-- Old logic expects #main to exist -->
+          <div id="main"></div>
+        </div>
+      </main>
+    </div>
 
-  <!-- =========================================================
-       [PAGE MAIN]
-       IMPORTANT: id="main" is kept (old model.html logic expects it)
-       ========================================================= -->
-  <main id="main" class="page-main"></main>
+    <!-- Footer inject point (with correct class) -->
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
 
-  <!-- [CENTRAL FOOTER PLACEHOLDER] layout.js will inject footer.html -->
-  <div id="appFooter"></div>
-
-  <!-- [LAYOUT LOADER] inject header/footer -->
+  <!-- Scripts -->
   <script src="/js/layout.js"></script>
-
-  <!-- [GLOBAL APP LOGIC] login/logout UI + language switching etc. -->
   <script src="/js/app.js"></script>
-
-  <!-- [MODEL PAGE LOGIC] old model panel logic (adapted, sidebar removed) -->
   <script src="/js/model.js"></script>
 </body>
 </html>

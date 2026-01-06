@@ -1,0 +1,189 @@
+<!-- =========================================================
+FILE: /pages/admin.html
+PURPOSE:
+- Admin Panel page using centralized Header/Footer (layout.js)
+- UPDATED:
+  * NO SIDEBAR (single column layout)
+  * Standard centered main-card exists with a wider max-width
+- IMPORTANT:
+  * Keeps old IDs used by admin.js logic (do not change)
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- [ADMIN] Meta -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Panel • FPM AI</title>
+
+  <!-- [GLOBAL CSS] Shared theme + header/footer/layout -->
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <!-- [PAGE CSS] Admin-only modern styling -->
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+
+<body class="no-sidebar">
+  <!-- =========================================================
+       APP SHELL
+       - Header/Footer injected centrally
+  ========================================================= -->
+  <div class="app-shell">
+
+    <!-- [CENTRAL HEADER] injected by layout.js -->
+    <header class="app-header" id="appHeader"></header>
+
+    <!-- =========================================================
+         CONTENT AREA (NO SIDEBAR)
+    ========================================================= -->
+    <div class="app-content no-sidebar-content">
+      <main id="main" class="app-main">
+        <!-- =====================================================
+             STANDARD MAIN CARD (wider for admin tables)
+        ====================================================== -->
+        <div class="main-card admin-maincard">
+
+          <!-- =================================================
+               HEADER STRIP (title + quick links)
+               NOTE: purely visual; no dependency in admin.js
+          ================================================= -->
+          <div class="admin-top">
+            <div>
+              <h2 class="admin-title">Admin Panel</h2>
+              <div class="admin-subtitle">User management • Contact forms • Subscriptions</div>
+            </div>
+
+            <div class="admin-quick">
+              <a class="admin-link" href="/pages/model/model.html">Model Panel</a>
+              <a class="admin-link" href="/index.html">Home</a>
+            </div>
+          </div>
+
+          <!-- =================================================
+               TAB BAR
+               PURPOSE: switch between panels (users / contact / subs)
+          ================================================= -->
+          <div class="tab-bar">
+            <button class="tab-btn active" data-tab="panelUsers">User Control</button>
+            <button class="tab-btn" data-tab="panelContact">Contact Forms</button>
+            <button class="tab-btn" data-tab="panelSubs">Subscriptions</button>
+          </div>
+
+          <!-- =================================================
+               PANEL: USERS (IDs preserved)
+          ================================================= -->
+          <section id="panelUsers" class="panel active">
+            <div class="panel-head">
+              <div class="panel-title">User Management</div>
+
+              <div class="admin-tools">
+                <input id="searchBar" placeholder="Search username..." />
+                <button id="btnCreateAdmin" class="btnCreateAdmin" type="button">
+                  ➕ Create Admin Member
+                </button>
+              </div>
+            </div>
+
+            <div id="tableWrap"></div>
+          </section>
+
+          <!-- =================================================
+               PANEL: CONTACT (IDs preserved)
+          ================================================= -->
+          <section id="panelContact" class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Contact Form Submissions</div>
+              <div class="panel-hint">Click message preview to open the full message.</div>
+            </div>
+
+            <div id="tableContactWrap">Loading...</div>
+          </section>
+
+          <!-- =================================================
+               PANEL: SUBSCRIPTIONS (IDs preserved)
+          ================================================= -->
+          <section id="panelSubs" class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Subscription Management</div>
+
+              <div class="admin-tools">
+                <input id="subsSearch" placeholder="Search username..." />
+              </div>
+            </div>
+
+            <!-- [ACTION MENU] (old ID preserved) -->
+            <div id="subsActionMenu" class="subs-action-menu">
+              <div data-action="start">Start Subscription</div>
+              <div data-action="extend">Extend Subscription</div>
+              <div data-action="cancel">Cancel Subscription</div>
+              <div data-action="note">Add Note</div>
+              <div style="border-top:1px solid rgba(255,255,255,0.12);" data-action="delete">
+                Delete Subscription
+              </div>
+            </div>
+
+            <div id="subsTableWrap" style="margin-top:20px;"></div>
+          </section>
+
+        </div>
+      </main>
+    </div>
+
+    <!-- [CENTRAL FOOTER] injected by layout.js -->
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- =========================================================
+       GLOBAL MENUS / MODALS / TOASTS
+       PURPOSE: Required by admin.js logic (IDs preserved)
+  ========================================================= -->
+
+  <!-- [USER STATUS MENU] -->
+  <div id="globalStatusMenu">
+    <div data-value="TRUE">TRUE</div>
+    <div data-value="FALSE">FALSE</div>
+    <div data-value="NEW_USER">NEW_USER</div>
+  </div>
+
+  <!-- [CONTACT STATUS MENU] -->
+  <div id="globalContactStatusMenu">
+    <div data-value="Pending">Pending</div>
+    <div data-value="In Progress">In Progress</div>
+    <div data-value="To Do">To Do</div>
+    <div data-value="Done">Done</div>
+  </div>
+
+  <!-- [CONTACT MODAL] -->
+  <div id="contactModalOverlay">
+    <div id="contactModal">
+      <h3>Contact Message</h3>
+      <div id="contactModalContent"></div>
+
+      <div style="text-align:right;margin-top:16px;">
+        <button class="btn" id="contactModalCloseBtn" style="min-width:auto;" type="button">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [TOAST CONTAINER] -->
+  <div id="toastContainer"></div>
+
+  <!-- [USER DETAILS MODAL] -->
+  <div id="userDetailsModal" class="userDetailsModal">
+    <div class="userDetailsBox">
+      <h3>User Details</h3>
+      <div id="userDetailsContent"></div>
+      <button onclick="closeUserDetails()" type="button">Close</button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       SCRIPTS (order important)
+  ========================================================= -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!-- =========================================================
+FILE: /pages/model/config.html
+PURPOSE:
+- Config page with centralized header/footer
+- NO SIDEBAR
+- Uses standard centered main-card like other pages
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Configuration • FPM AI</title>
+
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/model_config.css" />
+</head>
+
+<body class="no-sidebar">
+  <div class="app-shell">
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="app-content no-sidebar-content">
+      <main class="app-main">
+        <div class="main-card config-card">
+          <h2>Model Configuration</h2>
+          <p>Edit <b>initial.py</b> parameters below.</p>
+
+          <textarea id="configEditor" spellcheck="false"></textarea>
+        </div>
+      </main>
+    </div>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- Sticky action bar (same as before) -->
+  <div class="action-bar">
+    <button class="btn btn-save" id="btnSave">💾 Save & Exit</button>
+    <button class="btn btn-cancel" id="btnCancel">↩ Exit Without Saving</button>
+  </div>
+
+  <div class="unsaved" id="unsaved">● Unsaved changes</div>
+  <div class="toast success" id="toastSuccess">✔ Saved successfully</div>
+  <div class="toast error" id="toastError">✖ Exited without saving</div>
+
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/model_config.js"></script>
+</body>
+</html>

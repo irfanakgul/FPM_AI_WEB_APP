@@ -458,6 +458,15 @@ input:focus, select:focus, textarea:focus{
   line-height: 1.4;
 }
 
+/* =========================================================
+SECTION: NO SIDEBAR PAGES (Global)
+PURPOSE:
+- Allow pages to use the same app-shell but without sidebar column
+========================================================= */
+.no-sidebar-content{
+  grid-template-columns: 1fr; /* sidebar yok */
+}
+
 /* =========================
    10) SMALL HELPERS
 ========================= */
