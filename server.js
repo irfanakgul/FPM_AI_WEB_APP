@@ -869,68 +869,84 @@ app.post("/api/admin/update-status", async (req, res) => {
         res.json({ success: false });
     }
 });
-
-// delete user
+// delete user (admin)
 app.post("/api/admin/delete-user", async (req, res) => {
-    try {
-        const { username } = req.body;
+  try {
+    const { username } = req.body;
 
-        if (!username) {
-            return res.json({ success: false, error: "Missing username" });
-        }
-
-        const client = await auth.getClient();
-        const sheets = google.sheets({ version: "v4", auth: client });
-
-        const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-        const TAB = "info";
-
-        // Load rows
-        const read = await sheets.spreadsheets.values.get({
-            spreadsheetId: SHEET_ID,
-            range: TAB
-        });
-
-        const rows = read.data.values || [];
-        const headers = rows[0];
-        const idxUser = headers.indexOf("USERNAME");
-
-        // Find exact row to delete
-        const rowIndex = rows.findIndex(r => r[idxUser] === username);
-
-        if (rowIndex === -1 || rowIndex < 1) {
-            return res.json({ success: false, error: "User not found" });
-        }
-
-        // Google Sheets row index is 0-based for deleteDimension  
-        // minus header row → rowIndex - 1
-        const deleteRequest = {
-            requests: [
-                {
-                    deleteDimension: {
-                        range: {
-                            sheetId: 0,          // sheetId, 0 means first sheet (info)
-                            dimension: "ROWS",
-                            startIndex: rowIndex,   // inclusive
-                            endIndex: rowIndex + 1  // exclusive
-                        }
-                    }
-                }
-            ]
-        };
-
-        await sheets.spreadsheets.batchUpdate({
-            spreadsheetId: SHEET_ID,
-            requestBody: deleteRequest
-        });
-
-        return res.json({ success: true });
-
-    } catch (err) {
-        console.error("DELETE USER ERROR:", err);
-        res.json({ success: false, error: err.message });
+    if (!username) {
+      return res.json({ success: false, error: "Missing username" });
     }
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const TAB = "info";
+
+    // Load rows
+    const read = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: TAB
+    });
+
+    const rows = read.data.values || [];
+    const headers = rows[0] || [];
+    const idxUser = headers.indexOf("USERNAME");
+
+    if (idxUser === -1) {
+      return res.json({ success: false, error: "USERNAME column not found" });
+    }
+
+    // Find exact row to delete (skip header)
+    const rowIndex = rows.findIndex((r, i) => i > 0 && String(r[idxUser] || "").trim() === String(username).trim());
+
+    if (rowIndex === -1) {
+      return res.json({ success: false, error: "User not found" });
+    }
+
+    // =========================================================
+    // IMPORTANT FIX:
+    // - Do NOT assume sheetId=0
+    // - Resolve sheetId of "info" tab
+    // =========================================================
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    const infoSheet = (meta.data.sheets || []).find(s => s.properties?.title === TAB);
+    if (!infoSheet) {
+      return res.json({ success: false, error: `Sheet tab not found: ${TAB}` });
+    }
+    const sheetId = infoSheet.properties.sheetId;
+
+    // Google Sheets deleteDimension uses 0-based indices (header is row 0)
+    const startIndex = rowIndex;       // rowIndex already includes header row in rows[]
+    const endIndex = rowIndex + 1;
+
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SHEET_ID,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex,
+                endIndex
+              }
+            }
+          }
+        ]
+      }
+    });
+
+    return res.json({ success: true });
+
+  } catch (err) {
+    console.error("DELETE USER ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
 });
+
 
 // ============================================================
 // SUBSCRIPTIONS — READ / WRITE / UPDATE (FINAL VERSION)
@@ -1825,46 +1841,7 @@ app.post("/api/user/end-subs", async (req, res) => {
 // ======================================
 // USER: Delete Account
 // ======================================
-app.post("/api/user/delete-account", async (req, res) => {
-    try {
-        const { username } = req.body;
 
-        const client = await auth.getClient();
-        const sheets = google.sheets({ version: "v4", auth: client });
-
-        async function deleteFromSheet(tabName, keyColumn) {
-            const read = await sheets.spreadsheets.values.get({
-                spreadsheetId: USER_SHEET_ID,
-                range: tabName
-            });
-
-            const rows = read.data.values;
-            const headers = rows[0];
-            const idx = headers.indexOf(keyColumn);
-
-            const rowIndex = rows.findIndex(r => r[idx] === username);
-            if (rowIndex <= 0) return;
-
-            rows.splice(rowIndex, 1);
-
-            await sheets.spreadsheets.values.update({
-                spreadsheetId: USER_SHEET_ID,
-                range: tabName,
-                valueInputOption: "USER_ENTERED",
-                requestBody: { values: rows }
-            });
-        }
-
-        await deleteFromSheet("info", "USERNAME");
-        await deleteFromSheet("subscription", "USERNAME");
-
-        res.json({ success: true });
-
-    } catch (err) {
-        console.error("DELETE ACCOUNT ERROR:", err);
-        res.json({ success: false });
-    }
-});
 
 // ==========================================================
 // USER PANEL → Load single user's subscription
@@ -3232,59 +3209,88 @@ app.post("/api/user/update-profile", async (req, res) => {
 // - Verifies password from USER_TAB
 // - Then deletes user using your existing logic OR marks as deleted
 // =========================================================
+// user deletes own account (FIXED: real row delete, no duplicate)
 app.post("/api/user/delete-account", async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) return res.json({ success: false, error: "Missing fields" });
+    if (!username || !password) {
+      return res.json({ success: false, error: "Missing fields" });
+    }
 
     const client = await auth.getClient();
     const sheets = google.sheets({ version: "v4", auth: client });
 
-    // 1) Read user info
+    // IMPORTANT: Use same sheet/tab as your login info
+    const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const TAB = "info";
+
+    // 1) Read info sheet
     const read = await sheets.spreadsheets.values.get({
-      spreadsheetId: USER_SHEET_ID,
-      range: USER_TAB
+      spreadsheetId: SHEET_ID,
+      range: TAB
     });
 
     const rows = read.data.values || [];
     const headers = rows[0] || [];
+
     const idxUser = headers.indexOf("USERNAME");
-    const idxPass = headers.indexOf("PASSWORD"); // <-- change if your column differs
+    const idxPass = headers.indexOf("PASSWORD");
 
     if (idxUser === -1 || idxPass === -1) {
       return res.json({ success: false, error: "USERNAME/PASSWORD column not found" });
     }
 
-    const rowIndex = rows.findIndex((r, i) => i > 0 && (r[idxUser] || "").trim() === username.trim());
-    if (rowIndex === -1) return res.json({ success: false, error: "User not found" });
+    // Find row (skip header)
+    const rowIndex = rows.findIndex((r, i) =>
+      i > 0 && String(r[idxUser] || "").trim() === String(username).trim()
+    );
 
-    const storedPass = (rows[rowIndex][idxPass] || "").toString();
-    if (storedPass !== password) {
+    if (rowIndex === -1) {
+      return res.json({ success: false, error: "User not found" });
+    }
+
+    // Verify password (plain compare like your login)
+    const storedPass = String(rows[rowIndex][idxPass] || "").trim();
+    if (storedPass !== String(password).trim()) {
       return res.json({ success: false, error: "Password incorrect" });
     }
 
-    // 2) Call your existing delete logic if you have it:
-    //    Option A) If you have a function used by /api/admin/delete-user, call it here.
-    //    Option B) Mark user row as deleted (example):
-    const idxStatus = headers.indexOf("ACCOUNT_STATUS");
-    if (idxStatus !== -1) {
-      rows[rowIndex][idxStatus] = "DELETED";
+    // 2) Resolve actual sheetId for "info" tab
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    const infoSheet = (meta.data.sheets || []).find(s => s.properties?.title === TAB);
+    if (!infoSheet) {
+      return res.json({ success: false, error: `Sheet tab not found: ${TAB}` });
     }
+    const sheetId = infoSheet.properties.sheetId;
 
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: USER_SHEET_ID,
-      range: USER_TAB,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: rows }
+    // 3) Delete the row with deleteDimension (prevents last-row duplicate)
+    // rows[] includes header at index 0, so rowIndex is already correct 0-based row index
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SHEET_ID,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: rowIndex,
+                endIndex: rowIndex + 1
+              }
+            }
+          }
+        ]
+      }
     });
 
     return res.json({ success: true });
+
   } catch (err) {
     console.error("DELETE ACCOUNT ERROR:", err);
     return res.json({ success: false, error: err.message });
   }
 });
-//
+
 
 // =========================================================
 // SECTION: Master helpers (NEW)
