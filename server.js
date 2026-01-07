@@ -660,128 +660,142 @@ app.post("/api/contact_form", async (req, res) => {
 
 
 // =====================================
-// NEW LOGIN no endpoint
+// NEW LOGIN endpoint (FIXED: PREFERED_LANG + correct lookup)
 // =====================================
 app.post("/api/login", async (req, res) => {
-    try {
-        const { username, password } = req.body;
+  try {
+    const { username, password } = req.body;
 
-        if (!username || !password) {
-            return res.json({ success: false, error: "Missing credentials" });
-        }
-
-        const client = await auth.getClient();
-        const sheets = google.sheets({ version: "v4", auth: client });
-
-        const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-        const TAB = "info";
-
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: SHEET_ID,
-            range: TAB
-        });
-
-        const rows = response.data.values || [];
-        const headers = rows[0];
-        const dataRows = rows.slice(1);
-
-        const idxVerified = headers.indexOf("IS_VERIFIED");
-        const idxClientId = headers.indexOf("CLIENT_ID");
-        const idxUser = headers.indexOf("USERNAME");
-        const idxPass = headers.indexOf("PASSWORD");
-        const idxType = headers.indexOf("USER_TYPE");
-        const idxName = headers.indexOf("NAME");
-        const idxBirth = headers.indexOf("BIRTHYEAR");
-        const idxComment = headers.indexOf("COMMENT");
-
-        const idxLoginCount = headers.indexOf("LOGIN_COUNT");
-        const idxLastLogin = headers.indexOf("LAST_LOGIN");
-
-        // =========================================================
-        // SECTION: MAIL index (NEW for login by email)
-        // PURPOSE: Allow login with USERNAME OR MAIL
-        // =========================================================
-        const idxMail = headers.indexOf("MAIL");
-
-        // =========================================================
-        // SECTION: Login identifier normalize (NEW)
-        // PURPOSE:
-        // - If user typed an email, compare case-insensitively
-        // - Username compare stays exact/trim based
-        // =========================================================
-        const identifierRaw = String(username || "").trim();
-        const identifierLower = identifierRaw.toLowerCase();
-
-        const user = dataRows.find(r => {
-            const sheetUsername = String(r[idxUser] || "").trim();
-            const sheetPassword = String(r[idxPass] || "").trim();
-
-            const sheetMail = idxMail >= 0 ? String(r[idxMail] || "").trim().toLowerCase() : "";
-
-            const matchesIdentifier =
-                (sheetUsername === identifierRaw) ||
-                (idxMail >= 0 && sheetMail && sheetMail === identifierLower);
-
-            return matchesIdentifier && (sheetPassword === String(password || "").trim());
-        });
-
-        if (!user) {
-            return res.json({ success: false, error: "Invalid username or password." });
-        }
-
-        // ----- Verified check -----
-        const verified = (user[idxVerified] || "").toUpperCase().trim();
-        if (verified !== "TRUE") {
-            return res.json({
-                success: false,
-                error: "Your membership has not been approved yet."
-            });
-        }
-
-        // ----- Update login count -----
-        let loginCount = parseInt(user[idxLoginCount] || "0");
-        loginCount++;
-
-        // ----- Update last login -----
-        const now = new Date();
-        const lastLogin = now.toLocaleDateString("en-GB") + " " +
-                          now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-
-        // Google Sheet'e yaz
-        const rowIndex = dataRows.indexOf(user) + 2; // 1 header + 1-based index
-
-        await sheets.spreadsheets.values.batchUpdate({
-            spreadsheetId: SHEET_ID,
-            requestBody: {
-                valueInputOption: "USER_ENTERED",
-                data: [
-                    {
-                        range: `${TAB}!${String.fromCharCode(65 + idxLoginCount)}${rowIndex}`,
-                        values: [[loginCount]]
-                    },
-                    {
-                        range: `${TAB}!${String.fromCharCode(65 + idxLastLogin)}${rowIndex}`,
-                        values: [[lastLogin]]
-                    }
-                ]
-            }
-        });
-
-        // ----- Return user info -----
-        const userData = {
-            username: user[idxUser],
-            user_type: user[idxType],
-            name: user[idxName],
-            client_id: user[idxClientId]
-        };
-
-        return res.json({ success: true, user: userData });
-
-    } catch (err) {
-        console.error("LOGIN ERROR:", err);
-        return res.json({ success: false, error: err.message });
+    if (!username || !password) {
+      return res.json({ success: false, error: "Missing credentials" });
     }
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const TAB = "info";
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: TAB
+    });
+
+    const rows = response.data.values || [];
+    const headers = rows[0] || [];
+    const dataRows = rows.slice(1);
+
+    const idxVerified = headers.indexOf("IS_VERIFIED");
+    const idxClientId = headers.indexOf("CLIENT_ID");
+    const idxUser = headers.indexOf("USERNAME");
+    const idxPass = headers.indexOf("PASSWORD");
+    const idxType = headers.indexOf("USER_TYPE");
+    const idxName = headers.indexOf("NAME");
+    const idxBirth = headers.indexOf("BIRTHYEAR");
+    const idxComment = headers.indexOf("COMMENT");
+
+    const idxLoginCount = headers.indexOf("LOGIN_COUNT");
+    const idxLastLogin = headers.indexOf("LAST_LOGIN");
+
+    // NEW: mail index (login with username OR mail)
+    const idxMail = headers.indexOf("MAIL");
+
+    // NEW: preferred language index (we can read directly, no extra lookup needed)
+    const idxPrefLang = headers.indexOf("PREFERED_LANG");
+
+    // Normalize identifier
+    const identifierRaw = String(username || "").trim();
+    const identifierLower = identifierRaw.toLowerCase();
+    const passwordRaw = String(password || "").trim();
+
+    // Find matching row
+    const matchedRow = dataRows.find(r => {
+      const sheetUsername = String(r[idxUser] || "").trim();
+      const sheetPassword = String(r[idxPass] || "").trim();
+      const sheetMail = idxMail >= 0 ? String(r[idxMail] || "").trim().toLowerCase() : "";
+
+      const matchesIdentifier =
+        (sheetUsername === identifierRaw) ||
+        (idxMail >= 0 && sheetMail && sheetMail === identifierLower);
+
+      return matchesIdentifier && (sheetPassword === passwordRaw);
+    });
+
+    if (!matchedRow) {
+      return res.json({ success: false, error: "Invalid username or password." });
+    }
+
+    // Verified check
+    const verified = String(matchedRow[idxVerified] || "").toUpperCase().trim();
+    if (verified !== "TRUE") {
+      return res.json({ success: false, error: "Your membership has not been approved yet." });
+    }
+
+    // Update login count
+    let loginCount = parseInt(matchedRow[idxLoginCount] || "0", 10);
+    if (Number.isNaN(loginCount)) loginCount = 0;
+    loginCount++;
+
+    // Update last login
+    const now = new Date();
+    const lastLogin =
+      now.toLocaleDateString("en-GB") + " " +
+      now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+    // Row index in sheet (header row is 1, data starts at 2)
+    const rowIndex = dataRows.indexOf(matchedRow) + 2;
+
+    // Write to sheet
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SHEET_ID,
+      requestBody: {
+        valueInputOption: "USER_ENTERED",
+        data: [
+          {
+            range: `${TAB}!${String.fromCharCode(65 + idxLoginCount)}${rowIndex}`,
+            values: [[loginCount]]
+          },
+          {
+            range: `${TAB}!${String.fromCharCode(65 + idxLastLogin)}${rowIndex}`,
+            values: [[lastLogin]]
+          }
+        ]
+      }
+    });
+
+    // =========================================================
+    // BUILD USER OBJECT TO RETURN (THIS is what client stores)
+    // PURPOSE:
+    // - Include PREFERED_LANG so app.js can auto-set language
+    // - Use the matched row values (guaranteed correct)
+    // =========================================================
+    const prefer = (idxPrefLang >= 0 ? String(matchedRow[idxPrefLang] || "") : "EN").trim().toUpperCase();
+    const preferNorm = (prefer === "TR") ? "TR" : "EN";
+
+    const userData = {
+      username: String(matchedRow[idxUser] || "").trim(),
+      user_type: String(matchedRow[idxType] || "").trim(),
+      name: String(matchedRow[idxName] || "").trim(),
+      birthyear: String(matchedRow[idxBirth] || "").trim(),
+      client_id: String(matchedRow[idxClientId] || "").trim(),
+      mail: (idxMail >= 0 ? String(matchedRow[idxMail] || "").trim() : ""),
+
+      // ✅ IMPORTANT: this drives auto language in app.js
+      PREFERED_LANG: preferNorm,
+
+      // Optional: helpful fields (if you want later)
+      LOGIN_COUNT: String(loginCount),
+      LAST_LOGIN: String(lastLogin)
+    };
+
+    return res.json({ success: true, user: userData });
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
 });
+
 
 //>> admin only users list
 
@@ -3444,6 +3458,36 @@ app.post("/api/master/update-cells", async (req, res) => {
 });
 
 
+// =========================================================
+// FILE: server.js
+// SECTION: Read single user row from INFO by username
+// PURPOSE: get PREFERED_LANG (and optionally MAIL/CLIENT_ID/NAME) for login response
+// =========================================================
+async function getUserInfoFromSheet(username) {
+  const sheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+  const sheetName = "info";
+
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const data = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: sheetName,
+  });
+
+  const rows = data.data.values || [];
+  const headers = rows[0] || [];
+
+  const idxUser = headers.indexOf("USERNAME");
+  if (idxUser === -1) return null;
+
+  const row = rows.find((r, i) => i > 0 && String(r[idxUser] || "").trim() === String(username).trim());
+  if (!row) return null;
+
+  const obj = {};
+  headers.forEach((h, i) => (obj[h] = row[i] || ""));
+  return obj;
+}
 
 
 // import config server
