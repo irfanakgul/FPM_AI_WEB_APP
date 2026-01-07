@@ -1,0 +1,225 @@
+/* =========================================================
+FILE: /css/weekly.css
+PURPOSE:
+- Weekly page styling only (header/sidebar/footer use global style.css)
+- Modern soft-dark controls + table
+- No layout shift
+========================================================= */
+
+/* =========================================================
+FILE: /css/weekly.css
+SECTION: Flat layout (disable card look)
+PURPOSE:
+- Remove the central card on Weekly page
+- Show content full-width inside main
+========================================================= */
+.weekly-card{
+  max-width: 98vw;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.weekly-table-wrap { overflow-x:auto }
+
+.weekly-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:12px;
+  padding-bottom:14px;
+  margin-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.weekly-sub{
+  margin-top:6px;
+  font-size:13px;
+  opacity:0.72;
+}
+
+/* Status line */
+.weekly-status{
+  min-height: 18px;
+  margin: 8px 0 10px;
+  font-size: 13px;
+}
+.weekly-status.success{
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.25);
+  color: #4ade80;
+  font-weight: 650;
+}
+.weekly-status.error{
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: #ff9b9b;
+  font-weight: 650;
+}
+
+/* Controls */
+.weekly-controls{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap;
+  align-items:flex-start;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.22);
+}
+
+.weekly-label{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-width: 240px;
+  font-size: 13px;
+  font-weight: 750;
+  color: rgba(214,219,255,0.92);
+}
+
+#dateSelect{
+  width: 260px;
+  max-width: 100%;
+  padding: 10px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(230,233,245,0.92);
+  outline: none;
+}
+#dateSelect:focus{
+  border-color: rgba(122,162,255,0.45);
+  box-shadow: 0 0 0 4px rgba(122,162,255,0.14);
+  background: rgba(255,255,255,0.085);
+}
+
+/* Buttons */
+.weekly-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  padding-top: 24px;
+}
+
+.btn-soft, .btn-primary{
+  padding: 12px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color: #e6e9f5;
+}
+.btn-soft:hover, .btn-primary:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+  filter: brightness(1.03);
+}
+
+.btn-primary{
+  border-color: rgba(122,162,255,0.25);
+  background: linear-gradient(135deg, rgba(122,162,255,0.85), rgba(99,102,241,0.55));
+  color:#10152a;
+}
+
+/* Table wrap */
+.weekly-table-wrap{
+  margin-top: 14px;
+}
+
+/* Table itself (kept close to original look) */
+.weekly-table-wrap table{
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(30,36,56,0.9);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45),
+              inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+.weekly-table-wrap th,
+.weekly-table-wrap td{
+  padding: 10px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.weekly-table-wrap th{
+  background: rgba(122,162,255,0.15);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.weekly-table-wrap td{
+  color: #d6dbff;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.weekly-table-wrap tr:hover td{
+  background: rgba(122,162,255,0.08);
+}
+
+/* Blocker */
+.weekly-blocker{
+  margin-top: 12px;
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(30,36,56,0.92);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  text-align: center;
+}
+
+.weekly-blocker h2{
+  margin: 6px 0 10px;
+  color: #f87171;
+  font-weight: 800;
+}
+
+.weekly-blocker p{
+  margin: 0;
+  color: #cdd3f8;
+  line-height: 1.55;
+}
+
+.weekly-blocker .hint{
+  margin-top: 12px;
+  color: #aab0d6;
+  font-size: 14px;
+}
+
+.weekly-blocker .btn-row{
+  margin-top: 18px;
+  display:flex;
+  gap: 12px;
+  justify-content:center;
+  flex-wrap: wrap;
+}
+
+.weekly-blocker .bbtn{
+  padding: 12px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color:#e6e9f5;
+}
+.weekly-blocker .bbtn.primary{
+  border: none;
+  background: linear-gradient(90deg,#7c3aed,#a78bfa);
+  color:#fff;
+}

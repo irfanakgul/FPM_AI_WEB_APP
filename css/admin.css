@@ -4,7 +4,26 @@ PURPOSE:
 - Admin panel modern look (NO SIDEBAR)
 - Does NOT affect shared header/footer styles in /css/style.css
 - Keeps IDs/classes used by admin.js intact
+UPDATED (FIX):
+- Sidebar is injected but hidden on admin page (layout consistency)
+- Prevent .btn styles from leaking into shared header (main issue)
 ========================================================= */
+
+/* =========================================================
+SECTION: NO-SIDEBAR MODE (FIX)
+PURPOSE:
+- Admin page visually has no sidebar, but we keep sidebar placeholder in HTML
+- Hide sidebar safely without breaking shared header layout
+========================================================= */
+body.no-sidebar .app-sidebar{
+  display: none !important;
+}
+
+/* Ensure the grid collapses to single column */
+body.no-sidebar .app-content{
+  grid-template-columns: 1fr !important;
+}
+
 
 /* =========================================================
 SECTION: Page main-card sizing
@@ -214,33 +233,24 @@ tr:hover{
 }
 
 /* =========================================================
-SECTION: Action buttons in tables
+SECTION: Action buttons in tables (SCOPED FIX)
 NOTE:
 - admin.js uses .btn, .btn-status, .btn-delete
+IMPORTANT FIX:
+- Scope these styles to admin main-card so they DON'T affect shared header
 ========================================================= */
-.btn{
-  padding: 8px 12px !important;
-  border-radius: 999px;
-  cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.10);
-  font-size: 13px;
-  min-width: 104px;
-  text-align: center;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
-  background: rgba(255,255,255,0.06);
-  color: #e6e9f5;
-}
-.btn:hover{
+
+.admin-maincard .btn:hover{
   transform: translateY(-1px);
   box-shadow: 0 10px 22px rgba(0,0,0,0.25);
 }
 
-.btn-status{
+.admin-maincard .btn-status{
   border-color: rgba(122,162,255,0.35);
   color: #7aa2ff;
 }
 
-.btn-delete{
+.admin-maincard .btn-delete{
   border-color: rgba(255,120,120,0.40);
   color: #ff9b9b;
 }

@@ -1,42 +1,119 @@
 <!-- =========================================================
 FILE: /pages/stats.html
 PURPOSE:
-- Stats page shell (content later)
-- Uses shared header/sidebar/footer via layout.js
+- Statistics page converted to central layout (header/sidebar/footer injected)
+- Flat layout: NO central "main-card" body box on this page
+- Keeps existing statistics logic (permissions, charts, calculations) in /js/stats.js
 ========================================================= -->
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stats • FPM AI</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FPM - Statistics</title>
 
-  <!-- Global + page CSS -->
+  <!-- =========================================================
+  GLOBAL CSS + PAGE CSS
+  ========================================================= -->
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/stats.css" />
+
+  <!-- =========================================================
+  Chart libs (required by existing logic)
+  ========================================================= -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
 
 <body>
   <div class="app-shell">
+    <!-- Central header -->
     <header class="app-header" id="appHeader"></header>
 
     <div class="app-content">
+      <!-- Central sidebar -->
       <aside class="app-sidebar" id="appSidebar"></aside>
 
+      <!-- Main -->
       <main class="app-main">
-        <div class="main-card stats-card">
-          <!-- Page title (can be i18n later) -->
-          <h1>Stats</h1>
-          <p>This page will show statistics (admin + co-admin).</p>
+        <!-- =========================================================
+        FLAT PAGE WRAP (no main-card)
+        ========================================================= -->
+        <div class="stats-page">
 
-          <!-- Placeholder content area -->
-          <div class="stats-placeholder">
-            Coming soon…
+          <!-- Top head -->
+          <div class="stats-head">
+            <div>
+              <h2 class="stats-title" data-i18n="stats_title">Statistics</h2>
+              <div class="stats-sub" data-i18n="stats_desc">
+                View overall W/D/L performance and monthly trend.
+              </div>
+            </div>
+
+            <!-- Sheet ID label (admin only - logic unchanged) -->
+            <div id="sheetIdLabel" class="sheetid-pill"></div>
+          </div>
+
+          <!-- Permission warning (logic controls this) -->
+          <div id="permissionWarning" class="perm-box"></div>
+
+          <!-- Client access denied (keeps logic: client cannot access stats) -->
+          <div id="clientDeniedBox" class="perm-box perm-client">
+            Access Denied: You do not have permission to access this page.
+          </div>
+
+          <!-- Main stats content (logic hides when no permission) -->
+          <div id="statsContent">
+
+            <!-- Controls -->
+            <div class="stats-controls">
+              <label class="field">
+                <span class="field-label" data-i18n="sheet_label">Sheet</span>
+                <select id="sheetSelect">
+                  <option value="FINAL_FOCUS_SELECTION">FINAL_FOCUS_SELECTION</option>
+                  <option value="LOG_FOCUS_MODEL_A">LOG_FOCUS_MODEL_A</option>
+                </select>
+              </label>
+
+              <button id="loadBtn" class="btn-primary" data-i18n="load">Load</button>
+            </div>
+
+            <!-- Overall -->
+            <h3 class="section-title" data-i18n="overall_title">Overall (W / D / L)</h3>
+            <div class="chart-box">
+              <canvas id="overallChart"></canvas>
+            </div>
+
+            <!-- Monthly -->
+            <h3 class="section-title" data-i18n="monthly_title">Monthly Trend</h3>
+            <div class="chart-box chart-wide">
+              <canvas id="monthlyChart"></canvas>
+            </div>
+
+            <!-- Monthly table -->
+            <div class="table-wrap">
+              <table id="monthlyTable">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_month">Month</th>
+                    <th data-i18n="th_w_pct">W (%)</th>
+                    <th data-i18n="th_d_pct">D (%)</th>
+                    <th data-i18n="th_l_pct">L (%)</th>
+                    <th data-i18n="th_w_count">W Count</th>
+                    <th data-i18n="th_d_count">D Count</th>
+                    <th data-i18n="th_l_count">L Count</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+
           </div>
         </div>
       </main>
     </div>
 
+    <!-- Central footer -->
     <footer class="app-footer" id="appFooter"></footer>
   </div>
 

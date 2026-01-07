@@ -22,89 +22,140 @@ let standingPullProcess = null;
 // ===============================
 //   FPM SERVER (FULL VERSION)
 // ===============================
+/* =========================================================
+FILE: /server.js  (PAYMENT → SHEET WRITE FIX)
+PURPOSE:
+- Stripe ödeme sonrası subscription satırı eklerken:
+  1) CLIENT_ID'yi "info" tabından USERNAME'e göre doğru çekmek
+  2) SUBS_END'i plan süresine göre doğru hesaplamak (1=30g, 12=365g)
+========================================================= */
 async function writeSubscriptionToSheet({ username, mail, subs_type }) {
-    try {
-        const SUBS_SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-        const TAB = "subscription";
+  try {
+    /* =========================
+       CONFIG
+    ========================= */
+    const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const TAB_INFO = "info";
+    const TAB_SUBS = "subscription";
 
-        const client = await auth.getClient();
-        const sheets = google.sheets({ version: "v4", auth: client });
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
 
-        // Load sheet
-        const read = await sheets.spreadsheets.values.get({
-            spreadsheetId: SUBS_SHEET_ID,
-            range: TAB
-        });
+    /* =========================
+       1) CLIENT_ID'yi info tabından çek
+    ========================= */
+    const infoRead = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: TAB_INFO,
+    });
 
-        const rows = read.data.values || [];
-        const headers = rows[0];
+    const infoRows = infoRead.data.values || [];
+    const infoHeaders = infoRows[0] || [];
 
-        // Column index
-        const idxClientId = headers.indexOf("CLIENT_ID");
+    const idxUser = infoHeaders.indexOf("USERNAME");
+    const idxCID = infoHeaders.indexOf("CLIENT_ID");
+    const idxMail = infoHeaders.indexOf("MAIL");
 
-        // Last client ID
-        const lastClientId = rows
-            .slice(1)
-            .map(r => r[idxClientId])
-            .filter(v => v && v.startsWith("C"))
-            .map(v => parseInt(v.substring(1)))
-            .sort((a, b) => b - a)[0] || 3000;
-
-        const newClientId = "C" + (lastClientId + 1);
-
-        const today = new Date();
-        const subsDate = today.toISOString().split("T")[0];
-
-        let start = subsDate;
-        let end = subsDate;
-
-        if (subs_type === "trial") {
-            const d = new Date(start);
-            d.setDate(d.getDate() + 7);
-            end = d.toISOString().split("T")[0];
-        }
-        if (subs_type === "monthly") {
-            const d = new Date(start);
-            d.setMonth(d.getMonth() + 1);
-            end = d.toISOString().split("T")[0];
-        }
-        if (subs_type === "yearly") {
-            const d = new Date(start);
-            d.setFullYear(d.getFullYear() + 1);
-            end = d.toISOString().split("T")[0];
-        }
-
-        const daysLeft = Math.ceil((new Date(end) - new Date()) / 86400000);
-
-        const newRow = [
-            "NEW",
-            newClientId,
-            username,
-            subsDate,
-            subs_type,
-            start,
-            end,
-            "active",
-            daysLeft,
-            "",
-            mail
-        ];
-
-        await sheets.spreadsheets.values.append({
-            spreadsheetId: SUBS_SHEET_ID,
-            range: TAB,
-            valueInputOption: "USER_ENTERED",
-            requestBody: { values: [newRow] }
-        });
-
-        console.log("Google Sheet kayıt başarılı:", newRow);
-        return true;
-
-    } catch (err) {
-        console.error("writeSubscriptionToSheet ERROR:", err);
-        throw err;
+    if (idxUser === -1 || idxCID === -1) {
+      throw new Error("INFO tab'ında USERNAME veya CLIENT_ID kolonu bulunamadı.");
     }
+
+    const infoMatch = infoRows.find((r, i) => i > 0 && String(r[idxUser] || "").trim() === String(username || "").trim());
+    if (!infoMatch) {
+      throw new Error(`INFO tab'ında kullanıcı bulunamadı: ${username}`);
+    }
+
+    const clientId = String(infoMatch[idxCID] || "").trim();
+    const mailFromInfo = String(infoMatch[idxMail] || "").trim();
+
+    /* =========================
+       2) Plan → gün hesapla
+       - 1 ay = 30 gün
+       - 12 ay = 365 gün
+       - trial = 7 gün
+    ========================= */
+    function parseMonthsFromPlan(plan) {
+      const p = String(plan || "").toLowerCase().trim();
+      if (!p) return null;
+
+      if (p.includes("trial")) return 0; // trial ayrı ele alınacak
+
+      // içinde sayı geçen her şeyi yakala (örn "12", "12 months", "plan_3" ...)
+      const m = p.match(/(\d{1,2})/);
+      if (m && m[1]) return Number(m[1]);
+
+      // Eski isimler kalmış olabilir diye:
+      if (p === "monthly") return 1;
+      if (p === "yearly") return 12;
+
+      return null;
+    }
+
+    const today = new Date();
+    const startISO = today.toISOString().split("T")[0];
+
+    let endDateObj = new Date(startISO);
+
+    const planStr = String(subs_type || "").toLowerCase().trim();
+
+    if (planStr.includes("trial")) {
+      endDateObj.setDate(endDateObj.getDate() + 7);
+    } else {
+      const months = parseMonthsFromPlan(planStr);
+
+      if (!months || Number.isNaN(months) || months <= 0) {
+        // Güvenli fallback: 30 gün
+        endDateObj.setDate(endDateObj.getDate() + 30);
+      } else if (months >= 12) {
+        // 12 ay (ve üzeri) => 365 gün (senin istediğin kural)
+        endDateObj.setDate(endDateObj.getDate() + 365);
+      } else {
+        // 1/3/6/9 gibi => ay * 30 gün
+        endDateObj.setDate(endDateObj.getDate() + months * 30);
+      }
+    }
+
+    const endISO = endDateObj.toISOString().split("T")[0];
+
+    // Days left (bugünden end'e)
+    const daysLeft = Math.max(
+      0,
+      Math.ceil((new Date(endISO) - new Date(startISO)) / 86400000)
+    );
+
+    /* =========================
+       3) Subscription sheet'e append (kolon sırası sabit)
+       VERIFED CLIENT_ID USERNAME SUBS_DATE SUBS_TYPE SUBS_START SUBS_END SUBS_STATUS SUBS_DAYS_LEFT SUBS_NOTES MAIL
+    ========================= */
+    const newRow = [
+      "NEW",                 // VERIFED
+      clientId,              // CLIENT_ID (✅ doğru kaynaktan)
+      username,              // USERNAME
+      startISO,              // SUBS_DATE
+      subs_type,             // SUBS_TYPE (Stripe'dan gelen plan adı)
+      startISO,              // SUBS_START
+      endISO,                // SUBS_END (✅ hesaplandı)
+      "active",              // SUBS_STATUS
+      String(daysLeft),      // SUBS_DAYS_LEFT
+      "",                    // SUBS_NOTES
+      (mail || mailFromInfo) // MAIL (öncelik Stripe metadata, yoksa info)
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: TAB_SUBS,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: [newRow] },
+    });
+
+    console.log("✅ Subscription row appended:", newRow);
+    return true;
+  } catch (err) {
+    console.error("writeSubscriptionToSheet ERROR:", err);
+    throw err;
+  }
 }
+
 
 
 const express = require("express");
@@ -138,6 +189,91 @@ console.log("Static files served from:", path.join(__dirname));
 const auth = new google.auth.GoogleAuth({
     keyFile: "credentials.json",
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+});
+
+// =========================================================
+// FILE: server.js
+// SECTION: Subscription Prices API (SINGLE SOURCE)
+// PURPOSE:
+// - Reads subs_prices sheet and returns rows
+// - Used by subscription_info + subscription_form pages
+// NOTE:
+// - Keep ONLY ONE instance of this route in server.js
+// =========================================================
+app.get("/api/subs/prices", async (req, res) => {
+  try {
+    const sheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const sheetName = "subs_prices";
+
+    // Same google sheets logic as /api/load-sheet
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const data = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: sheetName,
+    });
+
+    const rows = data.data.values || [];
+    const headers = rows[0] || [];
+
+    const json = rows.slice(1).map((row) => {
+      const obj = {};
+      headers.forEach((h, i) => (obj[h] = row[i] || ""));
+      return obj;
+    });
+
+    return res.json({ success: true, rows: json });
+  } catch (err) {
+    console.error("GET /api/subs/prices error:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================
+// FILE: server.js
+// SECTION: Google Sheet helper (single source of truth)
+// PURPOSE:
+// - Read a sheet and return row objects (headers -> values)
+// - Used by multiple endpoints to avoid "undefined" bugs
+// =========================================================
+async function readSheetAsObjects(sheetId, sheetName) {
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const data = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: sheetName,
+  });
+
+  const rows = data.data.values || [];
+  const headers = rows[0] || [];
+
+  const json = rows.slice(1).map((row) => {
+    let obj = {};
+    headers.forEach((h, i) => (obj[h] = row[i] || ""));
+    return obj;
+  });
+
+  return json;
+}
+
+// =========================================================
+// FILE: server.js
+// SECTION: Load Sheet API (unchanged response contract)
+// PURPOSE:
+// - Returns {success:true, data:[...]}
+// - Used by results/stats/weekly pages
+// =========================================================
+app.post("/api/load-sheet", async (req, res) => {
+  try {
+    const { sheetId, sheetName } = req.body;
+    const json = await readSheetAsObjects(sheetId, sheetName);
+    return res.json({ success: true, data: json });
+  } catch (err) {
+    console.error("sheet load error:", err);
+    return res.json({ success: false, error: err.message });
+  }
 });
 
 // =====================================
@@ -224,33 +360,6 @@ app.get("/api/sheets", async (req, res) => {
 // =====================================
 // LOAD A SPECIFIC SHEET
 // =====================================
-app.post("/api/load-sheet", async (req, res) => {
-    try {
-        const { sheetId, sheetName } = req.body;
-
-        const client = await auth.getClient();
-        const sheets = google.sheets({ version: "v4", auth: client });
-
-        const data = await sheets.spreadsheets.values.get({
-            spreadsheetId: sheetId,
-            range: sheetName,
-        });
-
-        const rows = data.data.values || [];
-        const headers = rows[0] || [];
-
-        const json = rows.slice(1).map((row) => {
-            let obj = {};
-            headers.forEach((h, i) => (obj[h] = row[i] || ""));
-            return obj;
-        });
-
-        res.json({ success: true, data: json });
-    } catch (err) {
-        console.error("sheet load error:", err);
-        res.json({ success: false, error: err.message });
-    }
-});
 
 // =====================================
 // GOOGLE SHEET UPDATE FUNCTION
@@ -1927,8 +2036,25 @@ app.post("/api/admin/add-member", async (req, res) => {
 // PAYMENT AREA
 // =====================================
 
-const stripe = require("stripe")("sk_test_51SaiE3ReWYfwVBdgIUg7NQXbxJGlsoRxVICd8OgPkxUkMrDN82c174hxyQTQ0ipyr4h5xSNyGjP8FxWYbaq0jlpS008Ca2DQA3");
+// =========================================================
+// PURPOSE:
+// - Stripe checkout session create
+// - Subscription plan + price comes from Google Sheet: subs_prices
+// - Currency depends on language:
+//    * TR -> PRICE_TRY, currency "try"
+//    * EN -> PRICE_EURO, currency "eur"
+// - Metadata keeps username + plan so finalize can write to sheet
+// IMPORTANT:
+// - amount must be calculated on server (never trust client price)
+// =========================================================
 
+const stripe = require("stripe")(
+  "sk_test_51SaiE3ReWYfwVBdgIUg7NQXbxJGlsoRxVICd8OgPkxUkMrDN82c174hxyQTQ0ipyr4h5xSNyGjP8FxWYbaq0jlpS008Ca2DQA3"
+);
+
+// =========================================================
+// PURPOSE: Static pages for Stripe results
+// =========================================================
 app.get("/success", (req, res) => {
   res.sendFile(__dirname + "/success.html");
 });
@@ -1937,71 +2063,178 @@ app.get("/cancel", (req, res) => {
   res.sendFile(__dirname + "/cancel.html");
 });
 
-
-
-app.get("/payment", (req, res) => {
-  res.sendFile(__dirname + "/pages/pay/payment.html");
-});
 app.get("/payment", (req, res) => {
   res.sendFile(__dirname + "/pages/pay/payment.html");
 });
 
+// =========================================================
+// HELPER: price parse -> minor units (cents/kuruş)
+// EX: "5" -> 500, "5.00" -> 500, "5,00" -> 500
+// =========================================================
+function toMinorUnits(priceValue) {
+  const normalized = String(priceValue ?? "")
+    .trim()
+    .replace(/\s/g, "")
+    .replace(",", ".");
+  const num = Number(normalized);
+  if (!Number.isFinite(num) || num < 0) return null;
+  return Math.round(num * 100);
+}
 
-// post payment /////
+// =========================================================
+// HELPER: load subs_prices rows from Google Sheet
+// - First tries local function loadSheetData(sheetId, sheetName) if exists
+// - Otherwise calls existing endpoint POST /api/load-sheet
+// =========================================================
+async function loadSubsPricesRows(req) {
+  const sheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+  const sheetName = "subs_prices";
+
+  // 1) If you already have a server-side function, use it directly
+  if (typeof loadSheetData === "function") {
+    const rows = await loadSheetData(sheetId, sheetName);
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  // 2) Otherwise, call your own API endpoint
+  // NOTE: Node v25 has fetch built-in.
+  const baseUrl = `${req.protocol}://${req.get("host")}`;
+  const resp = await fetch(`${baseUrl}/api/load-sheet`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sheetId, sheetName })
+  });
+
+  const json = await resp.json();
+  if (!json.success) return [];
+  return Array.isArray(json.data) ? json.data : [];
+}
+
+// =========================================================
+// POST /payment
+// PURPOSE:
+// - Receives: username, firstName, lastName, email, plan(SUBS_TYPE), lang("tr"/"en")
+// - Looks up plan price from subs_prices sheet
+// - Creates Stripe checkout session with correct currency + amount
+// =========================================================
 app.post("/payment", async (req, res) => {
   console.log("POST /payment çalıştı!");
 
-  // 📌 BURASI ÇOK ÖNEMLİ
-  const { username, firstName, lastName, email, plan } = req.body;
-  console.log("Gelen username:", username);
+  // =========================================================
+  // INPUTS (client sends plan=SUBS_TYPE and lang="tr"/"en")
+  // =========================================================
+  const { username, firstName, lastName, email, plan, lang } = req.body;
 
-  let amount = 0;
-  if (plan === "monthly") amount = 4000;
-  if (plan === "yearly") amount = 8000;
-  if (plan === "trial") amount = 0;
+  console.log("Gelen username:", username);
+  console.log("Gelen plan (SUBS_TYPE):", plan);
+  console.log("Gelen lang:", lang);
+
+  if (!username || !email || !plan) {
+    return res.status(400).send("Missing required fields: username/email/plan");
+  }
+
+  // =========================================================
+  // LOAD subs_prices + find matching plan row
+  // Columns: SUBS_TYPE, PRICE_EURO, PRICE_TRY
+  // =========================================================
+  let subsRows = [];
+  try {
+    subsRows = await loadSubsPricesRows(req);
+  } catch (e) {
+    console.error("subs_prices load error:", e);
+    return res.status(500).send("Cannot load subs_prices sheet.");
+  }
+
+  const row = subsRows.find(
+    (r) => String(r.SUBS_TYPE ?? "").trim() === String(plan).trim()
+  );
+
+  if (!row) {
+    return res.status(400).send("Invalid plan: SUBS_TYPE not found in subs_prices.");
+  }
+
+  // =========================================================
+  // CURRENCY + PRICE selection by language
+  // TR -> TRY, EN -> EUR
+  // =========================================================
+  const isTR = String(lang || "").toLowerCase() === "tr";
+  const currency = isTR ? "try" : "eur";
+  const priceRaw = isTR ? row.PRICE_TRY : row.PRICE_EURO;
+
+  const amountMinor = toMinorUnits(priceRaw);
+  if (amountMinor === null) {
+    return res.status(400).send("Invalid price in subs_prices for selected plan.");
+  }
+
+  // =========================================================
+  // Stripe mode:
+  // - If amount > 0 => "payment"
+  // - If amount == 0 => "setup" (keeps your previous behavior)
+  // =========================================================
+  const mode = amountMinor === 0 ? "setup" : "payment";
 
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      mode: amount === 0 ? "setup" : "payment",
+      mode,
 
-      line_items: amount > 0 ? [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: { name: `${plan} subscription` },
-            unit_amount: amount,
-          },
-          quantity: 1,
-        },
-      ] : [],
+      // Only include line_items if payment amount > 0
+      line_items:
+        amountMinor > 0
+          ? [
+              {
+                price_data: {
+                  currency,
+                  product_data: {
+                    // Display nice name in Stripe checkout
+                    name: `FPM Subscription - ${plan}`
+                  },
+                  unit_amount: amountMinor
+                },
+                quantity: 1
+              }
+            ]
+          : [],
 
       customer_email: email,
 
-      // 📌 username buraya GELMEK ZORUNDA
+      // =========================================================
+      // METADATA (used later in subscription_finalize)
+      // Keep it stable!
+      // =========================================================
       metadata: {
         username: username,
-        firstName: firstName,
-        lastName: lastName,
+        firstName: firstName || "",
+        lastName: lastName || "",
         email: email,
-        plan: plan
+        plan: plan, // SUBS_TYPE
+        lang: isTR ? "TR" : "EN",
+        currency: currency,
+        amountMinor: String(amountMinor)
       },
 
-      success_url: "http://127.0.0.1:3000/pages/pay/success.html?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "http://127.0.0.1:3000/pages/pay/cancel.html",
+      // Keep your existing URLs
+      success_url:
+        "http://127.0.0.1:3000/pages/pay/success.html?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "http://127.0.0.1:3000/pages/pay/cancel.html"
     });
 
     return res.send(session.url);
-
   } catch (err) {
     console.error("Stripe Error:", err);
     return res.status(500).send("Stripe Error: " + err.message);
   }
 });
 
-
 // =====================================================
 // ÖDEME SONRASI: SUCCESS.HTML → Sheet'e Kayıt
+// =====================================================
+// PURPOSE:
+// - success.html sends sessionId
+// - we retrieve Stripe session metadata
+// - write subscription type to sheet
+// NOTE:
+// - md.plan is SUBS_TYPE now
 // =====================================================
 app.post("/api/subscription_finalize", async (req, res) => {
   try {
@@ -2013,19 +2246,18 @@ app.post("/api/subscription_finalize", async (req, res) => {
     console.log("Finalize METADATA:", md);
 
     await writeSubscriptionToSheet({
-    username: md.username,
-    mail: md.email,
-    subs_type: md.plan
-});
+      username: md.username,
+      mail: md.email,
+      subs_type: md.plan // SUBS_TYPE
+      // If you want later: currency/md.amountMinor/md.lang etc.
+    });
 
     res.json({ success: true });
-
   } catch (err) {
     console.error("Finalize error:", err);
     res.json({ success: false, error: err.message });
   }
 });
-
 
 // =====================================
 // MODEL CHAPTER
@@ -2978,6 +3210,9 @@ app.post("/api/user/update-profile", async (req, res) => {
 
 //
 
+
+
+
 // =========================================================
 // [USER] DELETE ACCOUNT (requires password match)
 // - Verifies password from USER_TAB
@@ -3036,6 +3271,177 @@ app.post("/api/user/delete-account", async (req, res) => {
   }
 });
 //
+
+// =========================================================
+// SECTION: Master helpers (NEW)
+// PURPOSE:
+// - Validate master role
+// - Validate master password format: EnigmA_DDMMYYYY_IA
+//   based on Europe/Amsterdam date
+// =========================================================
+function requireMasterUser(req) {
+  // Your app currently uses sessionStorage on client, not server sessions.
+  // So we rely on client to call only when logged in as master.
+  // Still: we can add a header-based check later. For now keep simple.
+  return true;
+}
+
+function getAmsterdamDDMMYYYY() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Amsterdam",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(new Date());
+
+  const dd = parts.find(p => p.type === "day")?.value;
+  const mm = parts.find(p => p.type === "month")?.value;
+  const yyyy = parts.find(p => p.type === "year")?.value;
+  return `${dd}${mm}${yyyy}`; // DDMMYYYY
+}
+
+function isValidMasterPassword(pw) {
+  const today = getAmsterdamDDMMYYYY();
+//   const expected = `EnigmA_${today}_IA`;
+  const expected = `EEEE`;
+
+  return String(pw || "").trim() === expected;
+}
+
+function colToA1(col) {
+  // 1 -> A, 2 -> B ... 27 -> AA
+  let n = col;
+  let s = "";
+  while (n > 0) {
+    const r = (n - 1) % 26;
+    s = String.fromCharCode(65 + r) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+// =========================================================
+// SECTION: Master verify (NEW)
+// PURPOSE: allow UI to check master password
+// =========================================================
+app.post("/api/master/verify", async (req, res) => {
+  try {
+    const { masterPassword } = req.body;
+    if (!masterPassword) return res.json({ success: false, error: "Missing masterPassword" });
+
+    if (!isValidMasterPassword(masterPassword)) {
+      return res.json({ success: false, error: "Invalid Master Password." });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("MASTER VERIFY ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================
+// SECTION: List worksheet tabs (NEW)
+// PURPOSE: auto load all tabs (worksheets) in sheetId
+// =========================================================
+app.post("/api/master/list-tabs", async (req, res) => {
+  try {
+    const { sheetId } = req.body;
+    if (!sheetId) return res.json({ success: false, error: "Missing sheetId" });
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
+    const tabs = (meta.data.sheets || [])
+      .map(s => s.properties?.title)
+      .filter(Boolean);
+
+    return res.json({ success: true, tabs });
+  } catch (err) {
+    console.error("MASTER LIST TABS ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================
+// SECTION: Get tab values (NEW)
+// PURPOSE: load a worksheet's values for table rendering
+// =========================================================
+app.post("/api/master/get-tab", async (req, res) => {
+  try {
+    const { sheetId, tabName } = req.body;
+    if (!sheetId || !tabName) return res.json({ success: false, error: "Missing sheetId/tabName" });
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const read = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: `${tabName}`
+    });
+
+    const values = read.data.values || [];
+    return res.json({ success: true, values });
+  } catch (err) {
+    console.error("MASTER GET TAB ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================
+// MASTER CHAPTER
+// SECTION: Update cells (NEW)
+// PURPOSE:
+// - Save edits
+// - Requires master password again
+// - updates: [{row, col, value}]
+// =========================================================
+app.post("/api/master/update-cells", async (req, res) => {
+  try {
+    const { sheetId, tabName, updates, masterPassword } = req.body;
+
+    if (!sheetId || !tabName) return res.json({ success: false, error: "Missing sheetId/tabName" });
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.json({ success: false, error: "No updates" });
+    }
+    if (!masterPassword) return res.json({ success: false, error: "Missing masterPassword" });
+
+    if (!isValidMasterPassword(masterPassword)) {
+      return res.json({ success: false, error: "Invalid Master Password." });
+    }
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    // Build batchUpdate ranges
+    const data = updates.map(u => {
+      const row = Number(u.row);
+      const col = Number(u.col);
+      const value = (u.value ?? "");
+
+      const a1 = `${colToA1(col)}${row}`;
+      return {
+        range: `${tabName}!${a1}`,
+        values: [[value]]
+      };
+    });
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
+        valueInputOption: "USER_ENTERED",
+        data
+      }
+    });
+
+    return res.json({ success: true });
+
+  } catch (err) {
+    console.error("MASTER UPDATE CELLS ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
 
 
 

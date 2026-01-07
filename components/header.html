@@ -3,12 +3,19 @@ FILE: /components/header.html
 PURPOSE:
 - Shared header UI (loaded by layout.js)
 - Buttons are shown/hidden by /js/app.js based on user_type
+UPDATE:
+- User info box is now fully clickable and has a hover dropdown
+- Dropdown opens downward without changing header height
 ========================================================= -->
 
 <div class="header-inner">
 
-  <!-- ===== LEFT: Logo + Brand Text ===== -->
-  <div class="brand">
+  <!-- =========================================================
+SECTION: Brand link (NEW)
+PURPOSE:
+- Clicking logo or "FPM AI" navigates to Home
+========================================================= -->
+  <a class="brand brand-link" href="/index.html" aria-label="Go to Home">
     <img
       class="brand-logo"
       src="/docs/fpm_logo.jpg"
@@ -23,16 +30,21 @@ PURPOSE:
     <div class="brand-title">
       <span class="brand-text">FPM AI</span>
     </div>
-  </div>
+  </a>
+
 
   <!-- ===== MIDDLE/RIGHT: Navigation Pills ===== -->
   <div class="header-actions">
 
+    <a id="masterNavBtn" class="hdr-pill hdr-pill-purple" href="/pages/master.html" style="display:none;">
+      <span class="hdr-pill-label">Master</span>
+    </a>
+    
     <!-- Model Panel (admin + co-admin) -->
     <a id="modelNavBtn" class="hdr-pill hdr-pill-blue" href="/pages/model/model.html" style="display:none;">
       <span class="hdr-pill-label">Model Panel</span>
     </a>
-
+    
     <!-- Admin Dashboard (admin only) -->
     <a id="adminNavBtn" class="hdr-pill hdr-pill-purple" href="/pages/admin.html" style="display:none;">
       <span class="hdr-pill-label">Admin Dashboard</span>
@@ -48,32 +60,56 @@ PURPOSE:
       <span class="hdr-pill-label">Results</span>
     </a>
 
-    <!-- User Dashboard (ALL user_type) -->
-    <a id="userDashNavBtn" class="hdr-pill hdr-pill-green" href="/pages/user_panel.html" style="display:none;">
-      <span class="hdr-pill-label">User Dashboard</span>
-    </a>
-
   </div>
 
   <!-- ===== FAR RIGHT: User Info + Language + Auth ===== -->
   <div class="header-right">
-    <div id="headerUserInfo" class="user-box" style="display:none;">
+
+    <!-- =========================================================
+    SECTION: User info (CLICKABLE) + hover dropdown (NEW)
+    PURPOSE:
+    - Entire user box is clickable -> goes to user panel
+    - On hover, dropdown opens downward without changing header height
+    IMPORTANT:
+    - Keep IDs: headerUserInfo, userName, userType, activeTimer (unchanged)
+    ========================================================= -->
+    <a id="headerUserInfo" class="user-box user-menu" href="/pages/user_panel.html" style="display:none;">
+
+      <!-- Visible user line -->
       <div class="user-line">
         <span class="label" data-i18n="username">User</span>:
         <span class="value" id="userName">-</span>
       </div>
+
+      <!-- Visible type + timer line -->
       <div class="user-line">
         <span class="label" data-i18n="usertype">Type</span>:
         <span class="value" id="userType">-</span>
-        <span class="value" style="margin-left:8px;" id="activeTimer">Active: 0m 0s</span>
-      </div>
-    </div>
 
+        <!-- Timer: add class for fixed-width styling (prevents header jitter) -->
+        <span class="value active-timer" style="margin-left:8px;" id="activeTimer">Active: 0m 0s</span>
+      </div>
+
+      <!-- Hover dropdown panel -->
+      <div class="user-menu-dropdown" aria-label="User menu dropdown">
+        <!-- =========================================================
+        SECTION: User menu dropdown text (i18n)
+        PURPOSE:
+        - Text changes based on selected language
+        ========================================================= -->
+        <div class="user-menu-title" data-i18n="userpanel_title">User Panel</div>
+        <div class="user-menu-desc" data-i18n="userpanel_hint">Click to open the user panel.</div>
+
+      </div>
+    </a>
+
+    <!-- Language switch -->
     <div class="lang-switch">
       <button class="icon-btn" id="btnLangEn" aria-label="English">🇬🇧</button>
       <button class="icon-btn" id="btnLangTr" aria-label="Türkçe">🇹🇷</button>
     </div>
 
+    <!-- Auth buttons -->
     <div class="auth-actions" id="authActions">
       <button id="loginBtn" class="btn btn-primary" type="button">Login</button>
       <button id="createAccountBtn" class="btn btn-ghost" type="button">Create account</button>

@@ -1,25 +1,82 @@
-<div class="app-shell">
-  <header class="app-header" id="appHeader"></header>
+<!-- =========================================================
+FILE: /index.html
+PURPOSE:
+- Home page using centralized layout (layout.js)
+- Fix HTML structure (adds <head>)
+- Anti-FOUC: prevent white flash while CSS/layout loads
+NOTES:
+- Existing content preserved exactly
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- =========================================================
+  SECTION: Meta
+  ========================================================= -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FPM AI • Home</title>
 
-  <div class="app-content">
-    <aside class="app-sidebar" id="appSidebar"></aside>
+  <!-- =========================================================
+  SECTION: Anti-FOUC (inline)
+  PURPOSE:
+  - Apply dark background immediately (before external CSS downloads)
+  ========================================================= -->
+<style>
+  html, body { 
+    background: var(--app-bg, #161a26); /* matches style.css theme */
+    margin: 0; 
+  }
+</style>
 
-    <main class="app-main">
-      <div class="main-card">
-        <h1 data-i18n="home_title">Welcome</h1>
-        <p data-i18n="home_desc">This is the Home page. Later we will move your real content here without breaking logic.</p>
-      </div>
-    </main>
+<meta name="color-scheme" content="dark">
+
+  <!-- =========================================================
+  SECTION: CSS
+  PURPOSE:
+  - Global layout/theme first
+  - Page-specific second
+  ========================================================= -->
+  <!-- GLOBAL CSS (header/sidebar/footer + layout) -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- PAGE CSS (only index page custom) -->
+  <link rel="stylesheet" href="/css/index.css">
+</head>
+
+<body>
+  <!-- =========================================================
+  SECTION: App Shell
+  PURPOSE:
+  - Header/sidebar/footer will be injected by layout.js
+  - Page main content stays here
+  ========================================================= -->
+  <div class="app-shell">
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="app-content">
+      <aside class="app-sidebar" id="appSidebar"></aside>
+
+      <main class="app-main">
+        <div class="main-card">
+          <h1 data-i18n="home_title">Welcome</h1>
+          <p data-i18n="home_desc">
+            This is the Home page. Later we will move your real content here without breaking logic.
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <footer class="app-footer" id="appFooter"></footer>
   </div>
 
-  <footer class="app-footer" id="appFooter"></footer>
-</div>
-
-<!-- GLOBAL CSS (header/sidebar/footer + layout) -->
-<link rel="stylesheet" href="/css/style.css">
-
-<!-- PAGE CSS (only index page custom) -->
-<link rel="stylesheet" href="/css/index.css">
-
-<script src="/js/layout.js"></script>
-<script src="/js/app.js"></script>
+  <!-- =========================================================
+  SECTION: Scripts
+  PURPOSE:
+  - layout.js injects header/sidebar/footer
+  - app.js wires auth, role nav, language, timer, etc.
+  ========================================================= -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,9 +1,36 @@
-<nav class="nav">
-  <a class="nav-item" href="/index.html" data-route="/index.html" data-i18n="nav_home">Home</a>
-  <a class="nav-item" href="/pages/about.html" data-route="/pages/about.html" data-i18n="nav_about">About</a>
-</nav>
+<!-- =========================================================
+FILE: /components/sidebar.html
+PURPOSE:
+- Sidebar links that work with your existing app.js:
+  * active highlight uses ".nav-item" + data-route or href
+  * i18n uses data-i18n keys (nav_home, nav_about, etc.)
+IMPORTANT:
+- Visible default texts must be real words (Home/About), NOT keys.
+========================================================= -->
 
-<div class="sidebar-note">
-  <div class="badge" data-i18n="sidebar_note_title">Note</div>
-  <p data-i18n="sidebar_note_desc">Later we will show/hide menu items based on user_type.</p>
-</div>
+<aside class="sidebar">
+  <nav class="sidebar-nav">
+
+    <!-- HOME -->
+    <a class="nav-item" href="/index.html" data-route="/index.html">
+      <span class="nav-text" data-i18n="nav_home">Home</span>
+    </a>
+
+    <!-- WEEKLY (visible to all; page itself checks subscription) -->
+    <a class="nav-item" href="/pages/weekly.html" data-route="/pages/weekly.html">
+      <span class="nav-text" data-i18n="nav_weekly">Weekly Games</span>
+    </a>
+    <!-- SUBSCRIPTION INFO (after Home) -->
+    <a class="nav-item" href="/pages/subscription_info.html" data-route="/pages/subscription_info.html">
+      <span class="nav-text" data-i18n="nav_subscription">Subscription</span>
+    </a>
+    <!-- Contact -->
+    <a class="nav-item" href="/pages/contact.html" data-route="/pages/contact.html" data-i18n="nav_contact">Contact</a>
+    
+    <!-- ABOUT -->
+    <a class="nav-item" href="/pages/about.html" data-route="/pages/about.html">
+      <span class="nav-text" data-i18n="nav_about">About</span>
+    </a>
+
+  </nav>
+</aside>

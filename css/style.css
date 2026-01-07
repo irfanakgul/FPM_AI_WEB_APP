@@ -2,23 +2,24 @@
 FILE: /css/style.css
 PURPOSE:
 - Single source of truth for global layout + header/sidebar/footer + shared UI
-- Footer always at bottom (no floating)
-- Background consistent (no bottom color band)
-- Sidebar optional: if hidden, main expands automatically
-- Modern, more visible header pill gradients + selected state
-- Main content width increased responsively (less empty side space)
+- Consistent background across all pages (no white flash band)
+- Sidebar optional (admin pages can hide)
+- Modern header pills + selected state
+- Stable header (no jitter from timer)
+- Anti-FOUC helpers (layout injection + auth state)
 ========================================================= */
 
-/* =========================
-   1) THEME TOKENS (CENTER)
-========================= */
+/* =========================================================
+SECTION: Theme tokens (SINGLE SOURCE OF TRUTH)
+PURPOSE:
+- Change the entire site's theme from here only
+========================================================= */
 :root{
-  /* Deep modern dark */
-  --bg-0: #070A12;
-  --bg-1: #0B1020;
-  --bg-2: #0E1430;
+  /* ✅ Main app background (this is what you change for whole site) */
+  --app-bg: linear-gradient(180deg, #1a1f2e, #161a26);
+  --app-bg-solid: #161a26; /* fallback if needed */
 
-  /* Accent glows (stronger) */
+  /* Accent glows */
   --glow-a: rgba(122, 162, 255, 0.26); /* blue */
   --glow-b: rgba(188, 122, 255, 0.22); /* purple */
   --glow-c: rgba(120, 255, 214, 0.16); /* mint */
@@ -46,35 +47,36 @@ PURPOSE:
   --sidebar-w: 260px;
   --gap: 16px;
 
-  /* Main card max width (RESPONSIVE) */
-  --content-max: clamp(920px, 86vw, 1320px);
-
-  /* Accents (used by pills/buttons) */
-  --blue:  rgba(130,190,255,1);
-  --purple: rgba(190,150,255,1);
-  --green: rgba(120,255,215,1);
-
   /* Pill glow colors */
   --pill-a: rgba(130,190,255,0.55);
   --pill-b: rgba(190,150,255,0.50);
   --pill-c: rgba(120,255,215,0.45);
 }
 
-/* =========================
-   2) RESET + BASE
-========================= */
+/* =========================================================
+SECTION: Reset + base
+========================================================= */
 *{ box-sizing: border-box; }
-html, body{ height: 100%; }
-body{
+
+html, body{
+  height: 100%;
+  min-height: 100%;
   margin: 0;
+  background: var(--app-bg);
+}
+
+body{
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: var(--bg-0);
 }
 
-/* Global fixed background so no “bottom band” appears */
+/* =========================================================
+SECTION: Global fixed background overlay (no “bottom band”)
+PURPOSE:
+- Keeps the app looking consistent even when content is short
+========================================================= */
 body::before{
   content:"";
   position: fixed;
@@ -84,19 +86,28 @@ body::before{
     radial-gradient(980px 560px at 14% 10%, var(--glow-a), transparent 62%),
     radial-gradient(920px 560px at 86% 12%, var(--glow-b), transparent 64%),
     radial-gradient(980px 560px at 50% 112%, var(--glow-c), transparent 62%),
-    linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 40%, var(--bg-0) 100%);
+    var(--app-bg);
 }
 
-/* Links */
+/* =========================================================
+SECTION: Accessibility focus
+========================================================= */
 a{ color: inherit; text-decoration: none; }
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible{
   outline: 2px solid rgba(130,190,255,0.50);
   outline-offset: 2px;
 }
 
-/* =========================
-   3) APP LAYOUT (FOOTER FIX)
-========================= */
+/* =========================================================
+SECTION: App layout
+PURPOSE:
+- Header top, footer bottom, content expands
+========================================================= */
 .app-shell{
   min-height: 100vh;
   display: flex;
@@ -113,7 +124,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 .app-content{
   flex: 1;
-  display: flex;          /* sidebar optional, main auto expands */
+  display: flex;          /* sidebar optional, main expands */
   gap: var(--gap);
   padding: var(--gap);
   align-items: stretch;
@@ -129,18 +140,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   overflow: hidden;
 }
 
-/* Main expands; use stretch so big cards can actually use the space */
 .app-main{
   flex: 1;
   min-width: 0;
   display: flex;
-  justify-content: center;     /* ✅ always centered */
+  justify-content: center;     /* centered main card */
   align-items: flex-start;
-  padding: 0;                  /* gutter is controlled by card width below */
+  padding: 0;
 }
 
 .app-footer{
-  margin-top: auto; /* pushes footer to bottom */
+  margin-top: auto;
   padding: 14px 16px;
   border-top: 1px solid var(--border);
   background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.05));
@@ -151,27 +161,26 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 /* Responsive: stack sidebar above main */
 @media (max-width: 920px){
-  :root{ --content-max: 92vw; }
   .app-content{ flex-direction: column; }
   .app-sidebar{ width: 100%; flex: 0 0 auto; }
 }
 
-/* =========================
-   4) MAIN CARD (STANDARD)
-========================= */
+/* =========================================================
+SECTION: Main card (standard)
+========================================================= */
 .main-card{
-  width: min(1100px, calc(100vw - 2 * var(--gap))); /* ✅ ideal max + responsive gutter */
+  width: min(1100px, calc(100vw - 2 * var(--gap)));
   border-radius: var(--r-lg);
   border: 1px solid var(--border);
   background: linear-gradient(180deg, var(--surface-1), rgba(255,255,255,0.03));
   box-shadow: var(--shadow);
   padding: 18px;
-  margin: 0 auto; /* ✅ extra safety */
+  margin: 0 auto;
 }
 
-/* =========================
-   5) HEADER CONTENT
-========================= */
+/* =========================================================
+SECTION: Header content
+========================================================= */
 .header-inner{
   height: 100%;
   display: flex;
@@ -209,6 +218,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   letter-spacing: 0.2px;
 }
 
+/* Brand link (logo + text clickable) */
+.brand-link{
+  text-decoration: none;
+  color: inherit;
+}
+.brand-link:hover{ opacity: 0.98; }
+
 /* Middle pills */
 .header-actions{
   margin-left: auto;
@@ -223,9 +239,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-shrink: 0;
 }
 
-/* User box */
+/* =========================================================
+SECTION: User box + dropdown menu
+========================================================= */
 .user-box{
   border: 1px solid var(--border);
   background: rgba(255,255,255,0.04);
@@ -234,12 +253,78 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   line-height: 1.25;
   max-width: 340px;
 }
+
 .user-line{ font-size: 12px; color: var(--muted); }
 .user-line .value{ color: var(--text); font-weight: 900; }
 .user-line .label{ color: var(--muted); }
 
-/* Language buttons */
+/* User menu hover dropdown */
+.user-menu{
+  position: relative;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  overflow: visible;
+}
+.user-menu:hover{
+  border-color: rgba(120,180,255,0.22);
+  background: rgba(255,255,255,0.045);
+}
+
+.user-menu-dropdown{
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 260px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(16,24,35,0.92);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+  z-index: 9999;
+
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.user-menu:hover .user-menu-dropdown{
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.user-menu-title{
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.92);
+  margin-bottom: 4px;
+}
+.user-menu-desc{
+  font-size: 12px;
+  color: rgba(255,255,255,0.62);
+  line-height: 1.35;
+}
+
+/* Fix header jitter caused by changing timer text */
+.active-timer{
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+#activeTimer{
+  display: inline-block;
+  width: 110px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* =========================================================
+SECTION: Language buttons
+========================================================= */
 .lang-switch{ display: flex; gap: 8px; }
+
 .icon-btn{
   width: 38px;
   height: 38px;
@@ -254,23 +339,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border-color: var(--border-strong);
 }
 
-/* =========================
-   6) NAV PILLS (VISIBLE + SELECTED)
-========================= */
+/* =========================================================
+SECTION: Header navigation pills
+========================================================= */
 .hdr-pill{
   position: relative;
-  overflow: hidden; /* CRITICAL: allows ::before glow to show */
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
   border-radius: 999px;
 
-  /* Base glass */
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04));
+  background: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04));
   border: 1px solid rgba(255,255,255,0.18);
-
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 
@@ -284,26 +366,18 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     box-shadow 0.18s ease;
 }
 
-/* Soft but more visible color layer */
 .hdr-pill::before{
   content: "";
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(
-    120deg,
-    var(--pill-a),
-    var(--pill-b),
-    var(--pill-c)
-  );
-  opacity: 0.18; /* visible even without hover */
-  filter: blur(0px);
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  background: linear-gradient(120deg, var(--pill-a), var(--pill-b), var(--pill-c));
+  opacity: 0.18;
   transform: translateX(-6px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
   pointer-events: none;
 }
 
-/* Hover: stronger + slight motion */
 .hdr-pill:hover{
   transform: translateY(-1px);
   border-color: rgba(255,255,255,0.32);
@@ -316,7 +390,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   transform: translateX(0px);
 }
 
-/* Label */
 .hdr-pill-label{
   position: relative;
   z-index: 1;
@@ -325,9 +398,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   letter-spacing: 0.2px;
 }
 
-/* SELECTED STATE:
-   - Use either .active class OR aria-current="page"
-   - Modern indicator: brighter border + inner glow + small bottom shine */
+/* Selected state: .active or aria-current */
 .hdr-pill.active,
 .hdr-pill[aria-current="page"]{
   border-color: rgba(130,190,255,0.55);
@@ -341,8 +412,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   opacity: 0.78;
   transform: translateX(0px);
 }
-
-/* Tiny selected indicator (modern underline glow) */
 .hdr-pill.active::after,
 .hdr-pill[aria-current="page"]::after{
   content:"";
@@ -352,19 +421,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   bottom: 6px;
   height: 2px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(130,190,255,0.0), rgba(130,190,255,0.85), rgba(120,255,215,0.65), rgba(190,150,255,0.0));
+  background: linear-gradient(
+    90deg,
+    rgba(130,190,255,0.0),
+    rgba(130,190,255,0.85),
+    rgba(120,255,215,0.65),
+    rgba(190,150,255,0.0)
+  );
   opacity: 0.95;
   pointer-events:none;
 }
 
-/* Optional subtle category hints (keep very soft) */
-.hdr-pill-blue{ box-shadow: inset 0 0 0 1px rgba(130,190,255,0.16), 0 10px 24px rgba(0,0,0,0.38); }
-.hdr-pill-purple{ box-shadow: inset 0 0 0 1px rgba(190,150,255,0.16), 0 10px 24px rgba(0,0,0,0.38); }
-.hdr-pill-green{ box-shadow: inset 0 0 0 1px rgba(120,255,215,0.14), 0 10px 24px rgba(0,0,0,0.38); }
-
-/* =========================
-   7) BUTTONS (LOGIN/LOGOUT etc.)
-========================= */
+/* =========================================================
+SECTION: Buttons (login/logout etc.)
+========================================================= */
 .btn{
   border: 1px solid var(--border);
   background: rgba(255,255,255,0.04);
@@ -379,18 +449,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   transform: translateY(-1px);
   border-color: var(--border-strong);
 }
-
 .btn-primary{
   border: 1px solid rgba(130,190,255,0.30);
   background: linear-gradient(135deg, rgba(130,190,255,0.24), rgba(190,150,255,0.18));
 }
-.btn-ghost{
-  background: rgba(255,255,255,0.03);
-}
+.btn-ghost{ background: rgba(255,255,255,0.03); }
 
-/* =========================
-   8) INPUTS (GLOBAL)
-========================= */
+/* =========================================================
+SECTION: Inputs (global)
+========================================================= */
 input, select, textarea{
   width: 100%;
   padding: 12px 12px;
@@ -401,16 +468,17 @@ input, select, textarea{
   font-size: 14px;
   transition: 0.16s ease;
 }
-input::placeholder{ color: var(--muted); }
+input::placeholder, textarea::placeholder{ color: var(--muted); }
 input:focus, select:focus, textarea:focus{
+  outline: none;
   border-color: rgba(130,190,255,0.58);
   box-shadow: 0 0 0 4px rgba(130,190,255,0.16);
   background: rgba(255,255,255,0.055);
 }
 
-/* =========================
-   9) SIDEBAR NAV
-========================= */
+/* =========================================================
+SECTION: Sidebar nav
+========================================================= */
 .sidebar-wrap{ padding: 14px; }
 
 .nav-list{
@@ -459,18 +527,29 @@ input:focus, select:focus, textarea:focus{
 }
 
 /* =========================================================
-SECTION: NO SIDEBAR PAGES (Global)
-PURPOSE:
-- Allow pages to use the same app-shell but without sidebar column
+SECTION: Small helpers
 ========================================================= */
-.no-sidebar-content{
-  grid-template-columns: 1fr; /* sidebar yok */
-}
-
-/* =========================
-   10) SMALL HELPERS
-========================= */
 .row{ display: flex; gap: 10px; align-items: center; }
 .form{ display: flex; flex-direction: column; gap: 10px; }
 .successMsg{ color: rgba(120,255,200,0.95); font-weight: 900; }
 .errorMsg{ color: rgba(255,120,120,0.95); font-weight: 900; }
+
+/* =========================================================
+SECTION: Prevent auth flicker (before app.js updateUI)
+PURPOSE:
+- Hide auth buttons/user box until JS applies correct state
+NOTE:
+- app.js should add: document.documentElement.classList.add("ui-ready")
+========================================================= */
+html:not(.ui-ready) #authActions,
+html:not(.ui-ready) #headerUserInfo{
+  visibility: hidden !important;
+}
+
+/* =========================================================
+SECTION: Anti-FOUC / Layout loading mask
+PURPOSE:
+- layout.js toggles body.is-loading / body.is-loaded
+========================================================= */
+body.is-loading .app-shell{ opacity: 0; }
+body.is-loaded .app-shell{ opacity: 1; transition: opacity 0.12s ease; }

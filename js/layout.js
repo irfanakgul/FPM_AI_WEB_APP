@@ -1,15 +1,14 @@
-// =========================================================
-// FILE: /js/layout.js
-// PURPOSE:
-// - Load shared components (header/sidebar/footer) into placeholders
-// - Fire "layout:ready" ONLY after all parts are injected
-// NOTE:
-// - Sidebar optional: if #appSidebar doesn't exist on a page, it is skipped.
-// =========================================================
+/* =========================================================
+FILE: /js/layout.js
+PURPOSE:
+- Inject shared header/sidebar/footer into page placeholders
+- Emit "layout:ready" ONLY AFTER all components are loaded
+- Anti-FOUC: keeps body hidden until injection finishes
+========================================================= */
 
 async function loadInto(elId, url) {
   const el = document.getElementById(elId);
-  if (!el) return; // This page might not have this region (e.g., no sidebar)
+  if (!el) return;
 
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
@@ -20,15 +19,28 @@ async function loadInto(elId, url) {
 }
 
 (async function initLayout() {
-  // Header/Footer always
+  // =========================================================
+  // SECTION: Anti-FOUC start
+  // PURPOSE: Hide shell until layout injection finishes
+  // =========================================================
+  document.body.classList.add("is-loading");
+  document.body.classList.remove("is-loaded");
+
+  // =========================================================
+  // SECTION: Inject components
+  // =========================================================
   await loadInto("appHeader", "/components/header.html");
-
-  // Sidebar may not exist on some pages
   await loadInto("appSidebar", "/components/sidebar.html");
-
-  // Footer always
   await loadInto("appFooter", "/components/footer.html");
 
-  // IMPORTANT: fire after everything is loaded
+  // =========================================================
+  // SECTION: Anti-FOUC end + signal ready
+  // PURPOSE:
+  // - Show shell
+  // - Notify app.js that header/sidebar/footer are in DOM
+  // =========================================================
+  document.body.classList.remove("is-loading");
+  document.body.classList.add("is-loaded");
+
   window.dispatchEvent(new Event("layout:ready"));
 })();
