@@ -39,8 +39,8 @@ window.addEventListener("layout:ready", () => {
   const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
   const userType = String(currentUser?.user_type || "").trim().toLowerCase();
 
-  if (!currentUser || userType !== "admin") {
-    window.location.href = "/pages/login.html";
+  if (!userType) {
+  window.location.href = "/pages/login.html";
     return;
   }
 

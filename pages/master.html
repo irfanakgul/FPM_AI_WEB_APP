@@ -1,8 +1,9 @@
 <!-- =========================================================
 FILE: /pages/master.html
 PURPOSE:
-- Master-only admin page for managing ALL tabs in the user sheet
-- Requires master password on entry + on updates
+- Master-only panel for managing ALL tabs in the user sheet
+- Entry + Save require master password (masked + eye toggle modal)
+- Grid features: Search, Filter, Add Row, Delete Row, Edit/Save
 ========================================================= -->
 <!doctype html>
 <html lang="en">
@@ -24,38 +25,70 @@ PURPOSE:
 
       <main class="app-main">
         <div class="main-card master-card">
+
+          <!-- =========================
+               PAGE HEADER
+          ========================== -->
           <div class="master-top">
             <div>
               <h1 class="master-title">Master Panel</h1>
-              <p class="master-sub">
-                Manage all tabs in the user sheet (view + edit).
-              </p>
-            </div>
-
-            <div class="master-actions">
-              <!-- =========================================================
-              SECTION: Edit controls
-              PURPOSE: Enable edit mode + save/cancel
-              ========================================================== -->
-              <button id="btnEdit" class="btn btn-primary" type="button">Edit</button>
-              <button id="btnSave" class="btn btn-primary" type="button" style="display:none;">Save</button>
-              <button id="btnCancel" class="btn btn-ghost" type="button" style="display:none;">Cancel</button>
+              <p class="master-sub">Manage all tabs in the user sheet (view + edit).</p>
             </div>
           </div>
 
-          <!-- =========================================================
-          SECTION: Tabs
-          PURPOSE: Auto-generated sheet tabs (worksheets)
-          ========================================================== -->
+          <!-- =========================
+               TOOLBAR (NEW)
+               Search + Filter + Add/Delete + Edit/Save/Cancel
+          ========================== -->
+          <div class="master-toolbar">
+
+            <!-- Search -->
+            <div class="tool-group">
+              <label class="tool-label">Search</label>
+              <input id="searchInput" class="tool-input" type="text" placeholder="Search in table..." />
+            </div>
+
+            <!-- Filter -->
+            <div class="tool-group">
+              <label class="tool-label">Filter</label>
+              <div class="tool-row">
+                <select id="filterCol" class="tool-select"></select>
+                <input id="filterValue" class="tool-input" type="text" placeholder="Value..." />
+                <button id="btnApplyFilter" class="btn btn-ghost" type="button">Apply</button>
+                <button id="btnClearFilter" class="btn btn-ghost" type="button">Clear</button>
+              </div>
+            </div>
+
+            <!-- Row ops -->
+            <div class="tool-group">
+              <label class="tool-label">Rows</label>
+              <div class="tool-row">
+                <button id="btnAddRow" class="btn btn-primary" type="button">Add Row</button>
+                <button id="btnDeleteRow" class="btn btn-ghost" type="button">Delete Selected</button>
+              </div>
+            </div>
+
+            <!-- Edit ops -->
+            <div class="tool-group tool-group-right">
+              <label class="tool-label">Edit</label>
+              <div class="tool-row">
+                <button id="btnEdit" class="btn btn-primary" type="button">Edit</button>
+                <button id="btnSave" class="btn btn-primary" type="button" style="display:none;">Save</button>
+                <button id="btnCancel" class="btn btn-ghost" type="button" style="display:none;">Cancel</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- =========================
+               TABS
+          ========================== -->
           <div id="tabs" class="tabs"></div>
 
           <!-- Status -->
           <div id="status" class="master-status" aria-live="polite"></div>
 
-          <!-- =========================================================
-          SECTION: Table container
-          PURPOSE: Show selected worksheet data
-          ========================================================== -->
+          <!-- Table -->
           <div id="tableWrap" class="table-wrap"></div>
 
         </div>
@@ -63,6 +96,29 @@ PURPOSE:
     </div>
 
     <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- =========================
+       MASTER PASSWORD MODAL (NEW)
+       Masked input + eye toggle
+  ========================== -->
+  <div id="pwModal" class="pw-modal" style="display:none;">
+    <div class="pw-card">
+      <div class="pw-title" id="pwTitle">Enter Master Password</div>
+      <div class="pw-desc" id="pwDesc">Please enter master password to continue.</div>
+
+      <div class="pw-input-row">
+        <input id="pwInput" class="pw-input" type="password" placeholder="Master Password" />
+        <button id="pwToggle" class="pw-eye" type="button" aria-label="Show/Hide password">👁</button>
+      </div>
+
+      <div class="pw-actions">
+        <button id="pwCancel" class="btn btn-ghost" type="button">Cancel</button>
+        <button id="pwOk" class="btn btn-primary" type="button">OK</button>
+      </div>
+
+      <div id="pwMsg" class="pw-msg"></div>
+    </div>
   </div>
 
   <script src="/js/layout.js"></script>

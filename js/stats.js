@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================================================
      PERMISSION (same logic)
   ====================================================== */
-  if (!["admin", "co-admin"].includes(currentUser.user_type)) {
+  if (!["admin", "co-admin","master"].includes(currentUser.user_type)) {
     if (statsContent) statsContent.style.display = "none";
     if (permissionWarning) {
       permissionWarning.style.display = "block";

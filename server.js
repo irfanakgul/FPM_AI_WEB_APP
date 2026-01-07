@@ -3302,7 +3302,9 @@ function getAmsterdamDDMMYYYY() {
 
 function isValidMasterPassword(pw) {
   const today = getAmsterdamDDMMYYYY();
-  const expected = `EnigmA_${today}_IA`;
+//   const expected = `EnigmA_${today}_IA`;
+  const expected = `EEEE`;
+
   return String(pw || "").trim() === expected;
 }
 
