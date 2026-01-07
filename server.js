@@ -660,128 +660,142 @@ app.post("/api/contact_form", async (req, res) => {
 
 
 // =====================================
-// NEW LOGIN no endpoint
+// NEW LOGIN endpoint (FIXED: PREFERED_LANG + correct lookup)
 // =====================================
 app.post("/api/login", async (req, res) => {
-    try {
-        const { username, password } = req.body;
+  try {
+    const { username, password } = req.body;
 
-        if (!username || !password) {
-            return res.json({ success: false, error: "Missing credentials" });
-        }
-
-        const client = await auth.getClient();
-        const sheets = google.sheets({ version: "v4", auth: client });
-
-        const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-        const TAB = "info";
-
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: SHEET_ID,
-            range: TAB
-        });
-
-        const rows = response.data.values || [];
-        const headers = rows[0];
-        const dataRows = rows.slice(1);
-
-        const idxVerified = headers.indexOf("IS_VERIFIED");
-        const idxClientId = headers.indexOf("CLIENT_ID");
-        const idxUser = headers.indexOf("USERNAME");
-        const idxPass = headers.indexOf("PASSWORD");
-        const idxType = headers.indexOf("USER_TYPE");
-        const idxName = headers.indexOf("NAME");
-        const idxBirth = headers.indexOf("BIRTHYEAR");
-        const idxComment = headers.indexOf("COMMENT");
-
-        const idxLoginCount = headers.indexOf("LOGIN_COUNT");
-        const idxLastLogin = headers.indexOf("LAST_LOGIN");
-
-        // =========================================================
-        // SECTION: MAIL index (NEW for login by email)
-        // PURPOSE: Allow login with USERNAME OR MAIL
-        // =========================================================
-        const idxMail = headers.indexOf("MAIL");
-
-        // =========================================================
-        // SECTION: Login identifier normalize (NEW)
-        // PURPOSE:
-        // - If user typed an email, compare case-insensitively
-        // - Username compare stays exact/trim based
-        // =========================================================
-        const identifierRaw = String(username || "").trim();
-        const identifierLower = identifierRaw.toLowerCase();
-
-        const user = dataRows.find(r => {
-            const sheetUsername = String(r[idxUser] || "").trim();
-            const sheetPassword = String(r[idxPass] || "").trim();
-
-            const sheetMail = idxMail >= 0 ? String(r[idxMail] || "").trim().toLowerCase() : "";
-
-            const matchesIdentifier =
-                (sheetUsername === identifierRaw) ||
-                (idxMail >= 0 && sheetMail && sheetMail === identifierLower);
-
-            return matchesIdentifier && (sheetPassword === String(password || "").trim());
-        });
-
-        if (!user) {
-            return res.json({ success: false, error: "Invalid username or password." });
-        }
-
-        // ----- Verified check -----
-        const verified = (user[idxVerified] || "").toUpperCase().trim();
-        if (verified !== "TRUE") {
-            return res.json({
-                success: false,
-                error: "Your membership has not been approved yet."
-            });
-        }
-
-        // ----- Update login count -----
-        let loginCount = parseInt(user[idxLoginCount] || "0");
-        loginCount++;
-
-        // ----- Update last login -----
-        const now = new Date();
-        const lastLogin = now.toLocaleDateString("en-GB") + " " +
-                          now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-
-        // Google Sheet'e yaz
-        const rowIndex = dataRows.indexOf(user) + 2; // 1 header + 1-based index
-
-        await sheets.spreadsheets.values.batchUpdate({
-            spreadsheetId: SHEET_ID,
-            requestBody: {
-                valueInputOption: "USER_ENTERED",
-                data: [
-                    {
-                        range: `${TAB}!${String.fromCharCode(65 + idxLoginCount)}${rowIndex}`,
-                        values: [[loginCount]]
-                    },
-                    {
-                        range: `${TAB}!${String.fromCharCode(65 + idxLastLogin)}${rowIndex}`,
-                        values: [[lastLogin]]
-                    }
-                ]
-            }
-        });
-
-        // ----- Return user info -----
-        const userData = {
-            username: user[idxUser],
-            user_type: user[idxType],
-            name: user[idxName],
-            client_id: user[idxClientId]
-        };
-
-        return res.json({ success: true, user: userData });
-
-    } catch (err) {
-        console.error("LOGIN ERROR:", err);
-        return res.json({ success: false, error: err.message });
+    if (!username || !password) {
+      return res.json({ success: false, error: "Missing credentials" });
     }
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const TAB = "info";
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: TAB
+    });
+
+    const rows = response.data.values || [];
+    const headers = rows[0] || [];
+    const dataRows = rows.slice(1);
+
+    const idxVerified = headers.indexOf("IS_VERIFIED");
+    const idxClientId = headers.indexOf("CLIENT_ID");
+    const idxUser = headers.indexOf("USERNAME");
+    const idxPass = headers.indexOf("PASSWORD");
+    const idxType = headers.indexOf("USER_TYPE");
+    const idxName = headers.indexOf("NAME");
+    const idxBirth = headers.indexOf("BIRTHYEAR");
+    const idxComment = headers.indexOf("COMMENT");
+
+    const idxLoginCount = headers.indexOf("LOGIN_COUNT");
+    const idxLastLogin = headers.indexOf("LAST_LOGIN");
+
+    // NEW: mail index (login with username OR mail)
+    const idxMail = headers.indexOf("MAIL");
+
+    // NEW: preferred language index (we can read directly, no extra lookup needed)
+    const idxPrefLang = headers.indexOf("PREFERED_LANG");
+
+    // Normalize identifier
+    const identifierRaw = String(username || "").trim();
+    const identifierLower = identifierRaw.toLowerCase();
+    const passwordRaw = String(password || "").trim();
+
+    // Find matching row
+    const matchedRow = dataRows.find(r => {
+      const sheetUsername = String(r[idxUser] || "").trim();
+      const sheetPassword = String(r[idxPass] || "").trim();
+      const sheetMail = idxMail >= 0 ? String(r[idxMail] || "").trim().toLowerCase() : "";
+
+      const matchesIdentifier =
+        (sheetUsername === identifierRaw) ||
+        (idxMail >= 0 && sheetMail && sheetMail === identifierLower);
+
+      return matchesIdentifier && (sheetPassword === passwordRaw);
+    });
+
+    if (!matchedRow) {
+      return res.json({ success: false, error: "Invalid username or password." });
+    }
+
+    // Verified check
+    const verified = String(matchedRow[idxVerified] || "").toUpperCase().trim();
+    if (verified !== "TRUE") {
+      return res.json({ success: false, error: "Your membership has not been approved yet." });
+    }
+
+    // Update login count
+    let loginCount = parseInt(matchedRow[idxLoginCount] || "0", 10);
+    if (Number.isNaN(loginCount)) loginCount = 0;
+    loginCount++;
+
+    // Update last login
+    const now = new Date();
+    const lastLogin =
+      now.toLocaleDateString("en-GB") + " " +
+      now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+    // Row index in sheet (header row is 1, data starts at 2)
+    const rowIndex = dataRows.indexOf(matchedRow) + 2;
+
+    // Write to sheet
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SHEET_ID,
+      requestBody: {
+        valueInputOption: "USER_ENTERED",
+        data: [
+          {
+            range: `${TAB}!${String.fromCharCode(65 + idxLoginCount)}${rowIndex}`,
+            values: [[loginCount]]
+          },
+          {
+            range: `${TAB}!${String.fromCharCode(65 + idxLastLogin)}${rowIndex}`,
+            values: [[lastLogin]]
+          }
+        ]
+      }
+    });
+
+    // =========================================================
+    // BUILD USER OBJECT TO RETURN (THIS is what client stores)
+    // PURPOSE:
+    // - Include PREFERED_LANG so app.js can auto-set language
+    // - Use the matched row values (guaranteed correct)
+    // =========================================================
+    const prefer = (idxPrefLang >= 0 ? String(matchedRow[idxPrefLang] || "") : "EN").trim().toUpperCase();
+    const preferNorm = (prefer === "TR") ? "TR" : "EN";
+
+    const userData = {
+      username: String(matchedRow[idxUser] || "").trim(),
+      user_type: String(matchedRow[idxType] || "").trim(),
+      name: String(matchedRow[idxName] || "").trim(),
+      birthyear: String(matchedRow[idxBirth] || "").trim(),
+      client_id: String(matchedRow[idxClientId] || "").trim(),
+      mail: (idxMail >= 0 ? String(matchedRow[idxMail] || "").trim() : ""),
+
+      // ✅ IMPORTANT: this drives auto language in app.js
+      PREFERED_LANG: preferNorm,
+
+      // Optional: helpful fields (if you want later)
+      LOGIN_COUNT: String(loginCount),
+      LAST_LOGIN: String(lastLogin)
+    };
+
+    return res.json({ success: true, user: userData });
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
 });
+
 
 //>> admin only users list
 
@@ -855,68 +869,84 @@ app.post("/api/admin/update-status", async (req, res) => {
         res.json({ success: false });
     }
 });
-
-// delete user
+// delete user (admin)
 app.post("/api/admin/delete-user", async (req, res) => {
-    try {
-        const { username } = req.body;
+  try {
+    const { username } = req.body;
 
-        if (!username) {
-            return res.json({ success: false, error: "Missing username" });
-        }
-
-        const client = await auth.getClient();
-        const sheets = google.sheets({ version: "v4", auth: client });
-
-        const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-        const TAB = "info";
-
-        // Load rows
-        const read = await sheets.spreadsheets.values.get({
-            spreadsheetId: SHEET_ID,
-            range: TAB
-        });
-
-        const rows = read.data.values || [];
-        const headers = rows[0];
-        const idxUser = headers.indexOf("USERNAME");
-
-        // Find exact row to delete
-        const rowIndex = rows.findIndex(r => r[idxUser] === username);
-
-        if (rowIndex === -1 || rowIndex < 1) {
-            return res.json({ success: false, error: "User not found" });
-        }
-
-        // Google Sheets row index is 0-based for deleteDimension  
-        // minus header row → rowIndex - 1
-        const deleteRequest = {
-            requests: [
-                {
-                    deleteDimension: {
-                        range: {
-                            sheetId: 0,          // sheetId, 0 means first sheet (info)
-                            dimension: "ROWS",
-                            startIndex: rowIndex,   // inclusive
-                            endIndex: rowIndex + 1  // exclusive
-                        }
-                    }
-                }
-            ]
-        };
-
-        await sheets.spreadsheets.batchUpdate({
-            spreadsheetId: SHEET_ID,
-            requestBody: deleteRequest
-        });
-
-        return res.json({ success: true });
-
-    } catch (err) {
-        console.error("DELETE USER ERROR:", err);
-        res.json({ success: false, error: err.message });
+    if (!username) {
+      return res.json({ success: false, error: "Missing username" });
     }
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const TAB = "info";
+
+    // Load rows
+    const read = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: TAB
+    });
+
+    const rows = read.data.values || [];
+    const headers = rows[0] || [];
+    const idxUser = headers.indexOf("USERNAME");
+
+    if (idxUser === -1) {
+      return res.json({ success: false, error: "USERNAME column not found" });
+    }
+
+    // Find exact row to delete (skip header)
+    const rowIndex = rows.findIndex((r, i) => i > 0 && String(r[idxUser] || "").trim() === String(username).trim());
+
+    if (rowIndex === -1) {
+      return res.json({ success: false, error: "User not found" });
+    }
+
+    // =========================================================
+    // IMPORTANT FIX:
+    // - Do NOT assume sheetId=0
+    // - Resolve sheetId of "info" tab
+    // =========================================================
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    const infoSheet = (meta.data.sheets || []).find(s => s.properties?.title === TAB);
+    if (!infoSheet) {
+      return res.json({ success: false, error: `Sheet tab not found: ${TAB}` });
+    }
+    const sheetId = infoSheet.properties.sheetId;
+
+    // Google Sheets deleteDimension uses 0-based indices (header is row 0)
+    const startIndex = rowIndex;       // rowIndex already includes header row in rows[]
+    const endIndex = rowIndex + 1;
+
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SHEET_ID,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex,
+                endIndex
+              }
+            }
+          }
+        ]
+      }
+    });
+
+    return res.json({ success: true });
+
+  } catch (err) {
+    console.error("DELETE USER ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
 });
+
 
 // ============================================================
 // SUBSCRIPTIONS — READ / WRITE / UPDATE (FINAL VERSION)
@@ -1811,46 +1841,7 @@ app.post("/api/user/end-subs", async (req, res) => {
 // ======================================
 // USER: Delete Account
 // ======================================
-app.post("/api/user/delete-account", async (req, res) => {
-    try {
-        const { username } = req.body;
 
-        const client = await auth.getClient();
-        const sheets = google.sheets({ version: "v4", auth: client });
-
-        async function deleteFromSheet(tabName, keyColumn) {
-            const read = await sheets.spreadsheets.values.get({
-                spreadsheetId: USER_SHEET_ID,
-                range: tabName
-            });
-
-            const rows = read.data.values;
-            const headers = rows[0];
-            const idx = headers.indexOf(keyColumn);
-
-            const rowIndex = rows.findIndex(r => r[idx] === username);
-            if (rowIndex <= 0) return;
-
-            rows.splice(rowIndex, 1);
-
-            await sheets.spreadsheets.values.update({
-                spreadsheetId: USER_SHEET_ID,
-                range: tabName,
-                valueInputOption: "USER_ENTERED",
-                requestBody: { values: rows }
-            });
-        }
-
-        await deleteFromSheet("info", "USERNAME");
-        await deleteFromSheet("subscription", "USERNAME");
-
-        res.json({ success: true });
-
-    } catch (err) {
-        console.error("DELETE ACCOUNT ERROR:", err);
-        res.json({ success: false });
-    }
-});
 
 // ==========================================================
 // USER PANEL → Load single user's subscription
@@ -3218,59 +3209,88 @@ app.post("/api/user/update-profile", async (req, res) => {
 // - Verifies password from USER_TAB
 // - Then deletes user using your existing logic OR marks as deleted
 // =========================================================
+// user deletes own account (FIXED: real row delete, no duplicate)
 app.post("/api/user/delete-account", async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) return res.json({ success: false, error: "Missing fields" });
+    if (!username || !password) {
+      return res.json({ success: false, error: "Missing fields" });
+    }
 
     const client = await auth.getClient();
     const sheets = google.sheets({ version: "v4", auth: client });
 
-    // 1) Read user info
+    // IMPORTANT: Use same sheet/tab as your login info
+    const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const TAB = "info";
+
+    // 1) Read info sheet
     const read = await sheets.spreadsheets.values.get({
-      spreadsheetId: USER_SHEET_ID,
-      range: USER_TAB
+      spreadsheetId: SHEET_ID,
+      range: TAB
     });
 
     const rows = read.data.values || [];
     const headers = rows[0] || [];
+
     const idxUser = headers.indexOf("USERNAME");
-    const idxPass = headers.indexOf("PASSWORD"); // <-- change if your column differs
+    const idxPass = headers.indexOf("PASSWORD");
 
     if (idxUser === -1 || idxPass === -1) {
       return res.json({ success: false, error: "USERNAME/PASSWORD column not found" });
     }
 
-    const rowIndex = rows.findIndex((r, i) => i > 0 && (r[idxUser] || "").trim() === username.trim());
-    if (rowIndex === -1) return res.json({ success: false, error: "User not found" });
+    // Find row (skip header)
+    const rowIndex = rows.findIndex((r, i) =>
+      i > 0 && String(r[idxUser] || "").trim() === String(username).trim()
+    );
 
-    const storedPass = (rows[rowIndex][idxPass] || "").toString();
-    if (storedPass !== password) {
+    if (rowIndex === -1) {
+      return res.json({ success: false, error: "User not found" });
+    }
+
+    // Verify password (plain compare like your login)
+    const storedPass = String(rows[rowIndex][idxPass] || "").trim();
+    if (storedPass !== String(password).trim()) {
       return res.json({ success: false, error: "Password incorrect" });
     }
 
-    // 2) Call your existing delete logic if you have it:
-    //    Option A) If you have a function used by /api/admin/delete-user, call it here.
-    //    Option B) Mark user row as deleted (example):
-    const idxStatus = headers.indexOf("ACCOUNT_STATUS");
-    if (idxStatus !== -1) {
-      rows[rowIndex][idxStatus] = "DELETED";
+    // 2) Resolve actual sheetId for "info" tab
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    const infoSheet = (meta.data.sheets || []).find(s => s.properties?.title === TAB);
+    if (!infoSheet) {
+      return res.json({ success: false, error: `Sheet tab not found: ${TAB}` });
     }
+    const sheetId = infoSheet.properties.sheetId;
 
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: USER_SHEET_ID,
-      range: USER_TAB,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: rows }
+    // 3) Delete the row with deleteDimension (prevents last-row duplicate)
+    // rows[] includes header at index 0, so rowIndex is already correct 0-based row index
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SHEET_ID,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: rowIndex,
+                endIndex: rowIndex + 1
+              }
+            }
+          }
+        ]
+      }
     });
 
     return res.json({ success: true });
+
   } catch (err) {
     console.error("DELETE ACCOUNT ERROR:", err);
     return res.json({ success: false, error: err.message });
   }
 });
-//
+
 
 // =========================================================
 // SECTION: Master helpers (NEW)
@@ -3444,6 +3464,36 @@ app.post("/api/master/update-cells", async (req, res) => {
 });
 
 
+// =========================================================
+// FILE: server.js
+// SECTION: Read single user row from INFO by username
+// PURPOSE: get PREFERED_LANG (and optionally MAIL/CLIENT_ID/NAME) for login response
+// =========================================================
+async function getUserInfoFromSheet(username) {
+  const sheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+  const sheetName = "info";
+
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const data = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: sheetName,
+  });
+
+  const rows = data.data.values || [];
+  const headers = rows[0] || [];
+
+  const idxUser = headers.indexOf("USERNAME");
+  if (idxUser === -1) return null;
+
+  const row = rows.find((r, i) => i > 0 && String(r[idxUser] || "").trim() === String(username).trim());
+  if (!row) return null;
+
+  const obj = {};
+  headers.forEach((h, i) => (obj[h] = row[i] || ""));
+  return obj;
+}
 
 
 // import config server

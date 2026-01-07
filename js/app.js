@@ -363,7 +363,8 @@ STABILITY FIXES (ADDED):
     }
 
     // Logged in => use user's preferred language
-    const pref = String(currentUser.PREFERED_LANG || currentUser.prefered_lang || "EN").toUpperCase();
+    const rawPref = String(currentUser.PREFERED_LANG || currentUser.prefered_lang || "EN").trim();
+    const pref = rawPref.toUpperCase() === "TR" ? "TR" : "EN";
 
     if (pref === "TR") {
       if (localStorage.getItem("lang") !== "tr") setLanguage("tr", { manual: false });
