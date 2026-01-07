@@ -21,21 +21,28 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =========================================================
      [ACCESS CONTROL] Admin only (same behavior as old model.html)
      ========================================================= */
-  if (!currentUser || currentUser.user_type !== "admin") {
-    main.innerHTML = `
-      <!-- [ACCESS DENIED UI] -->
-      <div class="access-denied" role="alert" aria-live="polite">
-        <h2>Access <span style="color:#ff9b9b;">Denied</span></h2>
-        <p>You do not have permission to access this page..</p>
+  if (
+  !currentUser ||
+  !["admin", "master"].includes(currentUser.user_type)
+) {
+  main.innerHTML = `
+    <section class="access-denied-wrapper">
+      <div class="access-denied-card" role="alert" aria-live="polite">
+        <div class="icon">🚫</div>
+        <h1>Access Denied</h1>
+        <p>
+          You don’t have sufficient permissions to view this page.
+        </p>
 
-        <div class="ad-actions">
-          <a href="/pages/login.html" class="btn btn-primary">Log In</a>
-          <a href="/index.html" class="btn btn-ghost">Home</a>
+        <div class="actions">
+          <a href="/index.html" class="btn secondary">Go Home</a>
         </div>
       </div>
-    `;
-    return;
-  }
+    </section>
+  `;
+  return;
+}
+
 
   /* =========================================================
    [UI BUILD] Same UI as old model.html (sidebar removed)
