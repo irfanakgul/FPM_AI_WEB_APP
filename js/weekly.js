@@ -164,7 +164,7 @@ window.addEventListener("layout:ready", () => {
       return;
     }
 
-    const allowedRoles = ["client", "admin"];
+    const allowedRoles = ["client", "admin", "master"];
     if (!allowedRoles.includes(u.user_type)) {
       blockWeeklyAccess("msg_no_role", "/index.html", "btn_home");
       return;
