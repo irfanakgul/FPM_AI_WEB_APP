@@ -469,7 +469,7 @@ function updateRoleNav(currentUser) {
 
   // Model + Stats + Results: admin + co-admin + master
   if (isAdmin || isCoAdmin || isMaster) {
-    // if (modelNavBtn) modelNavBtn.style.display = "inline-flex";
+    if (modelNavBtn) modelNavBtn.style.display = "inline-flex";
     if (statsNavBtn) statsNavBtn.style.display = "inline-flex";
     if (resultsNavBtn) resultsNavBtn.style.display = "inline-flex";
   }
