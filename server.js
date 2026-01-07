@@ -191,6 +191,91 @@ const auth = new google.auth.GoogleAuth({
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
+// =========================================================
+// FILE: server.js
+// SECTION: Subscription Prices API (SINGLE SOURCE)
+// PURPOSE:
+// - Reads subs_prices sheet and returns rows
+// - Used by subscription_info + subscription_form pages
+// NOTE:
+// - Keep ONLY ONE instance of this route in server.js
+// =========================================================
+app.get("/api/subs/prices", async (req, res) => {
+  try {
+    const sheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
+    const sheetName = "subs_prices";
+
+    // Same google sheets logic as /api/load-sheet
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const data = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: sheetName,
+    });
+
+    const rows = data.data.values || [];
+    const headers = rows[0] || [];
+
+    const json = rows.slice(1).map((row) => {
+      const obj = {};
+      headers.forEach((h, i) => (obj[h] = row[i] || ""));
+      return obj;
+    });
+
+    return res.json({ success: true, rows: json });
+  } catch (err) {
+    console.error("GET /api/subs/prices error:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================
+// FILE: server.js
+// SECTION: Google Sheet helper (single source of truth)
+// PURPOSE:
+// - Read a sheet and return row objects (headers -> values)
+// - Used by multiple endpoints to avoid "undefined" bugs
+// =========================================================
+async function readSheetAsObjects(sheetId, sheetName) {
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  const data = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: sheetName,
+  });
+
+  const rows = data.data.values || [];
+  const headers = rows[0] || [];
+
+  const json = rows.slice(1).map((row) => {
+    let obj = {};
+    headers.forEach((h, i) => (obj[h] = row[i] || ""));
+    return obj;
+  });
+
+  return json;
+}
+
+// =========================================================
+// FILE: server.js
+// SECTION: Load Sheet API (unchanged response contract)
+// PURPOSE:
+// - Returns {success:true, data:[...]}
+// - Used by results/stats/weekly pages
+// =========================================================
+app.post("/api/load-sheet", async (req, res) => {
+  try {
+    const { sheetId, sheetName } = req.body;
+    const json = await readSheetAsObjects(sheetId, sheetName);
+    return res.json({ success: true, data: json });
+  } catch (err) {
+    console.error("sheet load error:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
 // =====================================
 // LOGIN SYSTEM – LOAD USERS
 // =====================================
@@ -275,55 +360,6 @@ app.get("/api/sheets", async (req, res) => {
 // =====================================
 // LOAD A SPECIFIC SHEET
 // =====================================
-// =========================================================
-// FILE: server.js
-// SECTION: Subscription Prices API
-// PURPOSE:
-// - Reads subs_prices sheet and returns rows as JSON objects
-// - Used by subscription_info page (plans/cards)
-// IMPORTANT:
-// - Reuses the SAME auth/google.sheets logic as /api/load-sheet
-// =========================================================
-app.get("/api/subs/prices", async (req, res) => {
-  try {
-    // ---------------------------------------------------------
-    // CONFIG: sheetId + sheetName
-    // PURPOSE: Prices list for subscription plans
-    // ---------------------------------------------------------
-    const sheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-    const sheetName = "subs_prices";
-
-    // ---------------------------------------------------------
-    // GOOGLE SHEETS READ (same as /api/load-sheet)
-    // ---------------------------------------------------------
-    const client = await auth.getClient();
-    const sheets = google.sheets({ version: "v4", auth: client });
-
-    const data = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: sheetName,
-    });
-
-    const rows = data.data.values || [];
-    const headers = rows[0] || [];
-
-    const json = rows.slice(1).map((row) => {
-      let obj = {};
-      headers.forEach((h, i) => (obj[h] = row[i] || ""));
-      return obj;
-    });
-
-    // ---------------------------------------------------------
-    // RESPONSE FORMAT (matches subscription_info.js expectation)
-    // ---------------------------------------------------------
-    return res.json({ success: true, rows: json });
-
-  } catch (err) {
-    console.error("GET /api/subs/prices error:", err);
-    return res.json({ success: false, error: err.message });
-  }
-});
-
 
 // =====================================
 // GOOGLE SHEET UPDATE FUNCTION
@@ -3236,80 +3272,6 @@ app.post("/api/user/delete-account", async (req, res) => {
 });
 //
 
-/* =========================================================
-FILE: /server.js
-PURPOSE:
-- Subscription packages list + prices (dynamic UI)
-- Reads subs_prices sheet and returns rows
-NOTES:
-- No top-level await (must be inside async route)
-========================================================= */
-app.get("/api/subs/prices", async (req, res) => {
-  try {
-    // =========================================================
-    // CONFIG: subs_prices Google Sheet
-    // =========================================================
-    const sheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-    const sheetName = "subs_prices";
-
-    // =========================================================
-    // IMPORTANT:
-    // Use your EXISTING sheet loader function.
-    // In your project you already have something like:
-    // - loadSheetData(sheetId, sheetName)
-    // - OR readGoogleSheet(sheetId, sheetName)
-    // - OR loadSheet(sheetId, sheetName)
-    // Replace the function call below with your real one.
-    // =========================================================
-    const rows = await loadSheetData(sheetId, sheetName);
-
-    // rows should be array of objects with keys:
-    // SUBS_TYPE, PRICE_EURO, PRICE_TRY
-    return res.json({ success: true, rows });
-
-  } catch (err) {
-    console.error("GET /api/subs/prices error:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-//
-
-// =========================================================
-// FILE: server.js
-// SECTION: Subscription Prices API
-// PURPOSE:
-// - Returns rows from subs_prices sheet
-// - Used by subscription_info page & subscription_form
-// =========================================================
-app.get("/api/subs/prices", async (req, res) => {
-  try {
-    const sheetId = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
-    const sheetName = "subs_prices";
-
-    // ---------------------------------------------------------
-    // IMPORTANT:
-    // Replace SHEET_READ_FN with your existing sheet read function
-    // Example candidates:
-    // - loadSheetData
-    // - readSheetData
-    // - getSheetData
-    // - fetchSheetData
-    // - loadGoogleSheet
-    // - getGoogleSheetData
-    // ---------------------------------------------------------
-
-    const rows = await SHEET_READ_FN(sheetId, sheetName);
-
-    // Expect array of objects like:
-    // [{SUBS_TYPE:"1", PRICE_EURO:"5", PRICE_TRY:"50"}, ...]
-    return res.json({ success: true, rows });
-
-  } catch (err) {
-    console.error("GET /api/subs/prices error:", err);
-    return res.json({ success: false, error: err.message });
-  }
-});
 
 
 // import config server
