@@ -2,20 +2,32 @@
 FILE: /js/master.js
 PURPOSE:
 - Master page controller (master-only)
-- Entry + Save/Delete require master password via server
-- Auto-load all worksheet tabs (new tabs appear automatically)
+- Entry + Save/Delete/Reveal require master password via server (masked modal)
+- Auto-load all worksheet tabs
 - Grid features:
-  - Search (client-side)
-  - Filter (column equals contains)
-  - Add Row (creates new row in UI; saved by append on Save)
-  - Delete Row (delete selected rows; requires password)
-- Edit mode (contenteditable) + change tracking
+  - Search (global)
+  - Filter (column contains)
+  - Add Row (UI -> saved via append on Save)
+  - Delete Row (selected rows -> requires password)
+  - Edit / Save / Cancel
+- info tab PASSWORD column:
+  - masked (••••••••)
+  - click to reveal requires master password
+  - click again hides
 ========================================================= */
 
 (function () {
+  "use strict";
+
+  /* =========================================================
+  SECTION: Constants
+  PURPOSE: Sheet to manage
+  ========================================================= */
   const SHEET_ID = "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo";
 
-  // UI refs
+  /* =========================================================
+  SECTION: DOM refs
+  ========================================================= */
   const tabsEl = document.getElementById("tabs");
   const statusEl = document.getElementById("status");
   const tableWrap = document.getElementById("tableWrap");
@@ -32,7 +44,7 @@ PURPOSE:
   const btnAddRow = document.getElementById("btnAddRow");
   const btnDeleteRow = document.getElementById("btnDeleteRow");
 
-  // Password modal refs
+  // Password modal
   const pwModal = document.getElementById("pwModal");
   const pwTitle = document.getElementById("pwTitle");
   const pwDesc = document.getElementById("pwDesc");
@@ -42,19 +54,25 @@ PURPOSE:
   const pwOk = document.getElementById("pwOk");
   const pwMsg = document.getElementById("pwMsg");
 
-  // State
-  let currentSheetName = null;
-  let editMode = false;
+  /* =========================================================
+  SECTION: State model (IMPORTANT)
+  PURPOSE:
+  - Keep stable mapping between UI rows and sheet rows
+  ========================================================= */
+  const state = {
+    currentTab: null,     // worksheet name
+    header: [],           // header row (array)
+    rows: [],             // canonical rows: [{ id, sheetRow, cells, isNew }]
+    viewRows: [],         // filtered/searched list referencing rows
+    editMode: false,
+    changedCells: new Map(), // key "sheetRow,col" => value
+    passwordColIdx: -1,   // only for info tab
+  };
 
-  // values: 2D array (rows)
-  // values[0] = header row
-  let loadedValues = [];         // original raw
-  let displayedValues = [];      // after search/filter
-  let changedCells = new Map();  // key="r,c" -> value (sheet coords)
-  let newRows = [];              // array of arrays length=header length (to append)
+  let uidCounter = 1;
 
   /* =========================================================
-     SECTION: helpers
+  SECTION: Utilities
   ========================================================= */
   function getUser() {
     return JSON.parse(sessionStorage.getItem("currentUser") || "null");
@@ -76,11 +94,25 @@ PURPOSE:
       .replaceAll('"', "&quot;");
   }
 
+  function normalizeTabName(name) {
+    return String(name || "").trim().toLowerCase();
+  }
+
+  function isInfoTab() {
+    return normalizeTabName(state.currentTab) === "info";
+  }
+
+  function buildPasswordColIdx() {
+    if (!isInfoTab()) {
+      state.passwordColIdx = -1;
+      return;
+    }
+    state.passwordColIdx = state.header.findIndex(h => String(h || "").trim().toUpperCase() === "PASSWORD");
+  }
+
   /* =========================================================
-     SECTION: Password Modal (NEW)
-     PURPOSE:
-     - Masked input + eye toggle
-     - Promise-based prompt replacement
+  SECTION: Password Modal (masked + eye toggle)
+  PURPOSE: Replace prompt() with real UI
   ========================================================= */
   function askMasterPassword({ title, desc }) {
     return new Promise((resolve) => {
@@ -89,7 +121,6 @@ PURPOSE:
       pwMsg.textContent = "";
       pwInput.value = "";
       pwInput.type = "password";
-
       pwModal.style.display = "flex";
       pwInput.focus();
 
@@ -109,12 +140,12 @@ PURPOSE:
       pwCancel.onclick = () => cleanup({ ok: false });
 
       pwOk.onclick = () => {
-        const pw = pwInput.value || "";
-        if (!pw.trim()) {
+        const pw = (pwInput.value || "").trim();
+        if (!pw) {
           pwMsg.textContent = "Password is required.";
           return;
         }
-        cleanup({ ok: true, password: pw.trim() });
+        cleanup({ ok: true, password: pw });
       };
 
       pwInput.onkeydown = (e) => {
@@ -124,40 +155,66 @@ PURPOSE:
     });
   }
 
-  async function verifyMasterPassword(password) {
+  async function verifyMasterPassword(masterPassword) {
     const res = await fetch("/api/master/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ masterPassword: password })
+      body: JSON.stringify({ masterPassword })
     });
-    const json = await res.json();
-    return json;
+    return await res.json();
   }
 
   /* =========================================================
-     SECTION: Tabs load
+  SECTION: API helpers
   ========================================================= */
-  async function loadTabs() {
-    setStatus("Loading tabs...");
+  async function apiListTabs() {
     const res = await fetch("/api/master/list-tabs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sheetId: SHEET_ID })
     });
-    const json = await res.json();
-
-    if (!json.success) {
-      setStatus(json.error || "Failed to load tabs.", "error");
-      return;
-    }
-
-    const names = json.tabs || [];
-    renderTabs(names);
-
-    if (names.length) await selectTab(names[0]);
-    else setStatus("No tabs found.", "error");
+    return await res.json();
   }
 
+  async function apiGetTab(tabName) {
+    const res = await fetch("/api/master/get-tab", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheetId: SHEET_ID, tabName })
+    });
+    return await res.json();
+  }
+
+  async function apiUpdateCells(tabName, updates, masterPassword) {
+    const res = await fetch("/api/master/update-cells", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheetId: SHEET_ID, tabName, updates, masterPassword })
+    });
+    return await res.json();
+  }
+
+  async function apiAppendRows(tabName, values, masterPassword) {
+    const res = await fetch("/api/master/append-rows", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheetId: SHEET_ID, tabName, values, masterPassword })
+    });
+    return await res.json();
+  }
+
+  async function apiDeleteRows(tabName, rows, masterPassword) {
+    const res = await fetch("/api/master/delete-rows", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheetId: SHEET_ID, tabName, rows, masterPassword })
+    });
+    return await res.json();
+  }
+
+  /* =========================================================
+  SECTION: Tabs UI
+  ========================================================= */
   function renderTabs(names) {
     tabsEl.innerHTML = "";
     names.forEach((name) => {
@@ -176,49 +233,11 @@ PURPOSE:
   }
 
   /* =========================================================
-     SECTION: Load tab values
+  SECTION: Filter controls
   ========================================================= */
-  async function selectTab(sheetName) {
-    if (editMode) {
-      alert("Please Save or Cancel edit mode first.");
-      return;
-    }
-
-    currentSheetName = sheetName;
-    markActiveTab(sheetName);
-
-    setStatus(`Loading: ${sheetName}...`);
-    const res = await fetch("/api/master/get-tab", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sheetId: SHEET_ID, tabName: sheetName })
-    });
-    const json = await res.json();
-
-    if (!json.success) {
-      setStatus(json.error || "Failed to load tab data.", "error");
-      return;
-    }
-
-    loadedValues = json.values || [];
-    displayedValues = deepClone2D(loadedValues);
-    changedCells = new Map();
-    newRows = [];
-
-    buildFilterColumns();
-    renderTable(displayedValues);
-
-    setStatus(`Loaded: ${sheetName}`, "success");
-  }
-
-  function deepClone2D(arr) {
-    return (arr || []).map(r => (r || []).slice());
-  }
-
   function buildFilterColumns() {
     filterCol.innerHTML = "";
-    const header = (loadedValues[0] || []);
-    header.forEach((h, idx) => {
+    state.header.forEach((h, idx) => {
       const opt = document.createElement("option");
       opt.value = String(idx);
       opt.textContent = h || `COL_${idx + 1}`;
@@ -227,82 +246,96 @@ PURPOSE:
   }
 
   /* =========================================================
-     SECTION: Search + Filter (client-side)
-  ========================================================= */
-  function applySearchAndFilter() {
-    if (!loadedValues.length) return;
+  SECTION: Table model building
+  PURPOSE:
+  - Convert 2D array into state.rows with stable sheetRow mapping
+========================================================= */
+  function buildModelFromValues(values2d) {
+    state.header = (values2d[0] || []).slice();
+    buildPasswordColIdx();
+    buildFilterColumns();
 
-    const header = loadedValues[0] || [];
-    const rows = loadedValues.slice(1);
+    const dataRows = (values2d.slice(1) || []);
+    state.rows = dataRows.map((cells, idx) => ({
+      id: String(uidCounter++),
+      sheetRow: idx + 2,                 // header row = 1, data starts at 2
+      cells: normalizeRowCells(cells),
+      isNew: false
+    }));
 
-    const q = (searchInput.value || "").trim().toLowerCase();
-    const colIdx = Number(filterCol.value || "0");
-    const fv = (filterValue.value || "").trim().toLowerCase();
+    state.viewRows = state.rows.slice();
+    state.changedCells = new Map();
+  }
 
-    // Filter rows
-    let filtered = rows;
-
-    // Column filter (contains)
-    if (fv) {
-      filtered = filtered.filter(r => String(r[colIdx] ?? "").toLowerCase().includes(fv));
-    }
-
-    // Search across all columns
-    if (q) {
-      filtered = filtered.filter(r => r.some(cell => String(cell ?? "").toLowerCase().includes(q)));
-    }
-
-    displayedValues = [header, ...filtered];
-
-    // IMPORTANT: if we have newRows in editMode, show them too (at bottom)
-    if (newRows.length) {
-      displayedValues = displayedValues.concat(newRows.map(r => r.slice()));
-    }
-
-    renderTable(displayedValues);
+  function normalizeRowCells(cells) {
+    const headerLen = state.header.length;
+    const arr = Array.isArray(cells) ? cells.slice() : [];
+    while (arr.length < headerLen) arr.push("");
+    if (arr.length > headerLen) arr.length = headerLen;
+    return arr.map(v => (v ?? ""));
   }
 
   /* =========================================================
-     SECTION: Render table (with selection column)
-  ========================================================= */
-  function renderTable(values2d) {
-    if (!Array.isArray(values2d) || values2d.length === 0) {
+  SECTION: Search + Filter (client side)
+========================================================= */
+  function applySearchAndFilter() {
+    const q = (searchInput.value || "").trim().toLowerCase();
+    const fv = (filterValue.value || "").trim().toLowerCase();
+    const colIdx = Number(filterCol.value || "0");
+
+    let list = state.rows.slice();
+
+    // Column filter (contains)
+    if (fv) {
+      list = list.filter(r => String(r.cells[colIdx] ?? "").toLowerCase().includes(fv));
+    }
+
+    // Global search
+    if (q) {
+      list = list.filter(r => r.cells.some(cell => String(cell ?? "").toLowerCase().includes(q)));
+    }
+
+    state.viewRows = list;
+    renderTable();
+  }
+
+  /* =========================================================
+  SECTION: Render table
+  PURPOSE:
+  - Adds selection checkbox column
+  - Masks PASSWORD column for info tab
+========================================================= */
+  function renderTable() {
+    if (!state.header.length) {
       tableWrap.innerHTML = `<div style="padding:14px;color:rgba(255,255,255,0.7)">Empty tab.</div>`;
       return;
     }
 
-    const header = values2d[0] || [];
-    const rows = values2d.slice(1);
+    const pwIdx = state.passwordColIdx;
 
-    // Build HTML
     let html = `<table><thead><tr>`;
-    html += `<th class="th-select"><input id="checkAll" type="checkbox" class="row-check" /></th>`;
-    header.forEach(h => html += `<th>${escapeHtml(h)}</th>`);
+    html += `<th class="th-select"><input id="checkAll" type="checkbox" class="row-check"></th>`;
+    state.header.forEach(h => html += `<th>${escapeHtml(h)}</th>`);
     html += `</tr></thead><tbody>`;
 
-    rows.forEach((r, displayIdx) => {
-      // Determine if this row is a "new row" (from newRows)
-      const isNew = isRowFromNewRows(r, header.length);
+    // View rows + NEW rows should still show even if filtered?:
+    // We keep NEW rows in state.rows (isNew true) so they are included naturally by search/filter.
+    state.viewRows.forEach((row) => {
+      const sheetRowAttr = row.isNew ? "NEW" : String(row.sheetRow);
+      html += `<tr class="${row.isNew ? "row-new" : ""}" data-row-id="${row.id}" data-sheet-row="${sheetRowAttr}">`;
 
-      // Determine sheet row index:
-      // - For loaded rows: find original row index in loadedValues (best-effort)
-      // - For new rows: use data-row="NEW"
-      const sheetRow = isNew ? "NEW" : findSheetRowIndex(r);
+      html += `<td class="td-select"><input type="checkbox" class="row-check rowSel" data-row-id="${row.id}" data-sheet-row="${sheetRowAttr}"></td>`;
 
-      html += `<tr class="${isNew ? "row-new" : ""}" data-sheet-row="${sheetRow}">`;
+      for (let cIdx = 0; cIdx < state.header.length; cIdx++) {
+        const v = row.cells[cIdx] ?? "";
 
-      html += `<td class="td-select">
-                <input type="checkbox" class="row-check rowSel" data-sheet-row="${sheetRow}">
-              </td>`;
+        // PASSWORD masking for info tab
+        const isPwCell = (pwIdx >= 0 && cIdx === pwIdx);
 
-      for (let cIdx = 0; cIdx < header.length; cIdx++) {
-        const v = (r[cIdx] ?? "");
-        if (isNew) {
-          // New rows are editable ONLY in edit mode
-          html += `<td data-r="NEW" data-c="${cIdx + 1}">${escapeHtml(String(v))}</td>`;
+        if (isPwCell) {
+          html += `<td data-row-id="${row.id}" data-r="${sheetRowAttr}" data-c="${cIdx + 1}" data-pw="1" data-masked="1">••••••••</td>`;
         } else {
-          // Existing rows: sheet coords row = sheetRow, col = cIdx+1
-          html += `<td data-r="${sheetRow}" data-c="${cIdx + 1}">${escapeHtml(String(v))}</td>`;
+          html += `<td data-row-id="${row.id}" data-r="${sheetRowAttr}" data-c="${cIdx + 1}">${escapeHtml(String(v))}</td>`;
         }
       }
 
@@ -312,7 +345,7 @@ PURPOSE:
     html += `</tbody></table>`;
     tableWrap.innerHTML = html;
 
-    // Wire selection
+    // check-all
     const checkAll = document.getElementById("checkAll");
     if (checkAll) {
       checkAll.addEventListener("change", () => {
@@ -320,207 +353,161 @@ PURPOSE:
       });
     }
 
-    // Apply edit mode if active
+    // apply edit mode
     applyEditModeToCells();
   }
 
-  function isRowFromNewRows(r, headerLen) {
-    // A "new row" exists in newRows by value equality length match
-    // (we keep references distinct anyway)
-    return newRows.includes(r) || (r && r.__isNew === true) || (Array.isArray(r) && r.length === headerLen && r.__newRowMarker);
-  }
-
-  function findSheetRowIndex(rowArr) {
-    // Find row in loadedValues (excluding header)
-    // This assumes values are mostly unique; for safety, returns first match.
-    const rows = loadedValues.slice(1);
-    const idx = rows.findIndex(r => arraysEqual(r, rowArr));
-    return (idx >= 0) ? (idx + 2) : 2; // +2 because sheet row 1 header
-  }
-
-  function arraysEqual(a, b) {
-    if (!Array.isArray(a) || !Array.isArray(b)) return false;
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (String(a[i] ?? "") !== String(b[i] ?? "")) return false;
-    }
-    return true;
-  }
-
   /* =========================================================
-     SECTION: Edit mode
-  ========================================================= */
+  SECTION: Edit mode + cell change tracking (delegation)
+========================================================= */
   function setEditMode(on) {
-    editMode = on;
-    changedCells = new Map();
+    state.editMode = on;
+    state.changedCells = new Map();
 
     btnEdit.style.display = on ? "none" : "inline-block";
     btnSave.style.display = on ? "inline-block" : "none";
     btnCancel.style.display = on ? "inline-block" : "none";
 
     applyEditModeToCells();
+    setStatus(on ? "Edit mode enabled." : "Edit mode disabled.");
   }
 
   function applyEditModeToCells() {
-    const tds = tableWrap.querySelectorAll("td[data-r][data-c]");
+    const tds = tableWrap.querySelectorAll("td[data-row-id][data-c]");
     tds.forEach(td => {
-      const r = td.getAttribute("data-r");
+      const isPw = td.getAttribute("data-pw") === "1";
+      const isMasked = td.getAttribute("data-masked") === "1";
+      const editable = state.editMode && !(isPw && isMasked); // masked pw not editable
 
-      // Existing cells: editable in editMode
-      // New row cells: editable in editMode
-      const editable = editMode && (r !== null);
+      td.contentEditable = editable ? "true" : "false";
 
-      if (editable) {
-        td.contentEditable = "true";
-        td.classList.add("cell-editable");
-        td.addEventListener("input", onCellInput);
-      } else {
-        td.contentEditable = "false";
-        td.classList.remove("cell-editable");
-        td.classList.remove("cell-changed");
-        td.removeEventListener("input", onCellInput);
-      }
+      if (editable) td.classList.add("cell-editable");
+      else td.classList.remove("cell-editable");
     });
   }
 
-  function onCellInput(e) {
-    const td = e.target;
-    const r = td.getAttribute("data-r");
+  function onCellInput(td) {
+    const rowId = td.getAttribute("data-row-id");
     const c = Number(td.getAttribute("data-c"));
-    const value = td.textContent ?? "";
+    const rAttr = td.getAttribute("data-r");
+    if (!rowId || !c) return;
 
-    // Existing row change tracking
-    if (r !== "NEW") {
-      const rr = Number(r);
-      const key = `${rr},${c}`;
-      changedCells.set(key, value);
+    const row = state.rows.find(x => x.id === rowId);
+    if (!row) return;
+
+    // Update model
+    row.cells[c - 1] = td.textContent ?? "";
+
+    // Track changes only for existing rows
+    if (!row.isNew && rAttr !== "NEW") {
+      const sheetRow = Number(rAttr);
+      const key = `${sheetRow},${c}`;
+      state.changedCells.set(key, row.cells[c - 1]);
       td.classList.add("cell-changed");
-      return;
     }
 
-    // New row: update newRows array
-    const tr = td.closest("tr");
-    const rowIndexInDisplayed = [...tableWrap.querySelectorAll("tbody tr")].indexOf(tr);
-    // displayed rowIndexInDisplayed corresponds to displayedValues slice(1)
-    const displayedRow = displayedValues[rowIndexInDisplayed + 1];
-    if (!displayedRow) return;
-
-    displayedRow[c - 1] = value;
-    td.classList.add("cell-changed");
-  }
-
-  function cancelEdit() {
-    setEditMode(false);
-    changedCells = new Map();
-    newRows = [];
-    displayedValues = deepClone2D(loadedValues);
-    renderTable(displayedValues);
-    setStatus("Edit cancelled.");
+    // New rows will be appended; we don't store them in changedCells
+    if (row.isNew) td.classList.add("cell-changed");
   }
 
   /* =========================================================
-     SECTION: Add row (NEW)
-     PURPOSE:
-     - Adds a blank row to UI
-     - Saved by append on Save
-  ========================================================= */
+  SECTION: Add Row
+========================================================= */
   function addRow() {
-    if (!loadedValues.length) return;
-    if (!editMode) {
+    if (!state.header.length) return;
+    if (!state.editMode) {
       alert("Please click Edit first.");
       return;
     }
 
-    const headerLen = (loadedValues[0] || []).length;
-    const blank = new Array(headerLen).fill("");
-    // mark as new row (ref used)
-    blank.__newRowMarker = true;
+    const blank = new Array(state.header.length).fill("");
+    const newRow = {
+      id: String(uidCounter++),
+      sheetRow: null,
+      cells: blank,
+      isNew: true
+    };
 
-    newRows.push(blank);
-    applySearchAndFilter(); // re-render including new row
-    setStatus("New row added. Fill values and click Save.");
+    state.rows.push(newRow);
+
+    // Keep current filter/search applied
+    applySearchAndFilter();
+    setStatus("New row added. Fill values and click Save.", "success");
   }
 
   /* =========================================================
-     SECTION: Delete selected rows (NEW)
-     PURPOSE:
-     - Deletes selected existing rows in current tab
-     - Requires master password
-  ========================================================= */
+  SECTION: Delete Selected
+  PURPOSE:
+  - NEW rows: remove locally
+  - Existing rows: call server delete-rows (requires password)
+========================================================= */
   async function deleteSelectedRows() {
-    const selected = [...tableWrap.querySelectorAll(".rowSel:checked")]
-      .map(cb => cb.getAttribute("data-sheet-row"))
-      .filter(Boolean);
+    const checked = [...tableWrap.querySelectorAll(".rowSel:checked")];
+    if (checked.length === 0) {
+      alert("No rows selected.");
+      return;
+    }
 
-    // Remove NEW selections locally
-    const existingRows = selected.filter(x => x !== "NEW").map(x => Number(x)).filter(n => Number.isFinite(n));
-    const hasNew = selected.includes("NEW");
+    const ids = checked.map(cb => cb.getAttribute("data-row-id")).filter(Boolean);
+    const selectedRows = ids.map(id => state.rows.find(r => r.id === id)).filter(Boolean);
 
-    if (hasNew) {
-      if (!editMode) {
-        alert("To remove newly added (unsaved) rows, click Edit first.");
-      } else {
-        // remove newRows entirely (simple approach)
-        newRows = [];
+    const newOnes = selectedRows.filter(r => r.isNew);
+    const existing = selectedRows.filter(r => !r.isNew);
+
+    // Remove NEW rows locally (no password needed)
+    if (newOnes.length) {
+      const newIds = new Set(newOnes.map(r => r.id));
+      state.rows = state.rows.filter(r => !newIds.has(r.id));
+    }
+
+    // Existing rows: require password + server delete
+    if (existing.length) {
+      if (!confirm(`Delete ${existing.length} row(s) from "${state.currentTab}"? This cannot be undone.`)) {
+        // If user cancelled, restore new rows removal? (skip; simple behavior)
         applySearchAndFilter();
-        setStatus("Unsaved new rows removed.");
+        return;
       }
+
+      const pw = await askMasterPassword({
+        title: "Master Password Required",
+        desc: "Enter master password to DELETE selected rows."
+      });
+      if (!pw.ok) { applySearchAndFilter(); return; }
+
+      const v = await verifyMasterPassword(pw.password);
+      if (!v.success) {
+        alert(v.error || "Invalid Master Password.");
+        applySearchAndFilter();
+        return;
+      }
+
+      const rowNums = existing.map(r => r.sheetRow).filter(n => Number.isFinite(n) && n >= 2);
+
+      setStatus("Deleting rows...");
+      const del = await apiDeleteRows(state.currentTab, rowNums, pw.password);
+      if (!del.success) {
+        setStatus(del.error || "Delete failed.", "error");
+        return;
+      }
+
+      setStatus("Rows deleted.", "success");
+      state.editMode = false;
     }
 
-    if (existingRows.length === 0) return;
-
-    if (!confirm(`Delete ${existingRows.length} row(s) from "${currentSheetName}"? This cannot be undone.`)) return;
-
-    const pw = await askMasterPassword({
-      title: "Master Password Required",
-      desc: "Enter master password to DELETE selected rows."
-    });
-    if (!pw.ok) return;
-
-    const v = await verifyMasterPassword(pw.password);
-    if (!v.success) {
-      alert(v.error || "Invalid Master Password.");
-      return;
-    }
-
-    setStatus("Deleting rows...");
-    const res = await fetch("/api/master/delete-rows", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sheetId: SHEET_ID,
-        tabName: currentSheetName,
-        rows: existingRows,
-        masterPassword: pw.password
-      })
-    });
-
-    const json = await res.json();
-    if (!json.success) {
-      setStatus(json.error || "Delete failed.", "error");
-      return;
-    }
-
-    setStatus("Rows deleted.", "success");
-    setEditMode(false);
-    await selectTab(currentSheetName);
+    // Reload tab to sync
+    await selectTab(state.currentTab);
   }
 
   /* =========================================================
-     SECTION: Save changes (UPDATED)
-     PURPOSE:
-     - Requires master password again
-     - Applies:
-       1) changed existing cells (batch update)
-       2) append new rows (values.append)
-  ========================================================= */
+  SECTION: Save (update cells + append new rows)
+========================================================= */
   async function saveChanges() {
-    if (!currentSheetName) return;
+    if (!state.currentTab) return;
 
-    const hasCellChanges = (changedCells.size > 0);
-    const hasNewRows = (newRows.length > 0);
+    const hasUpdates = state.changedCells.size > 0;
+    const newRows = state.rows.filter(r => r.isNew);
 
-    if (!hasCellChanges && !hasNewRows) {
+    if (!hasUpdates && newRows.length === 0) {
       alert("No changes to save.");
       return;
     }
@@ -540,82 +527,220 @@ PURPOSE:
     setStatus("Saving...");
 
     // 1) Update existing cells
-    if (hasCellChanges) {
-      const updates = [...changedCells.entries()].map(([key, value]) => {
+    if (hasUpdates) {
+      const updates = [...state.changedCells.entries()].map(([key, value]) => {
         const [row, col] = key.split(",").map(Number);
         return { row, col, value };
       });
 
-      const res1 = await fetch("/api/master/update-cells", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sheetId: SHEET_ID,
-          tabName: currentSheetName,
-          updates,
-          masterPassword: pw.password
-        })
-      });
-
-      const j1 = await res1.json();
-      if (!j1.success) {
-        setStatus(j1.error || "Save failed (cell update).", "error");
+      const up = await apiUpdateCells(state.currentTab, updates, pw.password);
+      if (!up.success) {
+        setStatus(up.error || "Save failed (cell update).", "error");
         return;
       }
     }
 
     // 2) Append new rows
-    if (hasNewRows) {
-      const headerLen = (loadedValues[0] || []).length;
-      const values = newRows.map(r => {
-        const rr = r.slice(0, headerLen);
-        while (rr.length < headerLen) rr.push("");
-        return rr;
-      });
-
-      const res2 = await fetch("/api/master/append-rows", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sheetId: SHEET_ID,
-          tabName: currentSheetName,
-          values,
-          masterPassword: pw.password
-        })
-      });
-
-      const j2 = await res2.json();
-      if (!j2.success) {
-        setStatus(j2.error || "Save failed (append rows).", "error");
+    if (newRows.length) {
+      const values = newRows.map(r => r.cells.slice(0, state.header.length));
+      const ap = await apiAppendRows(state.currentTab, values, pw.password);
+      if (!ap.success) {
+        setStatus(ap.error || "Save failed (append rows).", "error");
         return;
       }
     }
 
     setStatus("Saved successfully.", "success");
     setEditMode(false);
-    await selectTab(currentSheetName);
+
+    // Reload tab from server
+    await selectTab(state.currentTab);
+  }
+
+  function cancelEdit() {
+    setEditMode(false);
+    // Reload tab to discard client-side edits/new rows
+    selectTab(state.currentTab);
   }
 
   /* =========================================================
-     SECTION: Init
-  ========================================================= */
+  SECTION: PASSWORD reveal on click (info tab only)
+  PURPOSE:
+  - Masked cell click -> asks password -> reveals real value
+  - Clicking again hides without password
+========================================================= */
+  async function handlePasswordCellClick(td) {
+    if (!td) return;
+
+    const masked = td.getAttribute("data-masked") === "1";
+
+    // If revealed -> hide without password
+    if (!masked) {
+      td.textContent = "••••••••";
+      td.setAttribute("data-masked", "1");
+      applyEditModeToCells(); // masked pw becomes non-editable
+      return;
+    }
+
+    // Require password to reveal
+    const pw = await askMasterPassword({
+      title: "Master Password Required",
+      desc: "Enter master password to REVEAL password value."
+    });
+    if (!pw.ok) return;
+
+    const v = await verifyMasterPassword(pw.password);
+    if (!v.success) {
+      alert(v.error || "Invalid Master Password.");
+      return;
+    }
+
+    // Reveal from model (not from DOM)
+    const rowId = td.getAttribute("data-row-id");
+    const c = Number(td.getAttribute("data-c"));
+    const row = state.rows.find(r => r.id === rowId);
+    if (!row || !c) return;
+
+    td.textContent = String(row.cells[c - 1] ?? "");
+    td.setAttribute("data-masked", "0");
+
+    // now editable in editMode
+    applyEditModeToCells();
+  }
+
+  /* =========================================================
+  SECTION: Select tab (load values)
+========================================================= */
+  async function selectTab(tabName) {
+    if (!tabName) return;
+    if (state.editMode) {
+      alert("Please Save or Cancel edit mode first.");
+      return;
+    }
+
+    state.currentTab = tabName;
+    markActiveTab(tabName);
+
+    setStatus(`Loading: ${tabName}...`);
+
+    const json = await apiGetTab(tabName);
+    if (!json.success) {
+      setStatus(json.error || "Failed to load tab data.", "error");
+      tableWrap.innerHTML = "";
+      return;
+    }
+
+    const values = json.values || [];
+
+    // Ensure at least header exists
+    if (!values.length) {
+      state.header = [];
+      state.rows = [];
+      state.viewRows = [];
+      tableWrap.innerHTML = `<div style="padding:14px;color:rgba(255,255,255,0.7)">Empty tab.</div>`;
+      setStatus(`Loaded: ${tabName} (empty)`, "success");
+      return;
+    }
+
+    buildModelFromValues(values);
+
+    // reset search/filter UI
+    searchInput.value = "";
+    filterValue.value = "";
+
+    // initial render
+    state.viewRows = state.rows.slice();
+    renderTable();
+
+    setStatus(`Loaded: ${tabName}`, "success");
+  }
+
+  /* =========================================================
+  SECTION: Load all tabs
+========================================================= */
+  async function loadTabs() {
+    setStatus("Loading tabs...");
+    const json = await apiListTabs();
+    if (!json.success) {
+      setStatus(json.error || "Failed to load tabs.", "error");
+      return;
+    }
+
+    const names = json.tabs || [];
+    renderTabs(names);
+
+    if (names.length) {
+      await selectTab(names[0]);
+    } else {
+      setStatus("No tabs found.", "error");
+    }
+  }
+
+  /* =========================================================
+  SECTION: Event bindings
+========================================================= */
+  function bindEvents() {
+    // Search/filter
+    searchInput.addEventListener("input", applySearchAndFilter);
+    btnApplyFilter.addEventListener("click", applySearchAndFilter);
+
+    btnClearFilter.addEventListener("click", () => {
+      searchInput.value = "";
+      filterValue.value = "";
+      state.viewRows = state.rows.slice();
+      renderTable();
+      setStatus("Filter cleared.");
+    });
+
+    // Row ops
+    btnAddRow.addEventListener("click", addRow);
+    btnDeleteRow.addEventListener("click", deleteSelectedRows);
+
+    // Edit ops
+    btnEdit.addEventListener("click", () => setEditMode(true));
+    btnCancel.addEventListener("click", cancelEdit);
+    btnSave.addEventListener("click", saveChanges);
+
+    // Cell input tracking (event delegation)
+    tableWrap.addEventListener("input", (e) => {
+      const td = e.target.closest("td[data-row-id][data-c]");
+      if (!td) return;
+      if (!state.editMode) return;
+      onCellInput(td);
+    });
+
+    // Password reveal click
+    tableWrap.addEventListener("click", async (e) => {
+      const td = e.target.closest('td[data-pw="1"]');
+      if (!td) return;
+      // only on info tab and only if password col exists
+      if (state.passwordColIdx < 0) return;
+      await handlePasswordCellClick(td);
+    });
+  }
+
+  /* =========================================================
+  SECTION: Init
+========================================================= */
   document.addEventListener("DOMContentLoaded", async () => {
     const u = getUser();
     if (!u) {
       window.location.href = "/pages/login.html";
       return;
     }
+
     if (String(u.user_type || "").toLowerCase() !== "master") {
       alert("No permission.");
       window.location.href = "/index.html";
       return;
     }
 
-    // Entry password check (masked modal)
+    // Entry password check
     const pw = await askMasterPassword({
       title: "Master Access",
       desc: "Enter master password to OPEN Master Panel."
     });
+
     if (!pw.ok) {
       window.location.href = "/index.html";
       return;
@@ -628,27 +753,8 @@ PURPOSE:
       return;
     }
 
-    // Wire toolbar
-    searchInput.addEventListener("input", applySearchAndFilter);
-    btnApplyFilter.addEventListener("click", applySearchAndFilter);
-    btnClearFilter.addEventListener("click", () => {
-      filterValue.value = "";
-      searchInput.value = "";
-      displayedValues = deepClone2D(loadedValues);
-      if (newRows.length) displayedValues = displayedValues.concat(newRows.map(r => r.slice()));
-      renderTable(displayedValues);
-      setStatus("Filter cleared.");
-    });
-
-    btnAddRow.addEventListener("click", addRow);
-    btnDeleteRow.addEventListener("click", deleteSelectedRows);
-
-    // Wire edit buttons
-    btnEdit.addEventListener("click", () => setEditMode(true));
-    btnCancel.addEventListener("click", cancelEdit);
-    btnSave.addEventListener("click", saveChanges);
-
-    // Load tabs
+    bindEvents();
     await loadTabs();
   });
+
 })();
