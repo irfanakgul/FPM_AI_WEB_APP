@@ -1,0 +1,116 @@
+/* =========================================================
+FILE: /css/master.css
+PURPOSE:
+- Master page specific styling
+========================================================= */
+
+.master-card{
+  /* main-card zaten responsive; burada sadece düzen */
+}
+
+.master-top{
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.master-title{
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  letter-spacing: 0.2px;
+}
+
+.master-sub{
+  margin: 0;
+  color: rgba(255,255,255,0.62);
+  line-height: 1.5;
+}
+
+.master-actions{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.master-status{
+  margin-top: 10px;
+  min-height: 18px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.70);
+}
+
+/* Tabs */
+.tabs{
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tab-btn{
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.9);
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 0.16s ease;
+  font-weight: 900;
+}
+
+.tab-btn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.28);
+}
+
+.tab-btn.active{
+  border-color: rgba(130,190,255,0.55);
+  box-shadow: 0 0 0 1px rgba(130,190,255,0.22) inset;
+  background: rgba(130,190,255,0.10);
+}
+
+/* Table */
+.table-wrap{
+  margin-top: 16px;
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+}
+
+.table-wrap table{
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.table-wrap th, .table-wrap td{
+  padding: 10px;
+  font-size: 13px;
+  text-align: left;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.86);
+}
+
+.table-wrap th{
+  position: sticky;
+  top: 0;
+  background: rgba(130,190,255,0.14);
+  color: rgba(255,255,255,0.92);
+  font-weight: 900;
+  border-top: none;
+}
+
+.cell-editable{
+  background: rgba(120,255,215,0.06);
+  outline: 1px dashed rgba(120,255,215,0.35);
+  border-radius: 8px;
+}
+
+.cell-changed{
+  background: rgba(255,200,120,0.08);
+  outline: 1px solid rgba(255,200,120,0.35);
+  border-radius: 8px;
+}

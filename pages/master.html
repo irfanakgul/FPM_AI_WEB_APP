@@ -1,0 +1,72 @@
+<!-- =========================================================
+FILE: /pages/master.html
+PURPOSE:
+- Master-only admin page for managing ALL tabs in the user sheet
+- Requires master password on entry + on updates
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Master • FPM AI</title>
+
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/master.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="app-content">
+      <aside class="app-sidebar" id="appSidebar"></aside>
+
+      <main class="app-main">
+        <div class="main-card master-card">
+          <div class="master-top">
+            <div>
+              <h1 class="master-title">Master Panel</h1>
+              <p class="master-sub">
+                Manage all tabs in the user sheet (view + edit).
+              </p>
+            </div>
+
+            <div class="master-actions">
+              <!-- =========================================================
+              SECTION: Edit controls
+              PURPOSE: Enable edit mode + save/cancel
+              ========================================================== -->
+              <button id="btnEdit" class="btn btn-primary" type="button">Edit</button>
+              <button id="btnSave" class="btn btn-primary" type="button" style="display:none;">Save</button>
+              <button id="btnCancel" class="btn btn-ghost" type="button" style="display:none;">Cancel</button>
+            </div>
+          </div>
+
+          <!-- =========================================================
+          SECTION: Tabs
+          PURPOSE: Auto-generated sheet tabs (worksheets)
+          ========================================================== -->
+          <div id="tabs" class="tabs"></div>
+
+          <!-- Status -->
+          <div id="status" class="master-status" aria-live="polite"></div>
+
+          <!-- =========================================================
+          SECTION: Table container
+          PURPOSE: Show selected worksheet data
+          ========================================================== -->
+          <div id="tableWrap" class="table-wrap"></div>
+
+        </div>
+      </main>
+    </div>
+
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/master.js"></script>
+</body>
+</html>

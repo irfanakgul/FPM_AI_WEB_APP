@@ -3272,6 +3272,176 @@ app.post("/api/user/delete-account", async (req, res) => {
 });
 //
 
+// =========================================================
+// SECTION: Master helpers (NEW)
+// PURPOSE:
+// - Validate master role
+// - Validate master password format: EnigmA_DDMMYYYY_IA
+//   based on Europe/Amsterdam date
+// =========================================================
+function requireMasterUser(req) {
+  // Your app currently uses sessionStorage on client, not server sessions.
+  // So we rely on client to call only when logged in as master.
+  // Still: we can add a header-based check later. For now keep simple.
+  return true;
+}
+
+function getAmsterdamDDMMYYYY() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Amsterdam",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(new Date());
+
+  const dd = parts.find(p => p.type === "day")?.value;
+  const mm = parts.find(p => p.type === "month")?.value;
+  const yyyy = parts.find(p => p.type === "year")?.value;
+  return `${dd}${mm}${yyyy}`; // DDMMYYYY
+}
+
+function isValidMasterPassword(pw) {
+  const today = getAmsterdamDDMMYYYY();
+  const expected = `EnigmA_${today}_IA`;
+  return String(pw || "").trim() === expected;
+}
+
+function colToA1(col) {
+  // 1 -> A, 2 -> B ... 27 -> AA
+  let n = col;
+  let s = "";
+  while (n > 0) {
+    const r = (n - 1) % 26;
+    s = String.fromCharCode(65 + r) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+// =========================================================
+// SECTION: Master verify (NEW)
+// PURPOSE: allow UI to check master password
+// =========================================================
+app.post("/api/master/verify", async (req, res) => {
+  try {
+    const { masterPassword } = req.body;
+    if (!masterPassword) return res.json({ success: false, error: "Missing masterPassword" });
+
+    if (!isValidMasterPassword(masterPassword)) {
+      return res.json({ success: false, error: "Invalid Master Password." });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("MASTER VERIFY ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================
+// SECTION: List worksheet tabs (NEW)
+// PURPOSE: auto load all tabs (worksheets) in sheetId
+// =========================================================
+app.post("/api/master/list-tabs", async (req, res) => {
+  try {
+    const { sheetId } = req.body;
+    if (!sheetId) return res.json({ success: false, error: "Missing sheetId" });
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
+    const tabs = (meta.data.sheets || [])
+      .map(s => s.properties?.title)
+      .filter(Boolean);
+
+    return res.json({ success: true, tabs });
+  } catch (err) {
+    console.error("MASTER LIST TABS ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================
+// SECTION: Get tab values (NEW)
+// PURPOSE: load a worksheet's values for table rendering
+// =========================================================
+app.post("/api/master/get-tab", async (req, res) => {
+  try {
+    const { sheetId, tabName } = req.body;
+    if (!sheetId || !tabName) return res.json({ success: false, error: "Missing sheetId/tabName" });
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    const read = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: `${tabName}`
+    });
+
+    const values = read.data.values || [];
+    return res.json({ success: true, values });
+  } catch (err) {
+    console.error("MASTER GET TAB ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================
+// MASTER CHAPTER
+// SECTION: Update cells (NEW)
+// PURPOSE:
+// - Save edits
+// - Requires master password again
+// - updates: [{row, col, value}]
+// =========================================================
+app.post("/api/master/update-cells", async (req, res) => {
+  try {
+    const { sheetId, tabName, updates, masterPassword } = req.body;
+
+    if (!sheetId || !tabName) return res.json({ success: false, error: "Missing sheetId/tabName" });
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.json({ success: false, error: "No updates" });
+    }
+    if (!masterPassword) return res.json({ success: false, error: "Missing masterPassword" });
+
+    if (!isValidMasterPassword(masterPassword)) {
+      return res.json({ success: false, error: "Invalid Master Password." });
+    }
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    // Build batchUpdate ranges
+    const data = updates.map(u => {
+      const row = Number(u.row);
+      const col = Number(u.col);
+      const value = (u.value ?? "");
+
+      const a1 = `${colToA1(col)}${row}`;
+      return {
+        range: `${tabName}!${a1}`,
+        values: [[value]]
+      };
+    });
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
+        valueInputOption: "USER_ENTERED",
+        data
+      }
+    });
+
+    return res.json({ success: true });
+
+  } catch (err) {
+    console.error("MASTER UPDATE CELLS ERROR:", err);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+
 
 
 // import config server

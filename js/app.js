@@ -427,65 +427,56 @@ STABILITY FIXES (ADDED):
     if (userType) userType.textContent = currentUser.user_type ?? "-";
     if (timerSpan) timerSpan.textContent = "Active: 0m 0s";
   }
-
-  /* =========================================================
-     SECTION: Role-based header navigation (UPDATED)
-     RULES:
-     - User Dashboard: ALL user_type (logged in)
-     - Admin Dashboard: admin only
-     - Model Panel: admin + co-admin
-     - Stats: admin + co-admin
-     - Results: admin + co-admin
-  ========================================================= */
-  function updateRoleNav(currentUser) {
+/* =========================================================
+SECTION: Role-based header navigation (UPDATED for master)
+PURPOSE:
+- master: sees EVERYTHING + Master button
+- User Dashboard: all logged-in users
+- Admin Dashboard: admin only (master also sees)
+- Model/Stats/Results: admin + co-admin (master also sees)
+========================================================= */
+function updateRoleNav(currentUser) {
   const modelNavBtn = document.getElementById("modelNavBtn");
   const adminNavBtn = document.getElementById("adminNavBtn");
   const statsNavBtn = document.getElementById("statsNavBtn");
   const resultsNavBtn = document.getElementById("resultsNavBtn");
   const userDashNavBtn = document.getElementById("userDashNavBtn");
+  const masterNavBtn = document.getElementById("masterNavBtn"); // NEW
 
-  // =========================================================
-  // SECTION: Default state
-  // PURPOSE: Hide all buttons before applying role rules
-  // =========================================================
+  // Hide all
   if (modelNavBtn) modelNavBtn.style.display = "none";
   if (adminNavBtn) adminNavBtn.style.display = "none";
   if (statsNavBtn) statsNavBtn.style.display = "none";
   if (resultsNavBtn) resultsNavBtn.style.display = "none";
   if (userDashNavBtn) userDashNavBtn.style.display = "none";
+  if (masterNavBtn) masterNavBtn.style.display = "none";
 
   if (!currentUser) return;
 
-  // =========================================================
-  // SECTION: Normalize user_type
-  // PURPOSE:
-  // - Prevent issues like "Client", "client ", "CLIENT"
-  // =========================================================
-  const type = String(currentUser.user_type || "").trim().toLowerCase();
+  const type = String(currentUser.user_type || "").toLowerCase();
 
-  // =========================================================
-  // SECTION: User Dashboard rule (FIX)
-  // PURPOSE:
-  // - Show for all logged-in users EXCEPT client
-  // =========================================================
-  if (type !== "client") {
-    if (userDashNavBtn) userDashNavBtn.style.display = "inline-flex";
-  }
+  // User Dashboard for all logged-in users
+  if (userDashNavBtn) userDashNavBtn.style.display = "inline-flex";
 
-  // =========================================================
-  // SECTION: Admin Dashboard (admin only)
-  // =========================================================
-  if (type === "admin") {
+  const isAdmin = (type === "admin");
+  const isCoAdmin = (type === "co-admin" || type === "coadmin");
+  const isMaster = (type === "master");
+
+  // Admin dashboard: admin + master
+  if (isAdmin || isMaster) {
     if (adminNavBtn) adminNavBtn.style.display = "inline-flex";
   }
 
-  // =========================================================
-  // SECTION: Admin + co-admin: model + stats + results
-  // =========================================================
-  if (type === "admin" || type === "co-admin" || type === "coadmin") {
-    if (modelNavBtn) modelNavBtn.style.display = "inline-flex";
+  // Model + Stats + Results: admin + co-admin + master
+  if (isAdmin || isCoAdmin || isMaster) {
+    // if (modelNavBtn) modelNavBtn.style.display = "inline-flex";
     if (statsNavBtn) statsNavBtn.style.display = "inline-flex";
     if (resultsNavBtn) resultsNavBtn.style.display = "inline-flex";
+  }
+
+  // Master button: only master
+  if (isMaster) {
+    if (masterNavBtn) masterNavBtn.style.display = "inline-flex";
   }
 }
 
