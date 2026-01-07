@@ -1,238 +1,208 @@
-/* ===============================
-   STATISTICS MODULE (Isolated)
-   =============================== */
+/* =========================================================
+FILE: /js/stats.js
+PURPOSE:
+- Statistics legacy logic extracted from old stats.html
+- Central header/sidebar/footer handled by layout.js + app.js
+- DO NOT change stats computations / permissions / endpoints
+========================================================= */
 
-let chartInstance = null;
-
-// Load user info
-const user = JSON.parse(sessionStorage.getItem("currentUser") || "{}");
-
-// Admin olmayan görmesin
-window.addEventListener("DOMContentLoaded", async () => {
-  if (user.user_type !== "admin") {
-    document.body.innerHTML = "<h2>Only Admin can view this page.</h2>";
+document.addEventListener("DOMContentLoaded", () => {
+  /* =====================================================
+     USER SESSION (same logic)
+  ====================================================== */
+  const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+  if (!currentUser) {
+    window.location.href = "/pages/login.html";
     return;
   }
 
-  loadSheets();
-  document.getElementById("loadBtn").onclick = computeStats;
-});
+  const permissionWarning = document.getElementById("permissionWarning");
+  const statsContent = document.getElementById("statsContent");
+  const clientDeniedBox = document.getElementById("clientDeniedBox");
+  const sheetIdLabel = document.getElementById("sheetIdLabel");
 
-/* ------------------------------
-   LOAD AVAILABLE SHEETS
---------------------------------*/
-async function loadSheets(){
-  const sel = document.getElementById("sheetSelect");
-  sel.innerHTML = "";
-
-  try {
-    const sheetId = sessionStorage.getItem("sheetId") ||
-      "1c_0Maup2VkR1yg-RjkCbVS1e7d_ng0wgMGY43nFPn3U";
-
-    const res = await fetch(`/getSheets?sheetId=${sheetId}`);
-    const arr = await res.json();
-
-    ["FINAL_FOCUS_SELECTION", "LOG_FOCUS_MODEL_A"].forEach(name => {
-      if (arr.includes(name)) {
-        let opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        sel.appendChild(opt);
-      }
-    });
-
-  } catch (err) {
-    document.getElementById("message").textContent = err.message;
+  /* =====================================================
+     CLIENT: page opens but content is denied (same outcome)
+  ====================================================== */
+  if (currentUser.user_type === "client") {
+    // old code overwrote main.innerHTML. We keep same meaning without killing layout.
+    if (clientDeniedBox) clientDeniedBox.style.display = "block";
+    if (statsContent) statsContent.style.display = "none";
+    if (sheetIdLabel) sheetIdLabel.style.display = "none";
+    return;
   }
-}
 
-/* ------------------------------
-   COMPUTE STATISTICS
---------------------------------*/
-async function computeStats(){
-  const msg = document.getElementById("message");
-  msg.textContent = "Loading...";
-
-  const sheetName = document.getElementById("sheetSelect").value;
-
-  const sheetId = sessionStorage.getItem("sheetId") ||
-    "1c_0Maup2VkR1yg-RjkCbVS1e7d_ng0wgMGY43nFPn3U";
-
-  try {
-    const res = await fetch(
-      `/getSheetData?sheetId=${sheetId}&sheet=${encodeURIComponent(sheetName)}`
-    );
-    const json = await res.json();
-
-    const headers = json.headers || [];
-    const rows = json.rows || [];
-
-    const statusIdx = headers.findIndex(h => h.toLowerCase() === "status");
-    if (statusIdx === -1) {
-      msg.textContent = "STATUS column not found.";
-      return;
+  /* =====================================================
+     PERMISSION (same logic)
+  ====================================================== */
+  if (!["admin", "co-admin","master"].includes(currentUser.user_type)) {
+    if (statsContent) statsContent.style.display = "none";
+    if (permissionWarning) {
+      permissionWarning.style.display = "block";
+      permissionWarning.textContent = "You do not have permission to access the Statistics page.";
     }
-
-    const dateIdx = headers.findIndex(h => h.toLowerCase().includes("mac"));
-    if (dateIdx === -1) {
-      msg.textContent = "Match date column not found.";
-      return;
-    }
-
-    // GENERAL COUNTS
-    let total = { W: 0, D: 0, L: 0 };
-    let monthly = {};  // { "2025-08": {W:0,D:0,L:0} }
-
-    rows.forEach(r => {
-      const status = (r.data[statusIdx] || "").trim();
-      if (!["W","D","L"].includes(status)) return;
-
-      // Count totals
-      total[status]++;
-
-      // Extract date
-      let d = normalizeDate(r.data[dateIdx] || "");
-      if (!d) return;
-
-      let parts = d.split(".");
-      let monthKey = `${parts[2]}-${parts[1].padStart(2,"0")}`;
-
-      if (!monthly[monthKey]) monthly[monthKey] = { W:0, D:0, L:0 };
-      monthly[monthKey][status]++;
-    });
-
-    // Update UI
-    msg.textContent = "Statistics loaded.";
-    renderSummary(total);
-    renderMonthlyTable(monthly);
-    renderChart(monthly);
-
-  } catch (err) {
-    msg.textContent = "Error: " + err.message;
+    setTimeout(() => (window.location.href = "/index.html"), 1500);
+    return;
   }
-}
 
-/* ------------------------------
-   RENDER TOTAL SUMMARY
---------------------------------*/
-function renderSummary(total){
-  let sum = total.W + total.D + total.L;
+  /* =====================================================
+     STATISTICS LOGIC (same)
+  ====================================================== */
+  const sheetId = "1c_0Maup2VkR1yg-RjkCbVS1e7d_ng0wgMGY43nFPn3U";
 
-  document.getElementById("summary").innerHTML = `
-    <div class="section-title">Overall Summary</div>
-    <table>
-      <tr><th>Status</th><th>Count</th><th>%</th></tr>
-      <tr><td>W</td><td>${total.W}</td><td>${((total.W/sum)*100).toFixed(1)}%</td></tr>
-      <tr><td>D</td><td>${total.D}</td><td>${((total.D/sum)*100).toFixed(1)}%</td></tr>
-      <tr><td>L</td><td>${total.L}</td><td>${((total.L/sum)*100).toFixed(1)}%</td></tr>
-    </table>
-  `;
-}
+  if (sheetIdLabel) sheetIdLabel.textContent = `Sheet ID: ${sheetId}`;
 
-/* ------------------------------
-   RENDER MONTHLY TABLE
---------------------------------*/
-function renderMonthlyTable(monthly){
-  let keys = Object.keys(monthly).sort();
-  let html = `
-    <div class="section-title">Monthly Breakdown</div>
-    <table>
-      <tr><th>Month</th><th>W</th><th>D</th><th>L</th><th>Total</th></tr>
-  `;
+  // Only admin can see sheet ID (same)
+  if (currentUser.user_type !== "admin" && sheetIdLabel) {
+    sheetIdLabel.style.display = "none";
+  }
 
-  keys.forEach(k => {
-    let m = monthly[k];
-    html += `
-      <tr>
-        <td>${k}</td>
-        <td>${m.W}</td>
-        <td>${m.D}</td>
-        <td>${m.L}</td>
-        <td>${m.W + m.D + m.L}</td>
-      </tr>
-    `;
-  });
+  let rows = [];
+  let overallChart = null;
+  let monthlyChart = null;
 
-  html += `</table>`;
-  document.getElementById("monthlyTable").innerHTML = html;
-}
+  document.getElementById("loadBtn").onclick = loadStats;
 
-/* ------------------------------
-   RENDER CHART (W/D/L %)
---------------------------------*/
-function renderChart(monthly){
-  let ctx = document.getElementById("statsChart").getContext("2d");
+  async function loadStats() {
+    const sheet = document.getElementById("sheetSelect").value;
+    const r = await fetch("/api/load-sheet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheetId, sheetName: sheet }),
+    });
+    const j = await r.json();
+    rows = j.data;
+    compute();
+  }
 
-  let keys = Object.keys(monthly).sort();
+  function compute() {
+    const valid = rows.filter((r) => ["W", "D", "L"].includes(r.STATUS));
+    const t = valid.length;
 
-  let W_data = [];
-  let D_data = [];
-  let L_data = [];
-  let labels = [];
+    const W = valid.filter((r) => r.STATUS === "W").length;
+    const D = valid.filter((r) => r.STATUS === "D").length;
+    const L = valid.filter((r) => r.STATUS === "L").length;
 
-  keys.forEach(k => {
-    let m = monthly[k];
-    let sum = m.W + m.D + m.L;
+    const Wp = (W / t * 100).toFixed(1);
+    const Dp = (D / t * 100).toFixed(1);
+    const Lp = (L / t * 100).toFixed(1);
 
-    labels.push(k.replace("-", "_"));
+    drawOverall(W, D, L, Wp, Dp, Lp);
+    computeMonthly(valid);
+  }
 
-    W_data.push((m.W/sum)*100);
-    D_data.push((m.D/sum)*100);
-    L_data.push((m.L/sum)*100);
-  });
+  /* SMALLER OVERALL BAR CHART (same) */
+  function drawOverall(W, D, L, Wp, Dp, Lp) {
+    if (overallChart) overallChart.destroy();
+    const ctx = document.getElementById("overallChart").getContext("2d");
 
-  if (chartInstance) chartInstance.destroy();
-
-  chartInstance = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "W %",
-          data: W_data,
-          borderColor: "blue",
-          fill: false
-        },
-        {
-          label: "D %",
-          data: D_data,
-          borderColor: "orange",
-          fill: false
-        },
-        {
-          label: "L %",
-          data: L_data,
-          borderColor: "red",
-          fill: false
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "top" },
-        tooltip: { enabled: true }
+    overallChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: ["W", "D", "L"],
+        datasets: [{
+          data: [W, D, L],
+          backgroundColor: ["green", "orange", "red"] // same as old
+        }]
       },
-      scales: {
-        y: { ticks: { callback: v => v + "%" } }
+      plugins: [ChartDataLabels],
+      options: {
+        plugins: {
+          datalabels: {
+            anchor: "end",
+            align: "end",
+            color: "#aab0d6",
+            font: { size: 8, weight: "bold" },
+            formatter: (v, ctx) =>
+              ctx.dataIndex === 0 ? Wp + "%" :
+              ctx.dataIndex === 1 ? Dp + "%" : Lp + "%"
+          },
+          tooltip: {
+            callbacks: {
+              label: (c) => `${c.raw} matches`
+            }
+          }
+        },
+        scales: { y: { beginAtZero: true } }
       }
-    }
-  });
-}
-
-/* ------------------------------
-   DATE NORMALIZATION
---------------------------------*/
-function normalizeDate(v){
-  if(!v) return "";
-  v = v.toString().trim();
-
-  if(/^\d{2}\.\d{2}\.\d{4}$/.test(v)) return v;
-
-  const d = new Date(v);
-  if(!isNaN(d.getTime())){
-    return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`;
+    });
   }
-  return "";
-}
+
+  function computeMonthly(valid) {
+    const map = {};
+
+    valid.forEach((r) => {
+      if (!r.MacTarihi) return;
+      const [d, m, y] = r.MacTarihi.split(".");
+      const key = `${y}-${m}`;
+      if (!map[key]) map[key] = { W: 0, D: 0, L: 0, total: 0 };
+      map[key][r.STATUS]++;
+      map[key].total++;
+    });
+
+    const months = Object.keys(map).sort();
+    const Wp = months.map((m) => (map[m].W / map[m].total * 100).toFixed(1));
+    const Dp = months.map((m) => (map[m].D / map[m].total * 100).toFixed(1));
+    const Lp = months.map((m) => (map[m].L / map[m].total * 100).toFixed(1));
+
+    drawMonthly(months, Wp, Dp, Lp, map);
+    fillMonthlyTable(months, map);
+  }
+
+  /* SMALLER MONTHLY LINE CHART (same) */
+  function drawMonthly(months, Wp, Dp, Lp, map) {
+    if (monthlyChart) monthlyChart.destroy();
+    const ctx = document.getElementById("monthlyChart").getContext("2d");
+
+    monthlyChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: months,
+        datasets: [
+          { label: "W %", data: Wp, borderColor: "green", tension: 0.3 },
+          { label: "D %", data: Dp, borderColor: "orange", tension: 0.3 },
+          { label: "L %", data: Lp, borderColor: "red", tension: 0.3 }
+        ]
+      },
+      plugins: [ChartDataLabels],
+      options: {
+        plugins: {
+          datalabels: {
+            color: "#aab0d6",
+            font: { size: 8, weight: "bold" },
+            formatter: (v) => v + "%"
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const m = ctx.label;
+                const cat = ctx.dataset.label.charAt(0);
+                return `${ctx.raw}% (${map[m][cat]} matches)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /* MONTHLY TABLE (same) */
+  function fillMonthlyTable(months, map) {
+    const tb = document.querySelector("#monthlyTable tbody");
+    tb.innerHTML = "";
+
+    months.forEach((m) => {
+      const r = map[m];
+      tb.innerHTML += `
+        <tr>
+          <td>${m}</td>
+          <td>${(r.W / r.total * 100).toFixed(1)}%</td>
+          <td>${(r.D / r.total * 100).toFixed(1)}%</td>
+          <td>${(r.L / r.total * 100).toFixed(1)}%</td>
+          <td>${r.W}</td>
+          <td>${r.D}</td>
+          <td>${r.L}</td>
+        </tr>`;
+    });
+  }
+});

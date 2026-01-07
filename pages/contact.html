@@ -1,540 +1,124 @@
+<!-- =========================================================
+FILE: /pages/contact.html
+PURPOSE:
+- Contact form page adapted to new layout system
+- Uses shared header/sidebar/footer via layout.js
+- Keeps old form behavior:
+  * Subject dropdown + subscribe => show subscription type
+  * Username auto-filled from sessionStorage.currentUser (or "Unknown")
+  * POST /api/contact_form with status/date/time etc.
+- Language controlled by global header flags (localStorage.lang + lang:changed)
+========================================================= -->
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>FPM - Contact</title>
+  <!-- ===== Meta ===== -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FPM - Contact</title>
 
-<style> 
-    /* ========== GLOBAL FIX (NO WHITE ON SCROLL) ========== */
-html, body {
-    height: 100%;
-    margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    background: linear-gradient(180deg, #1a1f2e, #161a26);
-    color: #e6e9f5;
-    overflow-x: hidden;
-}
-
-/* ========== HEADER ========== */
-header {
-    height: 64px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-
-    background:
-        linear-gradient(
-            90deg,
-            rgba(122,162,255,0.2),
-            rgba(30,36,56,0.95) 35%,
-            rgba(30,36,56,0.95) 65%,
-            rgba(122,162,255,0.2)
-        );
-
-    backdrop-filter: blur(14px);
-    color: white;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 28px;
-
-    border-bottom: 1px solid rgba(122,162,255,0.25);
-    box-shadow:
-        0 6px 20px rgba(0,0,0,0.45),
-        inset 0 -1px 0 rgba(122,162,255,0.25);
-
-    z-index: 1000;
-}
-
-/* Header title */
-header strong {
-    font-size: 16px;
-    letter-spacing: 0.6px;
-    background: linear-gradient(90deg, #ffffff, #7aa2ff);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
-}
-
-/* Header buttons */
-header button {
-    padding: 8px 18px;
-    border-radius: 18px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-#headerUserInfo {
-    font-size: 13px;
-    opacity: 0.85;
-}
-
-/* LOGIN */
-#loginBtn {
-    background: rgba(122,162,255,0.18);
-    color: #7aa2ff;
-    border: 1px solid rgba(122,162,255,0.4);
-}
-#loginBtn:hover {
-    background: rgba(122,162,255,0.28);
-    transform: translateY(-1px);
-}
-
-/* LOGOUT */
-#logoutBtn {
-    background: rgba(255,120,120,0.18);
-    color: #ff9b9b;
-    border: 1px solid rgba(255,120,120,0.4);
-}
-#logoutBtn:hover {
-    background: rgba(255,120,120,0.28);
-    transform: translateY(-1px);
-}
-
-/* ========== SIDEBAR ========== */
-#sidebar {
-    width: 220px;
-    position: fixed;
-    top: 64px;
-    left: 0;
-    bottom: 0;
-
-    background: rgba(26, 31, 46, 0.96);
-    border-right: 1px solid rgba(255,255,255,0.06);
-    padding-top: 16px;
-
-    z-index: 900;
-}
-
-#sidebar a {
-    display: block;
-    padding: 14px 22px;
-    color: #cdd3f8;
-    text-decoration: none;
-    font-size: 15px;
-    border-left: 3px solid transparent;
-    transition: all 0.2s ease;
-}
-
-#sidebar a:hover {
-    background: rgba(122,162,255,0.12);
-    color: #7aa2ff;
-}
-
-#sidebar a.active {
-    background: rgba(122,162,255,0.18);
-    color: #7aa2ff;
-    font-weight: 600;
-    border-left-color: #7aa2ff;
-}
-
-/* ========== MAIN ========== */
-#main {
-    margin-left: 220px;
-    padding: 32px;
-    padding-top: 96px;
-    min-height: 100vh;
-}
-
-/* ========== FORM CARD ========== */
-.contact-card {
-    background: rgba(30,36,56,0.9);
-    backdrop-filter: blur(12px);
-    border-radius: 14px;
-    padding: 32px;
-    max-width: 620px;
-    margin: auto;
-    margin-bottom: 140px;
-
-    box-shadow:
-        0 12px 30px rgba(0,0,0,0.45),
-        inset 0 0 0 1px rgba(255,255,255,0.05);
-}
-
-/* Title */
-h2#title {
-    margin: 0 0 22px;
-    font-size: 24px;
-    font-weight: 600;
-    color: #ffffff;
-    text-align: center;
-}
-
-/* Language switch */
-.lang-switch {
-    text-align: center;
-    margin-bottom: 22px;
-}
-.lang-switch img {
-    width: 32px;
-    cursor: pointer;
-    margin-right: 12px;
-    opacity: 0.75;
-    transition: 0.2s;
-}
-.lang-switch img:hover {
-    opacity: 1;
-}
-
-/* FORM */
-.form-group {
-    margin-bottom: 18px;
-}
-
-label {
-    font-weight: 600;
-    margin-bottom: 6px;
-    display: block;
-    color: #d6dbff;
-}
-
-input, select, textarea {
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    font-size: 15px;
-
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
-    color: #ffffff;
-
-    transition: border 0.2s, background 0.2s;
-}
-
-input::placeholder,
-textarea::placeholder {
-    color: #aab0d6;
-}
-
-input:focus, select:focus, textarea:focus {
-    border-color: #7aa2ff;
-    outline: none;
-    background: rgba(255,255,255,0.1);
-}
-
-textarea {
-    min-height: 130px;
-    resize: vertical;
-}
-
-/* SUBMIT */
-#btnSubmit {
-    background: linear-gradient(90deg, #5f8cff, #7aa2ff);
-    color: #ffffff;
-    padding: 14px 18px;
-    width: 100%;
-    border: none;
-    font-size: 16px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: all 0.25s ease;
-}
-
-#btnSubmit:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 0 16px rgba(122,162,255,0.45);
-}
-
-/* SUCCESS */
-#successMsg {
-    color: #4ade80;
-    font-weight: bold;
-    margin-top: 18px;
-    display: none;
-    text-align: center;
-    font-size: 16px;
-}
-
-/* ========== FOOTER ========== */
-.app-footer {
-    position: fixed;
-    bottom: 0;
-    left: 220px;
-    right: 0;
-
-    text-align: center;
-    padding: 14px;
-    font-size: 13px;
-
-    background: rgba(30,36,56,0.9);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255,255,255,0.06);
-
-    color: #aab0d6;
-    z-index: 800;
-}
-html, body {
-    min-height: 100%;
-    background: linear-gradient(180deg, #1a1f2e, #161a26);
-    overscroll-behavior: none;
-}
-
-</style>
+  <!-- ===== Global CSS (layout + header + sidebar + footer) ===== -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <!-- ===== Page CSS (only contact page) ===== -->
+  <link rel="stylesheet" href="/css/contact.css" />
 </head>
 
 <body>
-<!-- HEADER -->
- <header>
-    <a href="/index.html" style="text-decoration:none; color:inherit;">
-        <div style="display:flex;align-items:center;gap:10px; cursor:pointer;">
-            <img src="/docs/fpm_logo.jpg" 
-                 alt="Logo"
-                 style="height:34px; width:auto; border-radius:4px;" />
+  <!-- ===== App shell (injected header/sidebar/footer) ===== -->
+  <div class="app-shell">
+    <header class="app-header" id="appHeader"></header>
 
-            <strong>FPM AI Model</strong>
-        </div>
-    </a>
+    <div class="app-content">
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-    <div style="display:flex;align-items:center;gap:20px;">
-        <div id="headerUserInfo" style="display:none;"></div>
+      <main class="app-main">
+        <!-- =====================================================
+             MAIN CARD (shared sizing, page adds its own styling)
+        ====================================================== -->
+        <div class="main-card contact-card">
 
-        <button id="loginBtn">Login</button>
-        <button id="logoutBtn" style="display:none;">Logout</button>
-    </div>
-</header>
+          <!-- ===== Title ===== -->
+          <h2 id="title" data-i18n="contact_title">Contact Form</h2>
 
-<!-- SIDEBAR -->
-<div id="sidebar">
-    <a href="/index.html">Home</a>
-    <a href="/pages/results.html">Results</a>
-    <a href="/pages/stats.html">Statistics</a>
-    <a href="/pages/weekly.html">Weekly Games</a>
-    <a href="/pages/contact.html" class="active">Contact</a>
-    <a href="/pages/about.html">About</a>
-</div>
+          <!-- =================================================
+               FORM (IDs preserved from old page)
+          ================================================== -->
+          <form id="contactForm" class="contact-form">
 
-<!-- MAIN CONTENT -->
-<div id="main">
-
-    <div class="contact-card">
-
-        <h2 id="title">Contact Form</h2>
-
-        <div class="lang-switch">
-            <img src="https://flagcdn.com/w40/gb.png" id="btnEN">
-            <img src="https://flagcdn.com/w40/tr.png" id="btnTR">
-        </div>
-
-        <form id="contactForm">
-
+            <!-- Subject -->
             <div class="form-group">
-                <label id="lblSubject">Subject</label>
-                <select id="subject" required>
-                    <option value="question">I want to ask a question</option>
-                    <option value="subscribe">I want to subscribe</option>
-                    <option value="broken">Website not working properly</option>
-                    <option value="delete">I want my data removed</option>
-                    <option value="other">Other</option>
-                </select>
+              <label id="lblSubject" data-i18n="contact_lbl_subject">Subject</label>
+              <select id="subject" required>
+                <!-- NOTE: option texts will be set by /js/contact.js based on language -->
+                <option value="question">I want to ask a question</option>
+                <option value="subscribe">I want to subscribe</option>
+                <option value="broken">Website not working properly</option>
+                <option value="delete">I want my data removed</option>
+                <option value="other">Other</option>
+              </select>
             </div>
 
+            <!-- Subscription Type (only visible when subject=subscribe) -->
             <div class="form-group" id="subsTypeGroup" style="display:none;">
-                <label id="lblSubsType">Subscription Type</label>
-                <select id="subsType">
-                    <option value="trial">Trial</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
-                </select>
+              <label id="lblSubsType" data-i18n="contact_lbl_substype">Subscription Type</label>
+              <select id="subsType">
+                <option value="trial">Trial</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
             </div>
 
+            <!-- Username (auto filled) -->
             <div class="form-group">
-                <label id="lblUsername">Username</label>
-                <input id="username" value="Unknown" readonly>
+              <label id="lblUsername" data-i18n="contact_lbl_username">Username</label>
+              <input id="username" value="Unknown" readonly />
             </div>
 
+            <!-- Email -->
             <div class="form-group">
-                <label id="lblMail">Email</label>
-                <input id="mail" type="email" required>
+              <label id="lblMail" data-i18n="contact_lbl_mail">Email</label>
+              <input id="mail" type="email" required />
             </div>
 
+            <!-- Repeat Email -->
             <div class="form-group">
-                <label id="lblMail2">Repeat Email</label>
-                <input id="mail2" type="email" required>
+              <label id="lblMail2" data-i18n="contact_lbl_mail2">Repeat Email</label>
+              <input id="mail2" type="email" required />
             </div>
 
+            <!-- Name (optional) -->
             <div class="form-group">
-                <label id="lblName">Name (Optional)</label>
-                <input id="name">
+              <label id="lblName" data-i18n="contact_lbl_name">Name (Optional)</label>
+              <input id="name" />
             </div>
 
+            <!-- Message -->
             <div class="form-group">
-                <label id="lblMsg">Message</label>
-                <textarea id="message" required></textarea>
+              <label id="lblMsg" data-i18n="contact_lbl_message">Message</label>
+              <textarea id="message" required></textarea>
             </div>
 
-            <button type="submit" id="btnSubmit">Send</button>
+            <!-- Submit -->
+            <button type="submit" id="btnSubmit" class="contact-submit" data-i18n="contact_btn_submit">
+              Send
+            </button>
 
-            <div id="successMsg">✔ Your message has been sent!</div>
+            <!-- Success -->
+            <div id="successMsg" class="contact-success" data-i18n="contact_success">
+              ✔ Your message has been sent!
+            </div>
+          </form>
 
-        </form>
+        </div>
+      </main>
     </div>
 
-</div>
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
 
-<!-- FOOTER -->
-<footer class="app-footer">
-    © 2025 FPM Web App
-</footer>
-
-<script>
-/* LOGIN UI LOADER */
-document.addEventListener("DOMContentLoaded", () => {
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const headerUserInfo = document.getElementById("headerUserInfo");
-
-    let currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-
-    if (currentUser) {
-        loginBtn.style.display = "none";
-        logoutBtn.style.display = "inline-block";
-        headerUserInfo.style.display = "block";
-        headerUserInfo.innerHTML = `User: <strong>${currentUser.username}</strong>`;
-        document.getElementById("username").value = currentUser.username;
-    }
-
-    loginBtn.onclick = () => window.location.href = "/pages/login.html";
-    logoutBtn.onclick = () => {
-        sessionStorage.clear();
-        window.location.href = "/index.html";
-    };
-});
-</script>
-
-<script>
-/* LANGUAGE PACK */
-const lang = {
-    EN: {
-        title: "Contact Form",
-        lblSubject: "Subject",
-        lblSubsType: "Subscription Type",
-        lblUsername: "Username",
-        lblMail: "Email",
-        lblMail2: "Repeat Email",
-        lblName: "Name (Optional)",
-        lblMsg: "Message",
-        btnSubmit: "Send",
-        success: "✔ Your message has been sent!",
-        subjects: {
-            subscribe: "I want to subscribe",
-            question: "I want to ask a question",
-            broken: "Website not working properly",
-            delete: "I want my data removed",
-            other: "Other"
-        }
-    },
-    TR: {
-        title: "İletişim Formu",
-        lblSubject: "Konu",
-        lblSubsType: "Abonelik Türü",
-        lblUsername: "Kullanıcı Adı",
-        lblMail: "E-posta",
-        lblMail2: "E-posta Tekrar",
-        lblName: "İsim (Opsiyonel)",
-        lblMsg: "Mesaj",
-        btnSubmit: "Gönder",
-        success: "✔ Mesajınız gönderildi!",
-        subjects: {
-            subscribe: "Abone olmak istiyorum",
-            question: "Soru sormak istiyorum",
-            broken: "Site düzgün çalışmıyor",
-            delete: "Verilerimin silinmesini istiyorum",
-            other: "Diğer"
-        }
-    }
-};
-
-document.getElementById("btnEN").onclick = () => setLang("EN");
-document.getElementById("btnTR").onclick = () => setLang("TR");
-
-function setLang(L) {
-    document.getElementById("title").innerText = lang[L].title;
-    document.getElementById("lblSubject").innerText = lang[L].lblSubject;
-    document.getElementById("lblSubsType").innerText = lang[L].lblSubsType;
-    document.getElementById("lblUsername").innerText = lang[L].lblUsername;
-    document.getElementById("lblMail").innerText = lang[L].lblMail;
-    document.getElementById("lblMail2").innerText = lang[L].lblMail2;
-    document.getElementById("lblName").innerText = lang[L].lblName;
-    document.getElementById("lblMsg").innerText = lang[L].lblMsg;
-    document.getElementById("btnSubmit").innerText = lang[L].btnSubmit;
-    document.getElementById("successMsg").innerText = lang[L].success;
-
-    const subject = document.getElementById("subject");
-    for (let opt of subject.options) {
-        opt.text = lang[L].subjects[opt.value];
-    }
-}
-
-document.getElementById("subject").addEventListener("change", function () {
-    document.getElementById("subsTypeGroup").style.display =
-        this.value === "subscribe" ? "block" : "none";
-});
-</script>
-
-<script>
-/* FORM SUBMIT — STATUS INCLUDED */
-document.getElementById("contactForm").addEventListener("submit", async function(e){
-    e.preventDefault();
-
-    const mail = document.getElementById("mail").value.trim();
-    const mail2 = document.getElementById("mail2").value.trim();
-
-    if (!mail.includes("@")) {
-        alert("Email must contain @");
-        return;
-    }
-    if (mail !== mail2) {
-        alert("Emails do not match!");
-        return;
-    }
-
-    const subject = document.getElementById("subject").value;
-    const wantsSub = subject === "subscribe";
-
-    const now = new Date();
-
-    const data = {
-        status: "Pending",   // ⭐ GOOGLE SHEET’E EKLENEN YENİ FIELD ⭐
-        date: now.toLocaleDateString("en-GB"),
-        time: now.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}),
-        name: document.getElementById("name").value,
-        mail,
-        username: document.getElementById("username").value,
-        subject,
-        wants_subs: wantsSub ? "YES" : "NO",
-        subs_type: wantsSub ? document.getElementById("subsType").value : "",
-        message: document.getElementById("message").value
-    };
-
-    await fetch("/api/contact_form", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(data)
-    });
-
-    document.getElementById("successMsg").style.display = "block";
-    this.reset();
-});
-</script>
-
-<script>
-/* SIDEBAR ACTIVE MARKER */
-document.addEventListener("DOMContentLoaded", () => {
-    const current = window.location.pathname;
-
-    document.querySelectorAll("#sidebar a").forEach(link => {
-        const href = link.getAttribute("href");
-        if (current.endsWith(href)) link.classList.add("active");
-    });
-});
-</script>
-
+  <!-- ===== Scripts (order important) ===== -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/contact.js"></script>
 </body>
 </html>

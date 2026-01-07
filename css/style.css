@@ -1,0 +1,555 @@
+/* =========================================================
+FILE: /css/style.css
+PURPOSE:
+- Single source of truth for global layout + header/sidebar/footer + shared UI
+- Consistent background across all pages (no white flash band)
+- Sidebar optional (admin pages can hide)
+- Modern header pills + selected state
+- Stable header (no jitter from timer)
+- Anti-FOUC helpers (layout injection + auth state)
+========================================================= */
+
+/* =========================================================
+SECTION: Theme tokens (SINGLE SOURCE OF TRUTH)
+PURPOSE:
+- Change the entire site's theme from here only
+========================================================= */
+:root{
+  /* ✅ Main app background (this is what you change for whole site) */
+  --app-bg: linear-gradient(180deg, #1a1f2e, #161a26);
+  --app-bg-solid: #161a26; /* fallback if needed */
+
+  /* Accent glows */
+  --glow-a: rgba(122, 162, 255, 0.26); /* blue */
+  --glow-b: rgba(188, 122, 255, 0.22); /* purple */
+  --glow-c: rgba(120, 255, 214, 0.16); /* mint */
+
+  /* Surfaces */
+  --surface-1: rgba(255,255,255,0.075); /* cards */
+  --surface-2: rgba(255,255,255,0.055); /* header/sidebar/footer */
+  --surface-3: rgba(255,255,255,0.045); /* inputs */
+
+  /* Borders */
+  --border: rgba(255,255,255,0.12);
+  --border-strong: rgba(255,255,255,0.22);
+
+  /* Text */
+  --text: rgba(255,255,255,0.92);
+  --muted: rgba(255,255,255,0.64);
+
+  /* Radius & shadow */
+  --r-lg: 18px;
+  --r-md: 14px;
+  --shadow: 0 28px 60px rgba(0,0,0,0.50);
+
+  /* Layout sizes */
+  --header-h: 64px;
+  --sidebar-w: 260px;
+  --gap: 16px;
+
+  /* Pill glow colors */
+  --pill-a: rgba(130,190,255,0.55);
+  --pill-b: rgba(190,150,255,0.50);
+  --pill-c: rgba(120,255,215,0.45);
+}
+
+/* =========================================================
+SECTION: Reset + base
+========================================================= */
+*{ box-sizing: border-box; }
+
+html, body{
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: var(--app-bg);
+}
+
+body{
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================================
+SECTION: Global fixed background overlay (no “bottom band”)
+PURPOSE:
+- Keeps the app looking consistent even when content is short
+========================================================= */
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(980px 560px at 14% 10%, var(--glow-a), transparent 62%),
+    radial-gradient(920px 560px at 86% 12%, var(--glow-b), transparent 64%),
+    radial-gradient(980px 560px at 50% 112%, var(--glow-c), transparent 62%),
+    var(--app-bg);
+}
+
+/* =========================================================
+SECTION: Accessibility focus
+========================================================= */
+a{ color: inherit; text-decoration: none; }
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible{
+  outline: 2px solid rgba(130,190,255,0.50);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+SECTION: App layout
+PURPOSE:
+- Header top, footer bottom, content expands
+========================================================= */
+.app-shell{
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header{
+  height: var(--header-h);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  backdrop-filter: blur(10px);
+}
+
+.app-content{
+  flex: 1;
+  display: flex;          /* sidebar optional, main expands */
+  gap: var(--gap);
+  padding: var(--gap);
+  align-items: stretch;
+}
+
+.app-sidebar{
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.028));
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.app-main{
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;     /* centered main card */
+  align-items: flex-start;
+  padding: 0;
+}
+
+.app-footer{
+  margin-top: auto;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.05));
+  backdrop-filter: blur(10px);
+  text-align: center;
+  color: var(--muted);
+}
+
+/* Responsive: stack sidebar above main */
+@media (max-width: 920px){
+  .app-content{ flex-direction: column; }
+  .app-sidebar{ width: 100%; flex: 0 0 auto; }
+}
+
+/* =========================================================
+SECTION: Main card (standard)
+========================================================= */
+.main-card{
+  width: min(1100px, calc(100vw - 2 * var(--gap)));
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface-1), rgba(255,255,255,0.03));
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin: 0 auto;
+}
+
+/* =========================================================
+SECTION: Header content
+========================================================= */
+.header-inner{
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.brand-logo{
+  height: 34px;
+  width: auto;
+  border-radius: 10px;
+}
+
+.logo-fallback{
+  height: 34px;
+  width: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border);
+  font-weight: 800;
+}
+
+.brand-text{
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+/* Brand link (logo + text clickable) */
+.brand-link{
+  text-decoration: none;
+  color: inherit;
+}
+.brand-link:hover{ opacity: 0.98; }
+
+/* Middle pills */
+.header-actions{
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Right zone */
+.header-right{
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+SECTION: User box + dropdown menu
+========================================================= */
+.user-box{
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 8px 10px;
+  line-height: 1.25;
+  max-width: 340px;
+}
+
+.user-line{ font-size: 12px; color: var(--muted); }
+.user-line .value{ color: var(--text); font-weight: 900; }
+.user-line .label{ color: var(--muted); }
+
+/* User menu hover dropdown */
+.user-menu{
+  position: relative;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  overflow: visible;
+}
+.user-menu:hover{
+  border-color: rgba(120,180,255,0.22);
+  background: rgba(255,255,255,0.045);
+}
+
+.user-menu-dropdown{
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 260px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(16,24,35,0.92);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+  z-index: 9999;
+
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.user-menu:hover .user-menu-dropdown{
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.user-menu-title{
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.92);
+  margin-bottom: 4px;
+}
+.user-menu-desc{
+  font-size: 12px;
+  color: rgba(255,255,255,0.62);
+  line-height: 1.35;
+}
+
+/* Fix header jitter caused by changing timer text */
+.active-timer{
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+#activeTimer{
+  display: inline-block;
+  width: 110px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* =========================================================
+SECTION: Language buttons
+========================================================= */
+.lang-switch{ display: flex; gap: 8px; }
+
+.icon-btn{
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: 0.16s ease;
+}
+.icon-btn:hover{
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+
+/* =========================================================
+SECTION: Header navigation pills
+========================================================= */
+.hdr-pill{
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+
+  background: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04));
+  border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    0 10px 24px rgba(0,0,0,0.38);
+
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.hdr-pill::before{
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(120deg, var(--pill-a), var(--pill-b), var(--pill-c));
+  opacity: 0.18;
+  transform: translateX(-6px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+
+.hdr-pill:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    0 14px 30px rgba(0,0,0,0.46);
+}
+.hdr-pill:hover::before{
+  opacity: 0.55;
+  transform: translateX(0px);
+}
+
+.hdr-pill-label{
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+/* Selected state: .active or aria-current */
+.hdr-pill.active,
+.hdr-pill[aria-current="page"]{
+  border-color: rgba(130,190,255,0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(130,190,255,0.26),
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    0 16px 38px rgba(0,0,0,0.55);
+}
+.hdr-pill.active::before,
+.hdr-pill[aria-current="page"]::before{
+  opacity: 0.78;
+  transform: translateX(0px);
+}
+.hdr-pill.active::after,
+.hdr-pill[aria-current="page"]::after{
+  content:"";
+  position:absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 6px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(130,190,255,0.0),
+    rgba(130,190,255,0.85),
+    rgba(120,255,215,0.65),
+    rgba(190,150,255,0.0)
+  );
+  opacity: 0.95;
+  pointer-events:none;
+}
+
+/* =========================================================
+SECTION: Buttons (login/logout etc.)
+========================================================= */
+.btn{
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 900;
+  transition: 0.16s ease;
+}
+.btn:hover{
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+.btn-primary{
+  border: 1px solid rgba(130,190,255,0.30);
+  background: linear-gradient(135deg, rgba(130,190,255,0.24), rgba(190,150,255,0.18));
+}
+.btn-ghost{ background: rgba(255,255,255,0.03); }
+
+/* =========================================================
+SECTION: Inputs (global)
+========================================================= */
+input, select, textarea{
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 14px;
+  transition: 0.16s ease;
+}
+input::placeholder, textarea::placeholder{ color: var(--muted); }
+input:focus, select:focus, textarea:focus{
+  outline: none;
+  border-color: rgba(130,190,255,0.58);
+  box-shadow: 0 0 0 4px rgba(130,190,255,0.16);
+  background: rgba(255,255,255,0.055);
+}
+
+/* =========================================================
+SECTION: Sidebar nav
+========================================================= */
+.sidebar-wrap{ padding: 14px; }
+
+.nav-list{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-item{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  color: rgba(255,255,255,0.86);
+  background: rgba(255,255,255,0.02);
+  transition: 0.16s ease;
+}
+.nav-item:hover{
+  border-color: var(--border);
+  background: rgba(255,255,255,0.04);
+}
+.nav-item.active{
+  border-color: rgba(130,190,255,0.42);
+  background: rgba(130,190,255,0.12);
+}
+
+/* Sidebar note */
+.sidebar-note{
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+}
+.sidebar-note h4{
+  margin: 0 0 6px 0;
+  font-size: 13px;
+}
+.sidebar-note p{
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* =========================================================
+SECTION: Small helpers
+========================================================= */
+.row{ display: flex; gap: 10px; align-items: center; }
+.form{ display: flex; flex-direction: column; gap: 10px; }
+.successMsg{ color: rgba(120,255,200,0.95); font-weight: 900; }
+.errorMsg{ color: rgba(255,120,120,0.95); font-weight: 900; }
+
+/* =========================================================
+SECTION: Prevent auth flicker (before app.js updateUI)
+PURPOSE:
+- Hide auth buttons/user box until JS applies correct state
+NOTE:
+- app.js should add: document.documentElement.classList.add("ui-ready")
+========================================================= */
+html:not(.ui-ready) #authActions,
+html:not(.ui-ready) #headerUserInfo{
+  visibility: hidden !important;
+}
+
+/* =========================================================
+SECTION: Anti-FOUC / Layout loading mask
+PURPOSE:
+- layout.js toggles body.is-loading / body.is-loaded
+========================================================= */
+body.is-loading .app-shell{ opacity: 0; }
+body.is-loaded .app-shell{ opacity: 1; transition: opacity 0.12s ease; }

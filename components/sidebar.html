@@ -1,33 +1,36 @@
-<div id="sidebar">
-    <a href="/index.html">Home</a>
-    <a id="resultsLink" href="/pages/results.html">Results</a>
-    <a id="statsLink" href="/pages/stats.html">Statistics</a>
-    <a id="weeklyLink" href="/pages/weekly.html">Weekly Games</a>
-    <a href="/pages/about.html">About</a>
-</div>
+<!-- =========================================================
+FILE: /components/sidebar.html
+PURPOSE:
+- Sidebar links that work with your existing app.js:
+  * active highlight uses ".nav-item" + data-route or href
+  * i18n uses data-i18n keys (nav_home, nav_about, etc.)
+IMPORTANT:
+- Visible default texts must be real words (Home/About), NOT keys.
+========================================================= -->
 
+<aside class="sidebar">
+  <nav class="sidebar-nav">
 
-<style>
-    #sidebar {
-        width: 200px;
-        background: white;
-        position: fixed;
-        top: 60px;
-        left: 0;
-        bottom: 0;
-        border-right: 1px solid #ddd;
-        padding-top: 20px;
-    }
+    <!-- HOME -->
+    <a class="nav-item" href="/index.html" data-route="/index.html">
+      <span class="nav-text" data-i18n="nav_home">Home</span>
+    </a>
 
-    #sidebar a {
-        display: block;
-        padding: 12px 16px;
-        color: #333;
-        text-decoration: none;
-        cursor: pointer;
-    }
+    <!-- WEEKLY (visible to all; page itself checks subscription) -->
+    <a class="nav-item" href="/pages/weekly.html" data-route="/pages/weekly.html">
+      <span class="nav-text" data-i18n="nav_weekly">Weekly Games</span>
+    </a>
+    <!-- SUBSCRIPTION INFO (after Home) -->
+    <a class="nav-item" href="/pages/subscription_info.html" data-route="/pages/subscription_info.html">
+      <span class="nav-text" data-i18n="nav_subscription">Subscription</span>
+    </a>
+    <!-- Contact -->
+    <a class="nav-item" href="/pages/contact.html" data-route="/pages/contact.html" data-i18n="nav_contact">Contact</a>
+    
+    <!-- ABOUT -->
+    <a class="nav-item" href="/pages/about.html" data-route="/pages/about.html">
+      <span class="nav-text" data-i18n="nav_about">About</span>
+    </a>
 
-    #sidebar a:hover {
-        background: #e5e5e5;
-    }
-</style>
+  </nav>
+</aside>

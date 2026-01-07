@@ -1,22 +1,66 @@
+<!-- =========================================================
+FILE: /pages/pay/cancel.html
+PURPOSE:
+- Stripe payment cancel page
+- Central layout + global i18n (app.js)
+- No sidebar
+========================================================= -->
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Ödeme İptal</title>
-  <style>
-    body { 
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 80px;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title data-i18n="cancel_page_title">Payment Cancelled</title>
+
+  <!-- GLOBAL STYLES -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/pay_cancel.css" />
 </head>
-<body>
 
-  <h1>❌ Ödeme İptal Edildi</h1>
-  <p>Herhangi bir ücret alınmadı. Tekrar deneyebilirsiniz.</p>
+<body class="pay-cancel-page">
+  <div class="app-shell app-shell--no-sidebar">
+    <!-- HEADER (language buttons live here) -->
+    <header id="appHeader"></header>
 
-  <a href="/payment.html">Tekrar Ödeme Yap</a>
+    <!-- MAIN -->
+    <main class="pay-cancel-main">
+      <div class="pay-cancel-card">
 
+        <div class="pay-cancel-icon">×</div>
+
+        <h1 class="pay-cancel-title" data-i18n="cancel_title">
+          Payment Cancelled
+        </h1>
+
+        <p class="pay-cancel-desc" data-i18n="cancel_desc">
+          Your payment was cancelled. No charge was made.
+        </p>
+
+        <p class="pay-cancel-hint" data-i18n="cancel_hint">
+          You can return and choose a subscription plan again.
+        </p>
+
+        <a class="pay-cancel-link"
+           href="/pages/subscription_form.html"
+           data-i18n="cancel_back">
+          Back to Subscription Form
+        </a>
+
+        <div class="pay-cancel-redirect">
+          <span data-i18n="cancel_redirect">Redirecting in</span>
+          <span id="countdown" class="pay-cancel-count">4</span>
+        </div>
+
+      </div>
+    </main>
+
+    <footer id="appFooter"></footer>
+  </div>
+
+  <!-- CENTRAL LAYOUT -->
+  <script src="/js/layout.js"></script>
+
+  <!-- COUNTDOWN -->
+  <script src="/js/pay_cancel.js"></script>
 </body>
 </html>

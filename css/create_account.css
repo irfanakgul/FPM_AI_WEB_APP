@@ -1,0 +1,125 @@
+/* =========================================================
+FILE: /css/create_account.css
+PURPOSE:
+- Create Account page specific styling ONLY
+- Keep soft modern form look
+- Does NOT touch header/sidebar/footer (those belong to style.css)
+========================================================= */
+
+/* Card width for create account */
+.ca-card{
+  /* main-card global, burada sadece sayfaya özel daraltma */
+  max-width: 640px;
+}
+
+/* Title area */
+.ca-header{
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+/* Subtitle text (old class name preserved) */
+.sub{
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.62);
+  line-height: 1.45;
+}
+
+/* Form stack */
+.ca-form{
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Inputs: only this page (IDs remain unchanged in HTML) */
+.ca-form input{
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.88);
+  font-size: 14px;
+  transition: 0.18s ease;
+}
+
+.ca-form input::placeholder{
+  color: rgba(255,255,255,0.55);
+}
+
+.ca-form input:focus{
+  outline: none;
+  border-color: rgba(120,180,255,0.55);
+  box-shadow: 0 0 0 4px rgba(120,180,255,0.12);
+  background: rgba(255,255,255,0.085);
+}
+
+/* Primary create button spacing */
+.ca-primary{
+  margin-top: 4px;
+  font-weight: 800;
+}
+
+/* Secondary row */
+.ca-row{
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+/* Back button width */
+.ca-back{
+  min-width: 190px;
+}
+
+/* Message styles (keep same class names from old logic) */
+#msg{
+  min-height: 18px;
+  font-size: 13px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.successMsg{
+  color: rgba(120,255,200,0.95);
+  font-weight: 800;
+}
+
+.errorMsg{
+  color: rgba(255,120,120,0.95);
+  font-weight: 800;
+}
+
+/* Mobile tweaks */
+@media (max-width: 560px){
+  .ca-card{ max-width: 100%; }
+  .ca-back{ width: 100%; min-width: unset; }
+}
+
+
+/* =========================================================
+SECTION: Preferred Language dropdown (NEW)
+PURPOSE:
+- Match input look & feel for <select>
+========================================================= */
+.ca-select{
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.88);
+  font-size: 14px;
+  transition: 0.18s ease;
+  appearance: none; /* cleaner look */
+}
+
+.ca-select:focus{
+  outline: none;
+  border-color: rgba(120,180,255,0.55);
+  box-shadow: 0 0 0 4px rgba(120,180,255,0.12);
+  background: rgba(255,255,255,0.085);
+}

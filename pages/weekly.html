@@ -1,849 +1,105 @@
+<!-- =========================================================
+FILE: /pages/weekly.html
+PURPOSE:
+- Weekly Games page converted to central layout (header/sidebar/footer injected)
+- Keeps original weekly logic + endpoints + permissions
+- Language support comes from global app.js (localStorage.lang + lang:changed)
+NOTES:
+- No inline header/sidebar/footer here anymore
+- Weekly content is hidden until subscription/permission check passes
+========================================================= -->
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Weekly Games</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weekly Games</title>
 
-<!-- XLSX (Excel Export) -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <!-- =========================================================
+  EXTERNAL: XLSX (Excel Export)
+  ========================================================= -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-<style>
-/* ========== GLOBAL FIX (NO WHITE ON SCROLL) ========== */
-html, body {
-    height: 100%;
-    margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    background: linear-gradient(180deg, #1a1f2e, #161a26);
-    color: #e6e9f5;
-    overflow-x: hidden;
-    overscroll-behavior: none;
-}
-
-/* ===== SECURITY: prevent flash of protected content ===== */
-body { opacity: 0; }
-
-/* ========== HEADER ========== */
-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 64px;
-
-    background:
-        linear-gradient(
-            90deg,
-            rgba(122,162,255,0.18),
-            rgba(30,36,56,0.95) 35%,
-            rgba(30,36,56,0.95) 65%,
-            rgba(122,162,255,0.18)
-        );
-
-    backdrop-filter: blur(14px);
-    color: #ffffff;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 28px;
-
-    border-bottom: 1px solid rgba(122,162,255,0.25);
-    box-shadow:
-        0 6px 20px rgba(0,0,0,0.45),
-        inset 0 -1px 0 rgba(122,162,255,0.25);
-
-    z-index: 1000;
-}
-
-header strong {
-    font-size: 16px;
-    letter-spacing: 0.6px;
-
-    background: linear-gradient(90deg, #ffffff, #7aa2ff);
-    background-clip: text;
-    -webkit-background-clip: text;
-
-    color: transparent;
-    -webkit-text-fill-color: transparent;
-}
-
-/* Header buttons */
-header button {
-    padding: 8px 18px;
-    border-radius: 18px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-/* LOGOUT */
-#logoutBtn {
-    background: rgba(255,120,120,0.18);
-    color: #ff9b9b;
-    border: 1px solid rgba(255,120,120,0.4);
-}
-#logoutBtn:hover {
-    background: rgba(255,120,120,0.28);
-    transform: translateY(-1px);
-}
-
-/* ===== Language flags (like login) ===== */
-.lang-mini{
-    display:flex;
-    gap:8px;
-    align-items:center;
-    padding: 6px 8px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    backdrop-filter: blur(10px);
-}
-.flag{
-    width: 22px;
-    height: 16px;
-    border-radius: 3px;
-    cursor:pointer;
-    border: 1px solid rgba(255,255,255,0.28);
-    box-shadow: 0 6px 14px rgba(0,0,0,0.35);
-    transition: .15s ease;
-}
-.flag:hover{ transform: translateY(-1px); }
-.flag.active{
-    outline: 2px solid rgba(122,162,255,0.65);
-    outline-offset: 2px;
-}
-
-/* ========== SIDEBAR ========== */
-#sidebar {
-    width: 220px;
-    position: fixed;
-    top: 64px;
-    left: 0;
-    bottom: 0;
-
-    background: rgba(26, 31, 46, 0.96);
-    border-right: 1px solid rgba(255,255,255,0.06);
-    padding-top: 16px;
-
-    z-index: 900;
-}
-
-#sidebar a {
-    display: block;
-    padding: 14px 22px;
-    color: #cdd3f8;
-    text-decoration: none;
-    font-size: 15px;
-    border-left: 3px solid transparent;
-    transition: all 0.2s ease;
-}
-
-#sidebar a:hover {
-    background: rgba(122,162,255,0.12);
-    color: #7aa2ff;
-}
-
-#sidebar a.active {
-    background: rgba(122,162,255,0.18);
-    color: #7aa2ff;
-    font-weight: 600;
-    border-left-color: #7aa2ff;
-}
-
-/* ========== MAIN ========== */
-#main {
-    margin-left: 220px;
-    padding: 28px;
-    padding-top: 96px;
-    padding-bottom: 100px;
-    min-height: 100vh;
-}
-
-/* ========== TABLE (ML DATA) ========== */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: rgba(30,36,56,0.9);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    overflow: hidden;
-
-    box-shadow:
-        0 12px 30px rgba(0,0,0,0.45),
-        inset 0 0 0 1px rgba(255,255,255,0.05);
-}
-
-th, td {
-    padding: 10px;
-    font-size: 13px;
-    text-align: left;
-}
-
-th {
-    background: rgba(122,162,255,0.15);
-    color: #ffffff;
-    font-weight: 600;
-}
-
-td {
-    color: #d6dbff;
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-tr:hover td {
-    background: rgba(122,162,255,0.08);
-}
-
-/* STATUS */
-#status.success {
-    color: #4ade80;
-    font-weight: 600;
-}
-
-#status.error {
-    color: #f87171;
-    font-weight: 600;
-}
-
-/* ========== FOOTER ========== */
-footer {
-    position: fixed;
-    bottom: 0;
-    left: 220px;
-    right: 0;
-    height: 44px;
-
-    background: rgba(30,36,56,0.9);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255,255,255,0.06);
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    color: #aab0d6;
-    font-size: 13px;
-    z-index: 800;
-}
-
-/* ========== MODERN FILTER AREA ========== */
-#main label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #cdd3f8;
-    margin-right: 6px;
-}
-
-#main select {
-    background: rgba(30,36,56,0.85);
-    color: #e6e9f5;
-    border: 1px solid rgba(122,162,255,0.35);
-    border-radius: 10px;
-    padding: 8px 10px;
-    font-size: 13px;
-    min-width: 180px;
-
-    outline: none;
-    transition: all 0.2s ease;
-}
-
-#main select:focus {
-    border-color: #7aa2ff;
-    box-shadow: 0 0 0 2px rgba(122,162,255,0.25);
-}
-
-#main select[multiple] { background-image: none; }
-#main select[multiple]::-webkit-scrollbar { width: 6px; }
-#main select[multiple]::-webkit-scrollbar-thumb {
-    background: rgba(122,162,255,0.5);
-    border-radius: 6px;
-}
-
-/* ========== MODERN BUTTON SYSTEM (FILTER & ACTIONS) ========== */
-#main button {
-    background: rgba(122,162,255,0.18);
-    color: #7aa2ff;
-    border: 1px solid rgba(122,162,255,0.35);
-    border-radius: 10px;
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-right: 6px;
-    margin-top: 6px;
-
-    transition: all 0.2s ease;
-}
-
-#main button:hover {
-    background: rgba(122,162,255,0.28);
-    transform: translateY(-1px);
-}
-
-/* Primary actions */
-#filterBtn,
-#exportExcelBtn {
-    background: linear-gradient(90deg, #5f8cff, #7aa2ff);
-    color: #ffffff;
-    border: none;
-}
-
-#filterBtn:hover,
-#exportExcelBtn:hover {
-    box-shadow: 0 0 14px rgba(122,162,255,0.45);
-}
-
-#main button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-</style>
+  <!-- =========================================================
+  GLOBAL CSS + PAGE CSS
+  ========================================================= -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/weekly.css" />
 </head>
 
 <body>
-
-<script>
-/* ===========================================================
-   LOGIN GUARD (same logic)
-   =========================================================== */
-const guardUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-if (!guardUser) {
-    window.location.href = "/pages/login.html";
-}
-</script>
-
-<!-- HEADER -->
-<header>
-    <div style="display:flex;align-items:center;gap:10px;">
-        <img src="/docs/fpm_logo.jpg"
-             alt="Logo"
-             style="height:34px; width:auto; border-radius:4px;" />
-        <strong>FPM AI Model</strong>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:14px;">
-        <!-- flags (default EN) -->
-        <div class="lang-mini" aria-label="Language switch">
-            <img id="flag-tr" src="https://flagcdn.com/w40/tr.png" class="flag" alt="Türkçe">
-            <img id="flag-en" src="https://flagcdn.com/w40/gb.png" class="flag active" alt="English">
-        </div>
-
-        <div id="headerUserInfo"></div>
-        <button id="logoutBtn">Logout</button>
-    </div>
-</header>
-
-<!-- SIDEBAR -->
-<div id="sidebar">
-    <a href="/index.html" data-i18n="nav_home">Home</a>
-    <a href="/pages/results.html" data-i18n="nav_results">Results</a>
-    <a href="/pages/stats.html" data-i18n="nav_stats">Statistics</a>
-    <a href="/pages/weekly.html" class="active" data-i18n="nav_weekly">Weekly Games</a>
-    <a href="/pages/contact.html" data-i18n="nav_contact">Contact</a>
-    <a href="/pages/about.html" data-i18n="nav_about">About</a>
-</div>
-
-<!-- MAIN -->
-<div id="main">
-
-    <h2 id="pageTitle">Weekly Games</h2>
-
-    <label id="labelSelectDate">
-        <span data-i18n="select_date">Select Date:</span>
-        <select id="dateSelect" multiple size="6" style="min-width:200px;"></select>
-    </label>
-    <button id="selectAllBtn" data-i18n="all">All</button>
-
-    <div style="margin-top:8px;">
-        <button id="filterBtn" data-i18n="filter">Filter</button>
-        <button id="clearBtn" data-i18n="clear">Clear</button>
-        <button id="exportExcelBtn" style="background:#1a73e8;color:white;" data-i18n="export_excel">Export Excel</button>
-    </div>
-
-    <div id="status" style="margin-top:10px;"></div>
-
-    <div id="tableWrap" style="margin-top:20px;"></div>
-
-</div>
-
-<!-- FOOTER -->
-<footer><span data-i18n="footer">© 2025 FPM Web App</span></footer>
-
-<script>
-/* =====================================================
-   i18n (default EN) - SAFE APPLY (won't break on blocker screen)
-===================================================== */
-const T = {
-    en: {
-        nav_home: "Home",
-        nav_results: "Results",
-        nav_stats: "Statistics",
-        nav_weekly: "Weekly Games",
-        nav_contact: "Contact",
-        nav_about: "About",
-
-        weekly_title: "Weekly Games",
-        select_date: "Select Date:",
-        all: "All",
-        filter: "Filter",
-        clear: "Clear",
-        export_excel: "Export Excel",
-        logout: "Logout",
-        footer: "© 2025 FPM Web App",
-
-        loading: "Loading...",
-        cannot_load_customer: "Cannot load CUSTOMER sheet.",
-        loaded_rows: (n) => `Loaded ${n} rows.`,
-        rows_found: (n) => `${n} rows found.`,
-        nothing_export: "Nothing to export.",
-        exported: (fn) => `Exported: ${fn}`,
-
-        blocker_title: "🚫 No Permission",
-        blocker_hint: "Weekly results are available only for users with an active subscription.",
-        btn_subscribe: "Subscribe",
-        btn_home: "Home",
-        btn_login: "Login",
-
-        msg_login_required: "Please log in to access Weekly Results.",
-        msg_no_role: "You do not have permission to access Weekly Results.",
-        msg_verify_fail: "Unable to verify your subscription. Try again later.",
-        msg_expired: "Your subscription has expired. Please renew to access weekly results.",
-        msg_none: "You must have an active subscription to access weekly results."
-    },
-    tr: {
-        nav_home: "Ana Sayfa",
-        nav_results: "Sonuçlar",
-        nav_stats: "İstatistik",
-        nav_weekly: "Haftalık Maçlar",
-        nav_contact: "İletişim",
-        nav_about: "Hakkında",
-
-        weekly_title: "Haftalık Maçlar",
-        select_date: "Tarih Seç:",
-        all: "Tümü",
-        filter: "Filtrele",
-        clear: "Temizle",
-        export_excel: "Excel Dışa Aktar",
-        logout: "Çıkış",
-        footer: "© 2025 FPM Web App",
-
-        loading: "Yükleniyor...",
-        cannot_load_customer: "CUSTOMER sayfası yüklenemedi.",
-        loaded_rows: (n) => `${n} satır yüklendi.`,
-        rows_found: (n) => `${n} satır bulundu.`,
-        nothing_export: "Dışa aktarılacak veri yok.",
-        exported: (fn) => `Dışa aktarıldı: ${fn}`,
-
-        blocker_title: "🚫 Erişim Yok",
-        blocker_hint: "Haftalık sonuçlar sadece aktif aboneliği olan kullanıcılar içindir.",
-        btn_subscribe: "Abone Ol",
-        btn_home: "Ana Sayfa",
-        btn_login: "Giriş",
-
-        msg_login_required: "Haftalık sonuçlara erişmek için giriş yapın.",
-        msg_no_role: "Haftalık sonuçlara erişim izniniz yok.",
-        msg_verify_fail: "Abonelik doğrulanamadı. Daha sonra tekrar deneyin.",
-        msg_expired: "Aboneliğinizin süresi doldu. Haftalık sonuçlar için yenileyin.",
-        msg_none: "Haftalık sonuçlara erişmek için aktif abonelik gerekir."
-    }
-};
-
-let lang = "en"; // default EN
-
-function el(id){ return document.getElementById(id); }
-
-function applyLangSafe() {
-    // header flags might not exist on blocker
-    const ftr = el("flag-tr");
-    const fen = el("flag-en");
-    if (ftr && fen) {
-        ftr.classList.toggle("active", lang === "tr");
-        fen.classList.toggle("active", lang === "en");
-    }
-
-    const title = el("pageTitle");
-    if (title) title.textContent = T[lang].weekly_title;
-
-    const lo = el("logoutBtn");
-    if (lo) lo.textContent = T[lang].logout;
-
-    document.querySelectorAll("[data-i18n]").forEach(node => {
-        const key = node.getAttribute("data-i18n");
-        if (T[lang][key]) node.textContent = T[lang][key];
-    });
-}
-
-function setLang(l) {
-    lang = l;
-    applyLangSafe();
-
-    // If we are currently on blocker screen, re-render it in the new language.
-    if (window.__blockerCtx && window.__blockerCtx.active) {
-        rerenderBlocker();
-    }
-}
-
-// init header flag clicks (if present)
-document.addEventListener("DOMContentLoaded", () => {
-    const ftr = el("flag-tr");
-    const fen = el("flag-en");
-    if (ftr) ftr.onclick = () => setLang("tr");
-    if (fen) fen.onclick = () => setLang("en");
-    applyLangSafe();
-});
-</script>
-
-<script>
-/* =====================================================
-   USER SESSION (same logic)
-===================================================== */
-const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-
-document.getElementById("headerUserInfo").innerHTML =
-    `User: <strong>${currentUser?.username || ""}</strong>
-     (Type: ${currentUser?.user_type || ""})
-     | <span id="activeTimer">Active: 0m 0s</span>`;
-
-document.getElementById("logoutBtn").onclick = () => {
-    sessionStorage.removeItem("currentUser");
-    sessionStorage.removeItem("activeSeconds");
-    window.location.href = "/index.html";
-};
-
-/* TIMER */
-function startTimer() {
-    let sec = Number(sessionStorage.getItem("activeSeconds") || 0);
-    setInterval(() => {
-        sec++;
-        sessionStorage.setItem("activeSeconds", sec);
-        const m = Math.floor(sec/60);
-        const s = sec % 60;
-        document.getElementById("activeTimer").textContent = `Active: ${m}m ${s}s`;
-    }, 1000);
-}
-startTimer();
-
-/* =====================================================
-   WEEKLY LOGIC (same endpoints/flow)
-===================================================== */
-const sheetId = "1c_0Maup2VkR1yg-RjkCbVS1e7d_ng0wgMGY43nFPn3U";
-let fullData = [];
-
-const dateSelect = document.getElementById("dateSelect");
-const tableWrap = document.getElementById("tableWrap");
-const statusDiv = document.getElementById("status");
-
-/* LOAD CUSTOMER DATA */
-(async function loadSheet() {
-    statusDiv.textContent = T[lang].loading;
-
-    const res = await fetch("/api/load-sheet", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ sheetId, sheetName: "CUSTOMER" })
-    });
-
-    const json = await res.json();
-
-    if (!json.success) {
-        statusDiv.className = "error";
-        statusDiv.textContent = T[lang].cannot_load_customer;
-        return;
-    }
-
-    fullData = json.data;
-
-    loadDates();
-    renderTable(fullData);
-
-    statusDiv.className = "success";
-    statusDiv.textContent = T[lang].loaded_rows(fullData.length);
-})();
-
-/* DATE LIST */
-function loadDates() {
-    const dates = [...new Set(fullData.map(r => r["MacTarihi"]))];
-    dateSelect.innerHTML = "";
-    dates.forEach(d => {
-        dateSelect.innerHTML += `<option value="${d}">${d}</option>`;
-    });
-}
-
-/* SELECT ALL */
-document.getElementById("selectAllBtn").onclick = () => {
-    [...dateSelect.options].forEach(o => o.selected = true);
-};
-
-/* FILTER */
-document.getElementById("filterBtn").onclick = () => {
-    const selected = [...dateSelect.selectedOptions].map(o => o.value);
-    const filtered = fullData.filter(r => selected.includes(r["MacTarihi"]));
-    renderTable(filtered);
-
-    statusDiv.className = "success";
-    statusDiv.textContent = T[lang].rows_found(filtered.length);
-};
-
-/* CLEAR */
-document.getElementById("clearBtn").onclick = () => {
-    renderTable(fullData);
-    statusDiv.textContent = "";
-};
-
-/* TABLE RENDER */
-function renderTable(rows) {
-    if (!rows.length) { tableWrap.innerHTML = ""; return; }
-
-    const headers = Object.keys(rows[0]);
-    let html = `<table><thead><tr>`;
-    headers.forEach(h => html += `<th>${h}</th>`);
-    html += `</tr></thead><tbody>`;
-
-    rows.forEach(r => {
-        html += `<tr>`;
-        headers.forEach(h => {
-            html += `<td>${r[h] || ""}</td>`;
-        });
-        html += `</tr>`;
-    });
-
-    html += `</tbody></table>`;
-    tableWrap.innerHTML = html;
-}
-
-/* TIMESTAMP */
-function getTimestamp() {
-    const now = new Date();
-    const dd = String(now.getDate()).padStart(2, '0');
-    const mm = String(now.getMonth()+1).padStart(2, '0');
-    const yy = now.getFullYear();
-    const HH = String(now.getHours()).padStart(2, '0');
-    const MM = String(now.getMinutes()).padStart(2, '0');
-    return `${dd}${mm}${yy}${HH}${MM}`;
-}
-
-/* EXCEL EXPORT */
-document.getElementById("exportExcelBtn").onclick = () => {
-    const table = document.querySelector("#tableWrap table");
-
-    if (!table) {
-        statusDiv.className="error";
-        statusDiv.textContent = T[lang].nothing_export;
-        return;
-    }
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.table_to_sheet(table);
-    XLSX.utils.book_append_sheet(wb, ws, "CUSTOMER");
-
-    const filename = `CUSTOMER_${getTimestamp()}.xlsx`;
-    XLSX.writeFile(wb, filename);
-
-    statusDiv.className="success";
-    statusDiv.textContent = T[lang].exported(filename);
-};
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const current = window.location.pathname;
-
-    document.querySelectorAll("#sidebar a").forEach(link => {
-        const href = link.getAttribute("href");
-        if (current.endsWith(href)) link.classList.add("active");
-    });
-});
-</script>
-
-<!-- ======== Session control ========-->
-<script>
-document.addEventListener("DOMContentLoaded", async () => {
-
-    let currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-
-    if (!currentUser) {
-        blockWeeklyAccess("msg_login_required", "/pages/login.html", "btn_login");
-        return;
-    }
-
-    // Weekly page allowed roles
-    const allowedRoles = ["client", "admin"];
-    if (!allowedRoles.includes(currentUser.user_type)) {
-        blockWeeklyAccess("msg_no_role", "/index.html", "btn_home");
-        return;
-    }
-
-    const username = currentUser.username;
-
-    const res = await fetch("/api/user/subscription-status", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username })
-    });
-
-    const json = await res.json();
-
-    if (!json.success) {
-        blockWeeklyAccess("msg_verify_fail", "/index.html", "btn_home");
-        return;
-    }
-
-    const status = json.status; // "active", "expired", "none"
-
-    if (status === "active") {
-        document.body.style.opacity = "1";
-        console.log("Subscription OK — access granted.");
-        return;
-    }
-
-    if (status === "expired") {
-        blockWeeklyAccess("msg_expired", "/pages/subscription_form.html", "btn_subscribe");
-        return;
-    }
-
-    blockWeeklyAccess("msg_none", "/pages/subscription_form.html", "btn_subscribe");
-});
-
-function blockWeeklyAccess(msgKey = "msg_none", primaryHref = "/pages/subscription_form.html", primaryLabelKey = "btn_subscribe") {
-
-    document.body.style.opacity = "1";
-
-    window.__blockerCtx = {
-        active: true,
-        msgKey,
-        primaryHref,
-        primaryLabelKey
-    };
-
-    const msg = (T?.[lang]?.[msgKey]) ? T[lang][msgKey] : (msgKey || "Access Denied");
-    const primaryLabel = (T?.[lang]?.[primaryLabelKey]) ? T[lang][primaryLabelKey] : (primaryLabelKey || "Continue");
-
-    document.body.innerHTML = `
-        <div style="
-            min-height:100vh;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            background: linear-gradient(180deg, #1a1f2e, #161a26);
-            color:#e6e9f5;
-            font-family:system-ui, -apple-system, BlinkMacSystemFont;
-            padding: 24px;
-        ">
-            <div style="
-                max-width:520px;
-                width:100%;
-                background: rgba(30,36,56,0.92);
-                border:1px solid rgba(255,255,255,0.08);
-                border-radius:16px;
-                padding:28px;
-                text-align:center;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-                position: relative;
-            ">
-                <!-- Mini flags (top-right) -->
-                <div style="
-                    position:absolute;
-                    top: 14px;
-                    right: 14px;
-                    display:flex;
-                    gap:8px;
-                    align-items:center;
-                    padding: 6px 8px;
-                    border-radius: 999px;
-                    background: rgba(255,255,255,0.06);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    backdrop-filter: blur(10px);
-                ">
-                    <img id="b-flag-tr" src="https://flagcdn.com/w40/tr.png"
-                         alt="Türkçe"
-                         style="width:22px;height:16px;border-radius:3px;cursor:pointer;border:1px solid rgba(255,255,255,0.28);box-shadow:0 6px 14px rgba(0,0,0,0.35);"
-                    />
-                    <img id="b-flag-en" src="https://flagcdn.com/w40/gb.png"
-                         alt="English"
-                         style="width:22px;height:16px;border-radius:3px;cursor:pointer;border:1px solid rgba(255,255,255,0.28);box-shadow:0 6px 14px rgba(0,0,0,0.35);"
-                    />
-                </div>
-
-                <div style="display:flex;justify-content:center;margin-bottom:10px;">
-                    <img src="/docs/fpm_logo.jpg" alt="Logo" style="height:44px;width:auto;border-radius:8px;opacity:.95;">
-                </div>
-
-                <h2 style="margin: 6px 0 10px; color:#f87171; font-weight:700;">
-                    ${T[lang].blocker_title}
-                </h2>
-
-                <p style="color:#cdd3f8;line-height:1.55;margin:0;">
-                    ${msg}
-                </p>
-
-                <p style="color:#aab0d6;font-size:14px;line-height:1.5;margin:12px 0 0;">
-                    ${T[lang].blocker_hint}
-                </p>
-
-                <div style="margin-top:22px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-                    <button onclick="window.location.href='${primaryHref}'"
-                        style="
-                            padding:12px 18px;
-                            border:none;
-                            border-radius:10px;
-                            cursor:pointer;
-                            font-size:14px;
-                            font-weight:600;
-                            color:#fff;
-                            background: linear-gradient(90deg,#7c3aed,#a78bfa);
-                            box-shadow: 0 10px 24px rgba(124,58,237,0.18);
-                        ">
-                        ${primaryLabel}
-                    </button>
-
-                    <button onclick="window.location.href='/index.html'"
-                        style="
-                            padding:12px 18px;
-                            border-radius:10px;
-                            border:1px solid rgba(255,255,255,0.2);
-                            cursor:pointer;
-                            font-size:14px;
-                            font-weight:600;
-                            background: rgba(255,255,255,0.08);
-                            color:#e6e9f5;
-                        ">
-                        ${T[lang].btn_home}
-                    </button>
-                </div>
+  <div class="app-shell">
+    <!-- =========================================================
+    CENTRAL HEADER (injected)
+    ========================================================= -->
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="app-content">
+      <!-- =========================================================
+      CENTRAL SIDEBAR (injected)
+      ========================================================= -->
+      <aside class="app-sidebar" id="appSidebar"></aside>
+
+      <!-- =========================================================
+      MAIN
+      ========================================================= -->
+      <main class="app-main">
+        <div class="main-card weekly-card">
+
+          <!-- Page head -->
+          <div class="weekly-head">
+            <div>
+              <h2 id="pageTitle" data-i18n="weekly_title">Weekly Games</h2>
+              <div class="weekly-sub" data-i18n="weekly_desc">
+                Filter weekly games by date and export to Excel.
+              </div>
             </div>
+          </div>
+
+          <!-- Status line (no popups) -->
+          <div id="status" class="weekly-status"></div>
+
+          <!-- =====================================================
+          WEEKLY CONTENT (hidden until permission granted)
+          ====================================================== -->
+          <div id="weeklyContent" style="display:none;">
+            <div class="weekly-controls">
+              <label id="labelSelectDate" class="weekly-label">
+                <span data-i18n="select_date">Select Date:</span>
+                <select id="dateSelect" multiple size="6"></select>
+              </label>
+
+              <div class="weekly-actions">
+                <button id="selectAllBtn" class="btn-soft" data-i18n="all">All</button>
+                <button id="filterBtn" class="btn-primary" data-i18n="filter">Filter</button>
+                <button id="clearBtn" class="btn-soft" data-i18n="clear">Clear</button>
+                <button id="exportExcelBtn" class="btn-primary" data-i18n="export_excel">Export Excel</button>
+              </div>
+            </div>
+
+            <div id="tableWrap" class="weekly-table-wrap"></div>
+          </div>
+
+          <!-- =====================================================
+          BLOCKER AREA (replaces old body.innerHTML rewrite)
+          ====================================================== -->
+          <div id="weeklyBlocker" style="display:none;"></div>
+
         </div>
-    `;
+      </main>
+    </div>
 
-    // Wire blocker flags to change lang and rerender
-    const btr = document.getElementById("b-flag-tr");
-    const ben = document.getElementById("b-flag-en");
+    <!-- =========================================================
+    CENTRAL FOOTER (injected)
+    ========================================================= -->
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
 
-    if (btr) btr.onclick = () => { lang = "tr"; rerenderBlocker(); };
-    if (ben) ben.onclick = () => { lang = "en"; rerenderBlocker(); };
-
-    // active outline
-    if (btr && ben) {
-        if (lang === "tr") {
-            btr.style.outline = "2px solid rgba(122,162,255,0.65)";
-            btr.style.outlineOffset = "2px";
-            ben.style.outline = "none";
-        } else {
-            ben.style.outline = "2px solid rgba(122,162,255,0.65)";
-            ben.style.outlineOffset = "2px";
-            btr.style.outline = "none";
-        }
-    }
-}
-
-function rerenderBlocker() {
-    const c = window.__blockerCtx || { msgKey: "msg_none", primaryHref: "/pages/subscription_form.html", primaryLabelKey: "btn_subscribe", active:true };
-    blockWeeklyAccess(c.msgKey, c.primaryHref, c.primaryLabelKey);
-}
-</script>
-
+  <!-- =========================================================
+  SCRIPTS (order matters)
+  ========================================================= -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/weekly.js"></script>
 </body>
 </html>

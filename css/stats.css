@@ -1,0 +1,212 @@
+/* =========================================================
+FILE: /css/stats.css
+PURPOSE:
+- Stats page styling only
+- Flat layout (no main-card)
+- Modern controls + chart boxes + table, without changing IDs or logic
+========================================================= */
+
+.stats-page{
+  width: 100%;
+  max-width: 98vw;
+  margin: 0 auto;
+  padding: 10px 6px 30px;
+}
+
+@media (min-width: 1100px){
+  .stats-page{
+    max-width: 1500px;
+    padding: 12px 10px 40px;
+  }
+}
+
+/* Head */
+.stats-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:14px;
+  margin-bottom:14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.stats-title{ margin:0; }
+.stats-sub{
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.72;
+}
+
+/* SheetId pill */
+.sheetid-pill{
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(122,162,255,0.20);
+  background: rgba(122,162,255,0.10);
+  color: rgba(214,219,255,0.92);
+  min-height: 18px;
+}
+
+/* Permission box */
+.perm-box{
+  display:none; /* logic shows it */
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,120,120,0.35);
+  background: rgba(255,120,120,0.12);
+  color: #ff9b9b;
+  font-weight: 800;
+}
+
+.perm-client{
+  border-color: rgba(255,120,120,0.35);
+  background: rgba(255,120,120,0.10);
+}
+
+/* Controls */
+.stats-controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.22);
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width: 320px;
+}
+.field-label{
+  font-size: 12px;
+  font-weight: 850;
+  color: rgba(214,219,255,0.92);
+}
+
+select{
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237aa2ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  background-size: auto, 14px;
+
+  color: #e6e9f5;
+  border: 1px solid rgba(122,162,255,0.35);
+  border-radius: 12px;
+  padding: 10px 38px 10px 14px;
+  font-size: 13px;
+  font-weight: 650;
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+select:hover{ border-color: rgba(122,162,255,0.6); }
+select:focus{
+  border-color: #7aa2ff;
+  box-shadow: 0 0 0 4px rgba(122,162,255,0.14);
+}
+
+/* Buttons */
+.btn-primary{
+  padding: 12px 14px;
+  border-radius: 999px;
+  font-weight: 850;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  border: 1px solid rgba(122,162,255,0.25);
+  background: linear-gradient(135deg, rgba(122,162,255,0.85), rgba(99,102,241,0.55));
+  color:#10152a;
+}
+.btn-primary:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+  filter: brightness(1.03);
+}
+
+/* Section titles */
+.section-title{
+  margin: 18px 0 10px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Chart boxes */
+.chart-box{
+  max-width: 520px;
+  background: rgba(30,36,56,0.9);
+  padding: 14px;
+  border-radius: 14px;
+  margin-top: 10px;
+  box-shadow:
+    0 10px 26px rgba(0,0,0,0.45),
+    inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+.chart-wide{
+  max-width: 980px;
+}
+
+#overallChart{ height: 160px !important; }
+#monthlyChart{ height: 220px !important; }
+
+/* Table */
+.table-wrap{
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 14px;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 14px;
+}
+
+#monthlyTable{
+  width: 100%;
+  min-width: 880px;
+  border-collapse: collapse;
+  background: rgba(30,36,56,0.9);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow:
+    0 12px 30px rgba(0,0,0,0.45),
+    inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+#monthlyTable th{
+  background: rgba(122,162,255,0.2);
+  color: #ffffff;
+  padding: 12px;
+  font-size: 13px;
+  text-align: center;
+  font-weight: 800;
+}
+
+#monthlyTable td{
+  padding: 10px;
+  font-size: 13px;
+  text-align: center;
+  color: #d6dbff;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+#monthlyTable tr:hover td{
+  background: rgba(122,162,255,0.08);
+}
+
+/* Optional scrollbar */
+.table-wrap::-webkit-scrollbar{ height: 10px; }
+.table-wrap::-webkit-scrollbar-thumb{
+  background: rgba(122,162,255,0.35);
+  border-radius: 999px;
+}

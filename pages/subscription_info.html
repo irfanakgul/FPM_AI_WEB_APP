@@ -1,0 +1,144 @@
+<!-- =========================================================
+FILE: /pages/subscription_info.html
+PURPOSE:
+- Subscription info page (uses About page skeleton exactly)
+- Header/Sidebar/Footer are central (layout.js)
+- Main card includes dynamic plans loaded from server
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="subsinfo_page_title">Subscription • FPM</title>
+
+  <!-- =========================================================
+  GLOBAL CSS (central layout)
+  ========================================================= -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- =========================================================
+  PAGE CSS (only for this page content)
+  ========================================================= -->
+  <link rel="stylesheet" href="/css/subscription_info.css">
+</head>
+
+<body>
+<div class="app-shell">
+  <!-- =========================================================
+  CENTRAL HEADER (injected)
+  ========================================================= -->
+  <header class="app-header" id="appHeader"></header>
+
+  <div class="app-content">
+    <!-- =========================================================
+    CENTRAL SIDEBAR (injected) - will stretch full height by central CSS
+    ========================================================= -->
+    <aside class="app-sidebar" id="appSidebar"></aside>
+
+    <!-- =========================================================
+    MAIN (same as About)
+    ========================================================= -->
+    <main class="app-main">
+      <div class="main-card subscription-page">
+
+        <!-- =========================================================
+        HERO (info + CTA)
+        ========================================================= -->
+        <section class="sub-hero">
+          <div class="sub-hero__left">
+            <div class="sub-pill" data-i18n="subsinfo_badge">AI • Football • Insights</div>
+
+            <h1 class="sub-title" data-i18n="subsinfo_title">Subscription</h1>
+
+            <p class="sub-desc" data-i18n="subsinfo_desc">
+              This platform shares AI & ML based football match predictions, analysis,
+              and the model’s daily/weekly selected games for subscribers.
+            </p>
+
+            <div class="sub-actions">
+              <!-- =========================================================
+              CTA: subscription form
+              ========================================================= -->
+              <a class="sub-btn sub-btn--primary"
+                 href="/pages/subscription_form.html"
+                 data-i18n="subsinfo_btn_to_form">
+                Go to Subscription Form
+              </a>
+
+              <!-- =========================================================
+              CTA: trial via contact
+              ========================================================= -->
+              <a class="sub-btn sub-btn--ghost"
+                 href="/pages/contact.html"
+                 data-i18n="subsinfo_btn_trial">
+                Request 1-Week Free Trial (via Contact)
+              </a>
+            </div>
+
+            <!-- =========================================================
+            Clarified trial note (does not imply paid plans via contact)
+            ========================================================= -->
+            <p class="sub-note" data-i18n="subsinfo_trial_note">
+              Free 1-week trial is only by request via Contact. Paid plans are activated via the subscription form.
+            </p>
+          </div>
+
+          <div class="sub-hero__right">
+            <!-- small info cards -->
+            <div class="mini-cards">
+              <div class="mini-card">
+                <div class="mini-title" data-i18n="subsinfo_m1_title">Daily</div>
+                <div class="mini-desc" data-i18n="subsinfo_m1_desc">Model outputs & analysis</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-title" data-i18n="subsinfo_m2_title">Weekly</div>
+                <div class="mini-desc" data-i18n="subsinfo_m2_desc">Selected games for subscribers</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-title" data-i18n="subsinfo_m3_title">Results</div>
+                <div class="mini-desc" data-i18n="subsinfo_m3_desc">Track trends over time</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================================================
+        PLANS (dynamic from Google Sheet via server endpoint)
+        ========================================================= -->
+        <section class="sub-plans">
+          <div class="sub-plans__head">
+            <h2 class="sub-h2" data-i18n="subsinfo_plans_title">Plans</h2>
+            <p class="sub-sub" data-i18n="subsinfo_plans_sub">
+              Choose a plan length. Prices change automatically by language (TR: ₺, EN: €).
+            </p>
+          </div>
+
+          <!-- Status area: loading/errors (user-friendly) -->
+          <div id="plansStatus" class="plans-status"></div>
+
+          <!-- Cards injected here -->
+          <div id="plansGrid" class="plans-grid"></div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- =========================================================
+  CENTRAL FOOTER (injected)
+  ========================================================= -->
+  <footer class="app-footer" id="appFooter"></footer>
+</div>
+
+<!-- =========================================================
+SCRIPTS
+- layout.js injects header/sidebar/footer
+- app.js controls language/auth
+- subscription_info.js loads packages and renders cards
+========================================================= -->
+<script src="/js/layout.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/subscription_info.js"></script>
+</body>
+</html>

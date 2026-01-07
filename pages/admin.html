@@ -1,1453 +1,196 @@
+<!-- =========================================================
+FILE: /pages/admin.html
+PURPOSE:
+- Admin Panel page using centralized Header/Footer (layout.js)
+- UPDATED (FIX):
+  * Sidebar is still injected (for consistency), but will be hidden via CSS
+  * Header will now be identical across all pages
+- IMPORTANT:
+  * Keeps old IDs used by admin.js logic (do not change)
+========================================================= -->
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin Panel</title>
-
-<style>
-/* ========== DARK MODE CSS (FINAL - LOGOUT BUTONU YAZI RENGİ GÜNCELLENDİ) ========== */
-
-body {
-    margin: 0;
-    font-family: system-ui;
-    background: #1a1f2e;
-    color: #e6e9f5;
-}
-
-/* HEADER - REFERANS DARK MODE STİLİ UYGULANDI */
-header {
-    height: 64px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background:
-        linear-gradient(
-            90deg,
-            rgba(122,162,255,0.2),
-            rgba(30,36,56,0.95) 35%,
-            rgba(30,36,56,0.95) 65%,
-            rgba(122,162,255,0.2)
-        );
-    backdrop-filter: blur(14px);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 28px;
-    border-bottom: 1px solid rgba(122,162,255,0.25);
-    box-shadow:
-        0 6px 20px rgba(0,0,0,0.45),
-        inset 0 -1px 0 rgba(122,162,255,0.25);
-    z-index: 1000;
-}
-
-#headerUserInfo {
-    font-size: 14px;
-    opacity: 0.8;
-}
-
-/* Header buttons */
-header button {
-    padding: 8px 18px;
-    border-radius: 18px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-/* YENİ: LOGOUT BUTONU STİLİ (Yazı Rengi Güncellendi) */
-/* LOGOUT */
-#logoutBtn {
-    background: rgba(255,120,120,0.18);
-    color: #ff9b9b;
-    border: 1px solid rgba(255,120,120,0.4);
-}
-
-#logoutBtn:hover {
-    background: rgba(255,120,120,0.28);
-}
-
-
-/* SIDEBAR */
-#sidebar {
-    width: 200px;
-    background: #1e2433;
-    position: fixed;
-    top: 64px;
-    left: 0;
-    bottom: 0;
-    border-right: 1px solid rgba(255,255,255,0.06);
-    padding-top: 20px;
-    z-index: 10;
-}
-
-#sidebar a {
-    display: block;
-    padding: 12px 16px;
-    color: #cdd3f8;
-    text-decoration: none;
-    font-size: 15px;
-    border-left: 4px solid transparent;
-    transition: 0.25s;
-}
-
-#sidebar a:hover {
-    background: rgba(122,162,255,0.12);
-    color: #7aa2ff;
-    border-left-color: #7aa2ff;
-}
-
-#sidebar a.active {
-    background: rgba(122,162,255,0.18);
-    color: #7aa2ff;
-    font-weight: 600;
-    border-left-color: #7aa2ff;
-}
-
-#sidebar a.active2 {
-    background: #5a1167;
-    color: #7aa2ff;
-    font-weight: 600;
-    border-left-color: #7aa2ff;
-}
-
-/* MAIN */
-#main {
-    margin-left: 200px;
-    margin-top: 64px;
-    padding: 20px;
-    padding-bottom: 80px;
-}
-
-/* TAB BAR */
-.tab-bar {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
-    border-bottom: 2px solid rgba(255,255,255,0.08);
-    padding-bottom: 10px;
-}
-
-.tab-btn {
-    font-size: 15px;
-    padding: 10px 16px;
-    cursor: pointer;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.08);
-    color: #e6e9f5;
-    border: 1px solid rgba(255,255,255,0.15);
-    transition: 0.2s;
-}
-
-.tab-btn.active {
-    background: #7aa2ff;
-    color: #1a1f2e;
-    border-color: #7aa2ff;
-    font-weight: 600;
-}
-
-.panel {
-    display: none;
-}
-
-.panel.active {
-    display: block;
-}
-
-/* TABLE */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: rgba(30,36,56,0.9);
-    margin-top: 20px;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-}
-
-th, td {
-    padding: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    font-size: 14px;
-}
-
-th {
-    background: rgba(122,162,255,0.15);
-    color: #ffffff;
-    font-weight: 600;
-}
-
-td {
-    color: #d6dbff;
-}
-
-tr:hover {
-    background: rgba(122,162,255,0.08);
-}
-
-/* BUTTONS */
-.btn {
-    padding: 8px 14px !important;
-    border-radius: 6px;
-    cursor: pointer;
-    border: none;
-    font-size: 13px;
-    min-width: 110px;
-    text-align: center;
-    transition: background 0.2s ease, transform 0.2s ease;
-}
-
-.btn-status {
-    background: rgba(122,162,255,0.18);
-    color: #7aa2ff;
-    border: 1px solid rgba(122,162,255,0.35);
-}
-.btn-status:hover {
-    background: rgba(122,162,255,0.28);
-    transform: translateY(-1px);
-}
-
-.btn-delete {
-    background: rgba(255,120,120,0.18);
-    color: #ff9b9b;
-    border: 1px solid rgba(255,120,120,0.4);
-}
-.btn-delete:hover {
-    background: rgba(255,120,120,0.28);
-    transform: translateY(-1px);
-}
-
-#searchBar,
-#subsSearch {
-    width: 260px;
-    padding: 8px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.08);
-    color: #e6e9f5;
-    border: 1px solid rgba(255,255,255,0.15);
-}
-
-footer {
-    position: fixed;
-    bottom: 0;
-    left: 200px;
-    right: 0;
-    height: 40px;
-    background: rgba(30,36,56,0.9);
-    backdrop-filter: blur(8px);
-    border-top: 1px solid rgba(255,255,255,0.06);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #aab0d6;
-    font-size: 14px;
-    z-index: 800;
-}
-
-/* USER STATUS DROPDOWN (GLOBAL) */
-#globalStatusMenu {
-    position: absolute;
-    background: #1e2433;
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    display: none;
-    z-index: 9999;
-    min-width: 140px;
-}
-
-#globalStatusMenu div {
-    padding: 10px 14px;
-    cursor: pointer;
-    font-size: 14px;
-    color: #cdd3f8;
-}
-
-#globalStatusMenu div:hover {
-    background: rgba(122,162,255,0.12);
-    color: #7aa2ff;
-}
-
-/* CONTACT STATUS DROPDOWN */
-#globalContactStatusMenu {
-    position: absolute;
-    background: #1e2433;
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    display: none;
-    z-index: 9999;
-    min-width: 160px;
-}
-
-#globalContactStatusMenu div {
-    padding: 10px 14px;
-    cursor: pointer;
-    font-size: 14px;
-    color: #cdd3f8;
-}
-
-#globalContactStatusMenu div:hover {
-    background: rgba(122,162,255,0.12);
-    color: #7aa2ff;
-}
-
-/* CONTACT MESSAGE CELL */
-.contact-msg-cell {
-    max-width: 260px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: pointer;
-}
-
-/* CONTACT MODAL */
-#contactModalOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-}
-
-#contactModal {
-    background: #1a1f2e;
-    max-width: 600px;
-    width: 90%;
-    border-radius: 10px;
-    padding: 20px 24px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    max-height: 80vh;
-    overflow-y: auto;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-
-#contactModal h3 {
-    margin-top: 0;
-    margin-bottom: 6px;
-    color: #e6e9f5;
-}
-
-.field-label {
-    font-weight: 600;
-    font-size: 13px;
-    color: #aab0d6;
-    margin-top: 10px;
-}
-
-.field-value {
-    font-size: 14px;
-    margin-top: 2px;
-    word-break: break-word;
-    color: #e6e9f5;
-}
-
-/* TOAST */
-#toastContainer {
-    position: fixed;
-    bottom: 25px;
-    right: 25px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    z-index: 99999;
-}
-
-/* SUBS ACTION OVERLAY */
-#subsActionOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-}
-
-/* === Subscription Action Dropdown === */
-
-.subs-action-btn {
-    background: rgba(122,162,255,0.18);
-    border: 1px solid rgba(122,162,255,0.35);
-    padding:8px 12px;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:13px;
-    color:#7aa2ff;
-    min-width: 110px;
-    text-align:center;
-}
-
-#subsActionMenu {
-    position: fixed;
-    width: 200px;
-    background: #1e2433;
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    z-index: 999999;
-    display: none;
-}
-
-.subs-action-menu div {
-    padding:10px 14px;
-    cursor:pointer;
-    font-size:14px;
-    color: #cdd3f8;
-}
-
-.subs-action-menu div:hover {
-    background: rgba(122,162,255,0.12);
-    color: #7aa2ff;
-}
-
-/* Colored subscription status badges */
-.subs-badge {
-    padding:4px 8px;
-    border-radius:6px;
-    font-size:12px;
-    font-weight:600;
-    display:inline-block;
-}
-
-.subs-active { background: #1f671f; color: #4ade80; }
-.subs-expired { background: #6b0b0b; color: #ff9b9b; }
-.subs-pending { background: #6b5c0b; color: #f8e658; }
-
-/* Message box for admin panel */
-.no-subs-msg {
-    padding:15px;
-    background: #333d1b;
-    border:1px solid #5a6438;
-    border-radius:8px;
-    margin-top:15px;
-    font-size:14px;
-    color: #e6e9f5;
-}
-#btnCreateAdmin {
-    position: relative;
-    z-index: 999999;
-    pointer-events: auto;
-}
-.panel {
-    position: relative;
-    z-index: 1;
-}
-
-#main {
-    position: relative;
-    z-index: 1;
-}
-
-.sidebar-link {
-    display: block;
-    padding: 12px 16px;
-    color: #cdd3f8;
-    text-decoration: none;
-    border-left: 4px solid transparent;
-    transition: 0.25s;
-}
-
-.sidebar-link:hover {
-    background: rgba(122,162,255,0.12);
-    color: #7aa2ff;
-    border-left-color: #7aa2ff;
-}
-
-.sidebar-link.active {
-    background: rgba(122,162,255,0.18);
-    color: #7aa2ff;
-    font-weight: 600;
-    border-left-color: #7aa2ff;
-}
-
-/* ===== USER DETAILS MODAL (DARK) ===== */
-
-/* Overlay */
-#userDetailsModal {
-    background: rgba(0, 0, 0, 0.65) !important;
-    backdrop-filter: blur(6px);
-}
-
-/* Modal box */
-#userDetailsModal > div {
-    background: rgba(30, 36, 56, 0.95) !important;
-    color: #e6e9f5;
-    border-radius: 14px;
-    padding: 22px;
-    width: 360px;
-    max-width: 90%;
-
-    box-shadow:
-        0 20px 50px rgba(0,0,0,0.6),
-        inset 0 0 0 1px rgba(255,255,255,0.06);
-}
-
-/* Title */
-#userDetailsModal h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 16px;
-    color: #ffffff;
-    letter-spacing: 0.4px;
-}
-
-/* Content text */
-#userDetailsContent {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #d6dbff;
-}
-
-/* Content inside (strong, spans vs) */
-#userDetailsContent strong {
-    color: #ffffff;
-    font-weight: 600;
-}
-
-/* Close button */
-#userDetailsModal button {
-    margin-top: 18px;
-    padding: 10px 18px;
-
-    background: linear-gradient(135deg, #7aa2ff, #6366f1) !important;
-    color: #10152a;
-
-    border: none;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-
-    transition: all 0.25s ease;
-}
-
-#userDetailsModal button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(122,162,255,0.45);
-}
-
-html, body {
-    min-height: 100%;
-    background: linear-gradient(180deg, #1a1f2e, #161a26);
-    overscroll-behavior: none;
-}
-
-</style>
+  <!-- [ADMIN] Meta -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Panel • FPM AI</title>
+
+  <!-- [GLOBAL CSS] Shared theme + header/footer/layout -->
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <!-- [PAGE CSS] Admin-only modern styling -->
+  <link rel="stylesheet" href="/css/admin.css" />
 </head>
 
-<body>
+<body class="no-sidebar">
+  <!-- =========================================================
+       APP SHELL
+       - Header/Footer injected centrally
+  ========================================================= -->
+  <div class="app-shell">
 
-<header>
-    <div onclick="window.location.href='/index.html'" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-        <img src="/docs/fpm_logo.jpg" style="height:34px;border-radius:4px;">
-        <strong>FPM Admin Panel</strong>
+    <!-- [CENTRAL HEADER] injected by layout.js -->
+    <header class="app-header" id="appHeader"></header>
+
+    <!-- =========================================================
+         CONTENT AREA
+         FIX:
+         - Keep #appSidebar placeholder so layout is consistent
+         - We will hide it via admin.css (no-sidebar mode)
+    ========================================================= -->
+    <div class="app-content no-sidebar-content">
+
+      <!-- [SIDEBAR PLACEHOLDER] injected by layout.js, hidden on admin page -->
+      <aside class="app-sidebar" id="appSidebar" aria-hidden="true"></aside>
+
+      <main id="main" class="app-main">
+        <!-- =====================================================
+             STANDARD MAIN CARD (wider for admin tables)
+        ====================================================== -->
+        <div class="main-card admin-maincard">
+
+          <!-- =================================================
+               HEADER STRIP (title + quick links)
+               NOTE: purely visual; no dependency in admin.js
+          ================================================= -->
+          <div class="admin-top">
+            <div>
+              <h2 class="admin-title">Admin Panel</h2>
+              <div class="admin-subtitle">User management • Contact forms • Subscriptions</div>
+            </div>
+
+            <div class="admin-quick">
+              <a class="admin-link" href="/pages/model/model.html">Model Panel</a>
+              <a class="admin-link" href="/index.html">Home</a>
+            </div>
+          </div>
+
+          <!-- =================================================
+               TAB BAR
+               PURPOSE: switch between panels (users / contact / subs)
+          ================================================= -->
+          <div class="tab-bar">
+            <button class="tab-btn active" data-tab="panelUsers">User Control</button>
+            <button class="tab-btn" data-tab="panelContact">Contact Forms</button>
+            <button class="tab-btn" data-tab="panelSubs">Subscriptions</button>
+          </div>
+
+          <!-- =================================================
+               PANEL: USERS (IDs preserved)
+          ================================================= -->
+          <section id="panelUsers" class="panel active">
+            <div class="panel-head">
+              <div class="panel-title">User Management</div>
+
+              <div class="admin-tools">
+                <input id="searchBar" placeholder="Search username..." />
+                <button id="btnCreateAdmin" class="btnCreateAdmin" type="button">
+                  ➕ Create Admin Member
+                </button>
+              </div>
+            </div>
+
+            <div id="tableWrap"></div>
+          </section>
+
+          <!-- =================================================
+               PANEL: CONTACT (IDs preserved)
+          ================================================= -->
+          <section id="panelContact" class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Contact Form Submissions</div>
+              <div class="panel-hint">Click message preview to open the full message.</div>
+            </div>
+
+            <div id="tableContactWrap">Loading...</div>
+          </section>
+
+          <!-- =================================================
+               PANEL: SUBSCRIPTIONS (IDs preserved)
+          ================================================= -->
+          <section id="panelSubs" class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Subscription Management</div>
+
+              <div class="admin-tools">
+                <input id="subsSearch" placeholder="Search username..." />
+              </div>
+            </div>
+
+            <!-- [ACTION MENU] (old ID preserved) -->
+            <div id="subsActionMenu" class="subs-action-menu">
+              <div data-action="start">Start Subscription</div>
+              <div data-action="extend">Extend Subscription</div>
+              <div data-action="cancel">Cancel Subscription</div>
+              <div data-action="note">Add Note</div>
+              <div style="border-top:1px solid rgba(255,255,255,0.12);" data-action="delete">
+                Delete Subscription
+              </div>
+            </div>
+
+            <div id="subsTableWrap" style="margin-top:20px;"></div>
+          </section>
+
+        </div>
+      </main>
     </div>
 
-    <div style="display:flex;align-items:center;gap:20px;">
-        <div id="headerUserInfo"></div>
-        <button id="logoutBtn">Logout</button>
-    </div>
-</header>
+    <!-- [CENTRAL FOOTER] injected by layout.js -->
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
 
-<div id="sidebar">
-    <a href="/index.html">Home</a>
-    <a href="/pages/admin.html" class="active">Admin Panel</a>
-    <a href="/pages/model/model.html" class="sidebar-link">Model Panel</a>
+  <!-- =========================================================
+       GLOBAL MENUS / MODALS / TOASTS
+       PURPOSE: Required by admin.js logic (IDs preserved)
+  ========================================================= -->
 
-</div>
-
-<!-- USER STATUS MENU -->
-<div id="globalStatusMenu">
+  <!-- [USER STATUS MENU] -->
+  <div id="globalStatusMenu">
     <div data-value="TRUE">TRUE</div>
     <div data-value="FALSE">FALSE</div>
     <div data-value="NEW_USER">NEW_USER</div>
-</div>
+  </div>
 
-<!-- CONTACT STATUS MENU -->
-<div id="globalContactStatusMenu">
+  <!-- [CONTACT STATUS MENU] -->
+  <div id="globalContactStatusMenu">
     <div data-value="Pending">Pending</div>
     <div data-value="In Progress">In Progress</div>
     <div data-value="To Do">To Do</div>
     <div data-value="Done">Done</div>
-</div>
+  </div>
 
-<div id="main">
-
-    <div class="tab-bar">
-        <button class="tab-btn active" data-tab="panelUsers">User Control Panel</button>
-        <button class="tab-btn" data-tab="panelContact">Contact Forms</button>
-        <button class="tab-btn" data-tab="panelSubs">Subscriptions</button>
-    </div>
-
-    <!-- USER PANEL -->
-    <div id="panelUsers" class="panel active">
-        <h2>Admin — User Management</h2>
-        <input id="searchBar" placeholder="Search username...">
-        <button id="btnCreateAdmin"
-            style="margin:15px 0; padding:10px 14px;
-                   background:#0275d8; color:white;
-                   border:none; border-radius:6px; cursor:pointer;">
-        ➕ Create Admin Member
-    </button>
-        <div id="tableWrap"></div>
-    </div>
-
-    <!-- CONTACT PANEL -->
-    <div id="panelContact" class="panel">
-        <h2>Contact Form Submissions</h2>
-        <div id="tableContactWrap">Loading...</div>
-    </div>
-
-    <!-- SUBSCRIPTIONS PANEL -->
-<div id="panelSubs" class="panel">
-    <h2>Subscription Management</h2>
-
-    <input id="subsSearch" placeholder="Search username...">
-
-    <!-- Action Menu -->
-    <div id="subsActionMenu" class="subs-action-menu">
-        <div data-action="start">Start Subscription</div>
-        <div data-action="extend">Extend Subscription</div>
-        <div data-action="cancel">Cancel Subscription</div>
-        <div data-action="note">Add Note</div>
-        <div style="border-top:1px solid #eee;" data-action="delete">Delete Subscription</div>
-    </div>
-
-    <div id="subsTableWrap" style="margin-top:20px;"></div>
-</div>
-
-
-</div>
-
-<footer>© 2025 FPM Web App</footer>
-
-<!-- CONTACT MODAL -->
-<div id="contactModalOverlay">
+  <!-- [CONTACT MODAL] -->
+  <div id="contactModalOverlay">
     <div id="contactModal">
-        <h3>Contact Message</h3>
-        <div id="contactModalContent"></div>
-        <div style="text-align:right;margin-top:16px;">
-            <button class="btn" id="contactModalCloseBtn" style="min-width:auto;background:#e5e7eb;color:#111;">
-                Close
-            </button>
-        </div>
-    </div>
-</div>
-
-<div id="toastContainer"></div>
-
-<script>
-/* ACCESS CONTROL */
-const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-if (!currentUser || currentUser.user_type !== "admin") {
-    window.location.href = "/pages/login.html";
-}
-document.getElementById("headerUserInfo").innerHTML =
-    `Admin: <strong>${currentUser.username}</strong>`;
-document.getElementById("logoutBtn").onclick = () => {
-    sessionStorage.removeItem("currentUser");
-    sessionStorage.removeItem("activeSeconds");
-    window.location.href = "/index.html";
-};
-
-/* TAB SWITCHING */
-document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.onclick = () => {
-        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-
-        document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-        document.getElementById(btn.dataset.tab).classList.add("active");
-
-        if (btn.dataset.tab === "panelSubs") {
-            loadSubscriptions();
-        }
-        if (btn.dataset.tab === "panelContact") {
-            loadContactForms();
-        }
-        if (btn.dataset.tab === "panelUsers") {
-            loadUsers();
-        }
-    };
-});
-
-/* TOAST */
-function showToast(msg, type="success") {
-    const toast = document.createElement("div");
-
-    const colors = {
-        success: { bg: "#16a34a", border: "#0f8a3a" },
-        error:   { bg: "#dc2626", border: "#b91c1c" },
-        info:    { bg: "#2563eb", border: "#1d4ed8" }
-    };
-
-    toast.style.cssText = `
-        min-width: 240px; max-width: 360px;
-        padding: 14px 20px;
-        border-radius: 10px;
-        color: white;
-        font-size: 15px;
-        font-weight: 600;
-        background: ${colors[type].bg};
-        border-left: 6px solid ${colors[type].border};
-        box-shadow: 0 6px 18px rgba(0,0,0,0.2);
-        opacity: 0;
-        transform: translateX(30px);
-        transition: 0.35s;
-    `;
-
-    toast.textContent = msg;
-    document.getElementById("toastContainer").appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = "1";
-        toast.style.transform = "translateX(0)";
-    }, 30);
-
-    setTimeout(() => {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(30px)";
-        setTimeout(() => toast.remove(), 350);
-    }, 2500);
-}
-
-/* ================================
-   USER PANEL
-================================ */
-
-let allUsers = [];
-
-async function loadUsers() {
-    try {
-        const res = await fetch("/api/admin/users");
-        const json = await res.json();
-        if (!json.success) return;
-
-        allUsers = json.users || [];
-        renderUserTable(allUsers);
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-function renderUserTable(rows) {
-    if (!rows.length) {
-        document.getElementById("tableWrap").innerHTML = "<p>No users found.</p>";
-        return;
-    }
-
-    let html = `
-    <table>
-        <thead><tr>
-            <th>Verified</th><th>Username</th><th>User Type</th>
-            <th>Mail</th>
-            <th>Client ID</th><th>Birthyear</th><th>Login Count</th>
-            <th>Last Login</th><th>Reg Date</th><th>Actions</th>
-        </tr></thead><tbody>
-    `;
-
-    rows.forEach(u => {
-        html += `
-            <tr>
-                <td>${u.IS_VERIFIED || ""}</td>
-                <td>${u.USERNAME || ""}</td>
-                <td>${u.USER_TYPE || ""}</td>
-                <td>
-                    <span class="mail-short"
-                        onclick="openUserDetails('${u.USERNAME}')"
-                        style="cursor:pointer; color:#0275d8; text-decoration:underline;">
-                        ${(u.MAIL || "").length > 3 ? (u.MAIL.substring(0,3) + "...") : (u.MAIL || "")}
-                    </span>
-                </td>
-
-                <td>${u.CLIENT_ID || ""}</td>
-                <td>${u.BIRTHYEAR || ""}</td>
-                <td>${u.LOGIN_COUNT || "0"}</td>
-                <td>${u.LAST_LOGIN || ""}</td>
-                <td>${u.REG_DATE || ""}</td>
-                <td>
-                    <button class="btn btn-status"
-                        onclick="openUserStatusMenu(event, '${u.USERNAME}')">
-                        Status ▼
-                    </button>
-
-                    <button class="btn btn-delete"
-                        onclick="deleteUser('${u.USERNAME}')">
-                        Delete
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-
-    html += "</tbody></table>";
-    document.getElementById("tableWrap").innerHTML = html;
-}
-
-/* USER STATUS MENU */
-const globalStatusMenu = document.getElementById("globalStatusMenu");
-let userStatusTarget = null;
-
-function openUserStatusMenu(ev, username) {
-    userStatusTarget = username;
-    const rect = ev.target.getBoundingClientRect();
-    globalStatusMenu.style.left = rect.left + "px";
-    globalStatusMenu.style.top = (rect.bottom + 4) + "px";
-    globalStatusMenu.style.display = "block";
-}
-
-document.addEventListener("click", (e) => {
-    if (!globalStatusMenu.contains(e.target) &&
-        !e.target.classList.contains("btn-status")) {
-        globalStatusMenu.style.display = "none";
-    }
-});
-
-globalStatusMenu.querySelectorAll("div").forEach(opt => {
-    opt.onclick = async () => {
-        const newStatus = opt.dataset.value;
-        await updateUserStatus(userStatusTarget, newStatus);
-        globalStatusMenu.style.display = "none";
-    };
-});
-
-async function updateUserStatus(username, status) {
-    const res = await fetch("/api/admin/update-status", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username, status })
-    });
-
-    const json = await res.json();
-    if (json.success) {
-        showToast("User status updated", "success");
-        loadUsers();
-    } else {
-        showToast("User status update failed", "error");
-    }
-}
-
-/* USER DELETE */
-async function deleteUser(username) {
-    if (!confirm("Delete user " + username + "?")) return;
-
-    const res = await fetch("/api/admin/delete-user", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username })
-    });
-
-    const json = await res.json();
-    if (json.success) {
-        showToast("User deleted", "success");
-        loadUsers();
-    } else {
-        showToast("User delete failed", "error");
-    }
-}
-
-/* USER SEARCH */
-document.getElementById("searchBar").oninput = function () {
-    const q = this.value.toLowerCase();
-    renderUserTable(allUsers.filter(u =>
-        (u.USERNAME || "").toLowerCase().includes(q)
-    ));
-};
-
-/* İlk açılışta kullanıcıları yükle */
-loadUsers();
-
-/* ================================
-   CONTACT PANEL
-================================ */
-
-let contactRows = [];
-
-async function loadContactForms() {
-    try {
-        const res = await fetch("/api/load-sheet", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                sheetId: "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo",
-                sheetName: "contact_form"
-            })
-        });
-
-        const json = await res.json();
-        if (!json.success) {
-            document.getElementById("tableContactWrap").innerHTML =
-                "<p>Error loading contact forms.</p>";
-            return;
-        }
-
-        const data = json.data || [];
-
-        let withIndex = data.map((row, idx) => ({ ...row, _rowIndex: idx }));
-        contactRows = withIndex.filter(r =>
-            Object.values(r).some(v => v && String(v).trim() !== "")
-        );
-
-        renderContactTable(contactRows);
-
-    } catch (err) {
-        console.error(err);
-        document.getElementById("tableContactWrap").innerHTML =
-            "<p>Error loading contact forms.</p>";
-    }
-}
-
-function renderContactTable(rows) {
-    const wrap = document.getElementById("tableContactWrap");
-
-    if (!rows.length) {
-        wrap.innerHTML = "<p>No contact form submissions.</p>";
-        return;
-    }
-
-    let html = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Name</th>
-                    <th>Mail</th>
-                    <th>Subject</th>
-                    <th>Message</th>
-                    <th>Subs</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    rows.forEach(r => {
-        const status = r.STATUS || "Pending";
-        const fullMsg = r.MESSAGE || "";
-        const preview = fullMsg.length > 80 ? fullMsg.slice(0, 80) + "…" : fullMsg;
-        const subsLabel = (r.WANTS_SUBS === "YES")
-            ? `YES (${r.SUBS_TYPE || "-"})`
-            : (r.WANTS_SUBS || "");
-
-        html += `
-            <tr data-rowindex="${r._rowIndex}">
-                <td>
-                    <button class="btn btn-status contact-status-btn"
-                        data-rowindex="${r._rowIndex}">
-                        ${status}
-                    </button>
-                </td>
-                <td>${r.DATE || ""}</td>
-                <td>${r.TIME || ""}</td>
-                <td>${r.NAME || ""}</td>
-                <td>${r.MAIL || ""}</td>
-                <td>${r.SUBJECT || ""}</td>
-                <td class="contact-msg-cell" data-rowindex="${r._rowIndex}">
-                    ${preview || ""}
-                </td>
-                <td>${subsLabel}</td>
-                <td>
-                    <button class="btn btn-delete contact-delete-btn"
-                        data-rowindex="${r._rowIndex}">
-                        Delete
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-
-    html += "</tbody></table>";
-    wrap.innerHTML = html;
-}
-
-/* CONTACT MODAL */
-const contactModalOverlay = document.getElementById("contactModalOverlay");
-const contactModalContent = document.getElementById("contactModalContent");
-document.getElementById("contactModalCloseBtn").onclick = () => {
-    contactModalOverlay.style.display = "none";
-};
-contactModalOverlay.addEventListener("click", (e) => {
-    if (e.target === contactModalOverlay) {
-        contactModalOverlay.style.display = "none";
-    }
-});
-
-document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("contact-msg-cell")) {
-        const rowIndex = e.target.dataset.rowindex;
-        const row = contactRows.find(r => String(r._rowIndex) === String(rowIndex));
-        if (!row) return;
-
-        contactModalContent.innerHTML = `
-            <div class="field-label">Status</div>
-            <div class="field-value">${row.STATUS || "Pending"}</div>
-
-            <div class="field-label">Date</div>
-            <div class="field-value">${row.DATE || ""} ${row.TIME || ""}</div>
-
-            <div class="field-label">Name</div>
-            <div class="field-value">${row.NAME || ""}</div>
-
-            <div class="field-label">Mail</div>
-            <div class="field-value">${row.MAIL || ""}</div>
-
-            <div class="field-label">Username</div>
-            <div class="field-value">${row.USERNAME || ""}</div>
-
-            <div class="field-label">Subject</div>
-            <div class="field-value">${row.SUBJECT || ""}</div>
-
-            <div class="field-label">Wants Subscription</div>
-            <div class="field-value">${row.WANTS_SUBS || ""}</div>
-
-            <div class="field-label">Subscription Type</div>
-            <div class="field-value">${row.SUBS_TYPE || ""}</div>
-
-            <div class="field-label">Message</div>
-            <div class="field-value">${row.MESSAGE || ""}</div>
-        `;
-
-        contactModalOverlay.style.display = "flex";
-    }
-});
-
-/* CONTACT STATUS DROPDOWN */
-const globalContactStatusMenu = document.getElementById("globalContactStatusMenu");
-let contactStatusRowIndex = null;
-
-document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("contact-status-btn")) {
-        const btn = e.target;
-        const rect = btn.getBoundingClientRect();
-        contactStatusRowIndex = btn.dataset.rowindex;
-
-        globalContactStatusMenu.style.left = rect.left + "px";
-        globalContactStatusMenu.style.top = (rect.bottom + 4) + "px";
-        globalContactStatusMenu.style.display = "block";
-        return;
-    }
-
-    if (!globalContactStatusMenu.contains(e.target) &&
-        !e.target.classList.contains("contact-status-btn")) {
-        globalContactStatusMenu.style.display = "none";
-    }
-});
-
-globalContactStatusMenu.querySelectorAll("div").forEach(opt => {
-    opt.addEventListener("click", async () => {
-        const newStatus = opt.dataset.value;
-        const rowIndex = contactStatusRowIndex;
-
-        await updateContactStatus(rowIndex, newStatus);
-        globalContactStatusMenu.style.display = "none";
-    });
-});
-
-async function updateContactStatus(rowIndex, status) {
-    const res = await fetch("/api/update-cells", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-            sheetId: "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo",
-            sheetName: "contact_form",
-            userType: "admin",
-            changes: {
-                [rowIndex]: { STATUS: status }
-            }
-        })
-    });
-
-    const json = await res.json();
-    if (json.success) {
-        showToast("Contact status updated", "success");
-        loadContactForms();
-    } else {
-        showToast("Failed to update contact status", "error");
-    }
-}
-
-/* CONTACT DELETE */
-document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("contact-delete-btn")) {
-        const rowIndex = e.target.dataset.rowindex;
-        if (!confirm("Delete this message?")) return;
-        deleteContactRow(rowIndex);
-    }
-});
-
-async function deleteContactRow(rowIndex) {
-    const emptyRow = {
-        STATUS: "",
-        DATE: "",
-        TIME: "",
-        NAME: "",
-        MAIL: "",
-        USERNAME: "",
-        SUBJECT: "",
-        WANTS_SUBS: "",
-        SUBS_TYPE: "",
-        MESSAGE: ""
-    };
-
-    const res = await fetch("/api/update-cells", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-            sheetId: "11FtVunRO13DrIRGzUmvEmA4Z15FfVSBuFlEQswj_cpo",
-            sheetName: "contact_form",
-            userType: "admin",
-            changes: {
-                [rowIndex]: emptyRow
-            }
-        })
-    });
-
-    const json = await res.json();
-    if (json.success) {
-        showToast("Message deleted", "success");
-        loadContactForms();
-    } else {
-        showToast("Failed to delete message", "error");
-    }
-}
-
-// =====================================================
-//  SUBSCRIPTIONS PANEL — CLEAN / SINGLE-ROW / MODERN
-// =====================================================
-
-let subsData = [];
-let selectedUsername = null;
-
-async function loadSubscriptions() {
-    const res = await fetch("/api/admin/subscriptions");
-    const json = await res.json();
-
-    if (!json.success) {
-        document.getElementById("subsTableWrap").innerHTML =
-            `<p class="no-subs-msg">Error loading subscription records.</p>`;
-        return;
-    }
-
-    subsData = json.rows || [];
-    renderSubsTable(subsData);
-}
-
-// ================================
-//   RENDER TABLE
-// ================================
-function renderSubsTable(rows) {
-    if (!rows.length) {
-        document.getElementById("subsTableWrap").innerHTML =
-            `<p class="no-subs-msg">No subscriptions found.</p>`;
-        return;
-    }
-
-    let html = `
-    <table>
-        <thead>
-            <tr>
-                <th>Verified</th>
-                <th>Client ID</th>
-                <th>Username</th>
-                <th>Created</th>
-                <th>Type</th>
-                <th>Start</th>
-                <th>End</th>
-                <th>Days Left</th>
-                <th>Status</th>
-                <th>Notes</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-    `;
-
-    rows.forEach(r => {
-        // Remaining days
-        let daysLeft = "";
-        if (r.SUBS_END) {
-            const diff = Math.ceil(
-                (new Date(r.SUBS_END) - new Date()) / 86400000
-            );
-            daysLeft = diff;
-        }
-
-        // Status badge
-        let badgeClass = "subs-pending";
-        if (r.SUBS_STATUS === "active") badgeClass = "subs-active";
-        if (r.SUBS_STATUS === "expired") badgeClass = "subs-expired";
-
-        html += `
-        <tr>
-            <td>${r.VERIFED || ""}</td>
-            <td>${r.CLIENT_ID || ""}</td>
-            <td><strong>${r.USERNAME || ""}</strong></td>
-            <td>${r.SUBS_DATE || ""}</td>
-            <td>${r.SUBS_TYPE || ""}</td>
-            <td>${r.SUBS_START || ""}</td>
-            <td>${r.SUBS_END || ""}</td>
-            <td>${daysLeft}</td>
-            <td><span class="subs-badge ${badgeClass}">
-                ${r.SUBS_STATUS || "pending"}
-            </span></td>
-            <td>${r.SUBS_NOTES || ""}</td>
-            <td>
-                <button class="subs-action-btn"
-                    onclick="openSubsActionMenu(event, '${r.USERNAME}')">
-                    Actions ▼
-                </button>
-            </td>
-        </tr>`;
-    });
-
-    html += "</tbody></table>";
-    document.getElementById("subsTableWrap").innerHTML = html;
-}
-
-// ================================
-// ACTION DROPDOWN
-// ================================
-const actionMenu = document.getElementById("subsActionMenu");
-
-function openSubsActionMenu(ev, username) {
-    selectedUsername = username;
-
-    const menu = document.getElementById("subsActionMenu");
-    const rect = ev.target.getBoundingClientRect();
-
-    // Menü genişliği
-    const menuWidth = 200;
-    const menuHeight = 240; // ortalama yükseklik
-
-    let left = rect.left;
-    let top = rect.bottom + 6;
-
-    // EKRAN SAĞ TARAFINDAN TAŞIYORSA → sola kaydır
-    if (left + menuWidth > window.innerWidth) {
-        left = window.innerWidth - menuWidth - 10;
-    }
-
-    // EKRAN ALT TARAFINA SIĞMIYORSA → yukarı aç
-    if (top + menuHeight > window.innerHeight) {
-        top = rect.top - menuHeight - 6;
-    }
-
-    menu.style.left = left + "px";
-    menu.style.top = top + "px";
-    menu.style.display = "block";
-}
-
-
-// ================================
-//   ACTION HANDLERS
-// ================================
-actionMenu.querySelectorAll("div").forEach(item => {
-    item.onclick = () => {
-        const action = item.dataset.action;
-        actionMenu.style.display = "none";
-
-        if (action === "start") subsStart(selectedUsername);
-        if (action === "extend") subsExtend(selectedUsername);
-        if (action === "cancel") subsCancel(selectedUsername);
-        if (action === "note") subsAddNote(selectedUsername);
-        if (action === "delete") subsDelete(selectedUsername);
-    };
-});
-
-// ============= START =============
-async function subsStart(username) {
-    const type = prompt("Subscription Type (trial / monthly / yearly)");
-    if (!type) return;
-
-    const res = await fetch("/api/admin/subs-start", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username, type })
-    });
-
-    const json = await res.json();
-    if (json.success) {
-        showToast("Subscription started", "success");
-        loadSubscriptions();
-    }
-}
-
-// ============= EXTEND =============
-async function subsExtend(username) {
-    const months = prompt("Extend by how many months? (1,3,6,12)");
-    if (!months) return;
-
-    const res = await fetch("/api/admin/subs-extend", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username, months })
-    });
-
-    const json = await res.json();
-    if (json.success) {
-        showToast("Extended", "info");
-        loadSubscriptions();
-    }
-}
-
-// ============= CANCEL =============
-async function subsCancel(username) {
-    if (!confirm("Cancel subscription?")) return;
-
-    const res = await fetch("/api/admin/subs-cancel", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username })
-    });
-
-    if ((await res.json()).success) {
-        showToast("Canceled", "error");
-        loadSubscriptions();
-    }
-}
-
-// ============= ADD NOTE =============
-async function subsAddNote(username) {
-    const note = prompt("Enter note:");
-    if (!note) return;
-
-    const res = await fetch("/api/admin/subs-note", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username, note })
-    });
-
-    if ((await res.json()).success) {
-        showToast("Note added", "success");
-        loadSubscriptions();
-    }
-}
-
-// ============= DELETE =============
-async function subsDelete(username) {
-    if (!confirm("Delete subscription completely?")) return;
-
-    const res = await fetch("/api/admin/subs-delete", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username })
-    });
-
-    const json = await res.json();
-    if (json.success) {
-        showToast("Subscription deleted", "error");
-        loadSubscriptions();
-    }
-}
-
-// ================================
-// SEARCH
-// ================================
-document.getElementById("subsSearch").oninput = (e) => {
-    const q = e.target.value.toLowerCase();
-    const filtered = subsData.filter(r =>
-        (r.USERNAME || "").toLowerCase().includes(q)
-    );
-    renderSubsTable(filtered);
-};
-
-// ================================
-// LOAD ON TAB CLICK
-// ================================
-document.querySelector("[data-tab='panelSubs']")
-    .addEventListener("click", loadSubscriptions);
-
-async function openUserDetails(username) {
-    try {
-        const res = await fetch("/api/admin/users");
-        const json = await res.json();
-        if (!json.success) return;
-
-        const users = json.users;
-        const u = users.find(x => x.USERNAME === username);
-        if (!u) return;
-
-        const html = `
-            <strong>Username:</strong> ${u.USERNAME}<br>
-            <strong>Client ID:</strong> ${u.CLIENT_ID || "-"}<br>
-            <strong>User Type:</strong> ${u.USER_TYPE || "-"}<br>
-            <strong>Verified:</strong> ${u.IS_VERIFIED || "-"}<br><br>
-
-            <strong>Mail:</strong> ${u.MAIL || "-"}<br>
-            <strong>Birthyear:</strong> ${u.BIRTHYEAR || "-"}<br>
-            <strong>Login Count:</strong> ${u.LOGIN_COUNT || "-"}<br>
-            <strong>Last Login:</strong> ${u.LAST_LOGIN || "-"}<br>
-            <strong>Registered:</strong> ${u.REG_DATE || "-"}
-        `;
-
-        document.getElementById("userDetailsContent").innerHTML = html;
-        document.getElementById("userDetailsModal").style.display = "flex";
-
-    } catch (err) {
-        console.error("User details load error", err);
-    }
-}
-
-function closeUserDetails() {
-    document.getElementById("userDetailsModal").style.display = "none";
-}
-
-/* GO TO ADMIN MEMBER CREATE PAGE */
-document.getElementById("btnCreateAdmin").onclick = () => {
-    window.location.href = "/pages/admin_member_add.html";
-};
-
-// Subscription Action Menu - Outside Click Close
-document.addEventListener("click", function (e) {
-    const menu = document.getElementById("subsActionMenu");
-    const btn = e.target.closest(".subs-action-btn");
-
-    if (!menu) return;
-
-    // Eğer action butonuna tıklanmadıysa ve menünün içinde değilse → kapat
-    if (!btn && !menu.contains(e.target)) {
-        menu.style.display = "none";
-    }
-});
-
-</script>
-<!-- USER DETAILS MODAL -->
-<div id="userDetailsModal" 
-     style="display:none; position:fixed; top:0; left:0; right:0; bottom:0;
-            background:rgba(0,0,0,0.45); backdrop-filter:blur(2px);
-            justify-content:center; align-items:center; z-index:9999;">
-
-    <div style="background:white; padding:20px; border-radius:10px;
-                width:360px; max-width:90%; box-shadow:0 6px 18px rgba(0,0,0,0.25);
-                animation:modalIn .25s;">
-        
-        <h3 style="margin-top:0;">User Details</h3>
-
-        <div id="userDetailsContent" style="font-size:14px; line-height:1.5;"></div>
-
-        <button onclick="closeUserDetails()" 
-                style="margin-top:15px; padding:8px 16px; background:#0275d8; 
-                       color:white; border:none; border-radius:6px; cursor:pointer;">
-            Close
+      <h3>Contact Message</h3>
+      <div id="contactModalContent"></div>
+
+      <div style="text-align:right;margin-top:16px;">
+        <button class="btn" id="contactModalCloseBtn" style="min-width:auto;" type="button">
+          Close
         </button>
+      </div>
     </div>
-</div>
+  </div>
 
-<style>
-@keyframes modalIn {
-    from { opacity:0; transform:translateY(-10px);}
-    to { opacity:1; transform:translateY(0);}
-}
-</style>
+  <!-- [TOAST CONTAINER] -->
+  <div id="toastContainer"></div>
 
+  <!-- [USER DETAILS MODAL] -->
+  <div id="userDetailsModal" class="userDetailsModal">
+    <div class="userDetailsBox">
+      <h3>User Details</h3>
+      <div id="userDetailsContent"></div>
+      <button onclick="closeUserDetails()" type="button">Close</button>
+    </div>
+  </div>
 
+  <!-- =========================================================
+       SCRIPTS (order important)
+  ========================================================= -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/admin.js"></script>
 </body>
 </html>
