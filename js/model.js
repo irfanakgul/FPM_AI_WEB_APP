@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
    ========================================================= */
 main.innerHTML = `
   <!-- [PAGE TITLE] -->
-  <h2>Model Executive</h2>
+  <h2> ⚽️ Football Model Executive</h2>
 
   <!-- [MODEL PANEL WRAP] -->
   <div class="model-panel">
@@ -137,6 +137,16 @@ main.innerHTML = `
     </div>
 
   </div>
+
+  <!-- ================= BASKETBALL MODEL BUTTON ================= -->
+<div class="basketball-btn-wrap">
+  <button class="basketball-btn"
+          onclick="window.location.href='/pages/bb/basket_model_panel.html'">
+    <span class="ball">🏀</span>
+    Basketball Model
+  </button>
+</div>
+
 
   <!-- [LOADER OVERLAY] (for SHOW_CURRENT) -->
   <div id="loaderOverlay" aria-hidden="true">
@@ -273,10 +283,10 @@ allActionButtons.forEach((btn) => {
 
         addLog(
           `[QUESTION-INPUT] Please enter:
-Start Date (DD-MM-YYYY)
-Day Count
-Example: ${todayFormatted} 2`,
-          "system"
+            Start Date (DD-MM-YYYY)
+            Day Count
+            Example: ${todayFormatted} 2`,
+                      "system"
         );
 
         waitingForAction = "game-pull";

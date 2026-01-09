@@ -1,0 +1,47 @@
+<!-- =========================================================
+FILE: /pages/bb/basket_model_panel.html
+PURPOSE:
+- Basketball Model Panel (admin/master only)
+- Central header/footer injected via layout.js
+- NO sidebar
+- Uses a basketball-themed UI
+- Logic handled in /js/basket_model_panel.js
+========================================================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Basketball Model Panel • FPM AI</title>
+
+  <!-- GLOBAL CSS -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <!-- PAGE CSS -->
+  <link rel="stylesheet" href="/css/basket_model_panel.css" />
+</head>
+
+<body class="no-sidebar bb-theme">
+  <div class="app-shell">
+    <!-- CENTRAL HEADER -->
+    <header class="app-header" id="appHeader"></header>
+
+    <!-- NO SIDEBAR CONTENT -->
+    <div class="app-content no-sidebar-content">
+      <main class="app-main">
+        <div class="main-card bb-card">
+          <!-- MAIN root required by JS -->
+          <div id="main"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- CENTRAL FOOTER -->
+    <footer class="app-footer" id="appFooter"></footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/layout.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/basket_model_panel.js"></script>
+</body>
+</html>
