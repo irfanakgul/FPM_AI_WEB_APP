@@ -5,14 +5,14 @@ from initial import engine, as_future, best_league, int_jump, limit
 import re
 from selenium import webdriver # pyright: ignore[reportMissingImports]
 from selenium.webdriver.common.by import By # type: ignore
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException # type: ignore
 import time
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait # type: ignore
+from selenium.webdriver.support import expected_conditions as EC # type: ignore
 import pandas as pd, numpy as np
 import os,sys
 from sqlalchemy import text
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.options import Options # type: ignore
 from colorama import Fore, Style, Back # type: ignore
 from datetime import datetime, timedelta
 import warnings
@@ -987,25 +987,25 @@ def master_trigger():
         df = pd.DataFrame({'given_date':date,'repeat':0,'date_range':lst_dateRange})
 
         df.to_sql(name='log_time_jump', con=engine, if_exists='replace', index=False)
-        master_collection(engine)
+        # master_collection(engine)
 
-        # count_run = 0
-        # try:
-        #     #first run
-        #     master_collection(engine)
-        # except:
-        #     count_run +=1
-        #     print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
-        #     try :
-        #         master_collection(engine)
+        count_run = 0
+        try:
+            #first run
+            master_collection(engine)
+        except:
+            count_run +=1
+            print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
+            try :
+                master_collection(engine)
                 
-        #     except:
-        #         count_run +=1
-        #         print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
+            except:
+                count_run +=1
+                print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
     
-        #         master_collection(engine)
+                master_collection(engine)
                 
-        #         pass
+                pass
                 
                 
     
