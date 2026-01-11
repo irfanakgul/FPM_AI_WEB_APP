@@ -1,50 +1,47 @@
-import signal
-from bb_initial import engine, bb_as_future, bb_best_league, bb_int_jump, bb_limit,bb_firefox_on,basket_games_link
+print('➡️➡️➡️➡️➡️ BB GAME-PULL started ⬅️⬅️⬅️⬅️⬅️')
+
+import os
+import sys
 import re
 import json
+import time
+import signal
+import warnings
+from datetime import datetime, timedelta
+
+import pandas as pd
+import numpy as np
+
+from sqlalchemy import text
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from selenium.common.exceptions import WebDriverException, TimeoutException
-import time
+from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
-from selenium.common.exceptions import StaleElementReferenceException
-import pandas as pd, numpy as np
-from pandas.io.formats.excel import ExcelFormatter
-import os
-import ast
+from selenium.common.exceptions import (
+    TimeoutException
+)
 
-import nbimporter
-from datetime import datetime
-import time
-from selenium.webdriver.firefox.options import Options
+
 from colorama import Fore, Style, Back
-from IPython.display import HTML
 
-import warnings
-import re
-warnings.filterwarnings('ignore')
-from openpyxl import load_workbook
-from datetime import datetime
+from bb_initial import (
+    engine,
+    bb_as_future,
+    bb_best_league,
+    bb_int_jump,
+    bb_limit,
+    bb_firefox_on,
+    basket_games_link
+)
+
+warnings.filterwarnings("ignore")
+
 
 class BadGatewayException(Exception):
     pass
 
-
-import pandas as pd, numpy as np
-import os,sys
-from sqlalchemy import text
-from colorama import Fore, Style, Back # type: ignore
-from datetime import datetime, timedelta
-import warnings
-from datetime import datetime
-
-warnings.filterwarnings('ignore')
-class BadGatewayException(Exception):
-    pass
 
 
 GLOBAL_DRIVER = None   # 🔑 driver referansı burada tutulacak
@@ -916,3 +913,6 @@ def master_trigger():
 
 if __name__ == "__main__":
     master_trigger()
+
+
+print('⏮️⏮️⏮️⏮️⏮️ BB GAME Pull ended ⏭️⏭️⏭️⏭️⏭️')

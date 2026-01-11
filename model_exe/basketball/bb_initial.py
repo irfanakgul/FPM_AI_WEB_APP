@@ -19,6 +19,13 @@ spreadsheet_id='1c_0Maup2VkR1yg-RjkCbVS1e7d_ng0wgMGY43nFPn3U'
 
 bb_firefox_on = False
 
+# standing pull is active code = 1 will be pulled
+bb_is_active=1
+bb_lst_double_lg_list = []
+
+
+
+
 # connection into cloud db (central)
 def cloud_connection():
     url = URL.create(
