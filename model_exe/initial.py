@@ -1,6 +1,10 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 
+firefox_on = False
+football_games_link = "https://www.mackolik.com/futbol/canli-sonuclar"
+
+
 # Parameters for pulling games | in DATA GATHERING
 as_future = False
 best_league=False

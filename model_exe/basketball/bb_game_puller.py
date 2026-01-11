@@ -1,6 +1,7 @@
 import signal
-from bb_initial import engine, bb_as_future, bb_best_league, bb_int_jump, bb_limit
+from bb_initial import engine, bb_as_future, bb_best_league, bb_int_jump, bb_limit,bb_firefox_on,basket_games_link
 import re
+import json
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -68,7 +69,8 @@ signal.signal(signal.SIGINT, graceful_shutdown)
 
 
 # In[1]:
-
+# open firefox browser or not. True = open
+init_bb_firefox_on = bb_firefox_on
 
 #read data    
 def fn_read_data_db(tableName):
@@ -147,7 +149,7 @@ def fn_SelectStartDate_set(db_lastStartdate, db_repeat):
         df = pd.DataFrame([dic])
         # DataFrame'i yeni bir tablo olarak veritabanına yaz
 
-        df.to_sql(name='log_time_jump', con=engine, if_exists='replace', index=False)
+        df.to_sql(name='BB_log_TimeJump', con=engine, if_exists='replace', index=False)
     else:
         start_date = db_lastStartdate
         print(Back.RED + f'!!! Driver stopt and reloaded with date: {start_date} !!!'+ Style.RESET_ALL, flush=True)
@@ -166,7 +168,7 @@ def clickStartDate(driver,diff_year,diff_month,selectedDay,db_lastStartdate):
     # based on fn_SelectStartDate_set output, this func will click and select start date    
     # open calendar
     driver.find_element(By.CSS_SELECTOR, ".widget-dateslider__datepicker-toggle").click()
-    time.sleep(1)
+    time.sleep(3)
     xpth = "/html/body/div[5]/div/main/div[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div/div[1]/div[2]/div[3]"
     driver.find_element(By.XPATH, xpth).click()
     
@@ -320,25 +322,30 @@ def fn_extract_teamsFromLink(gameLink):
     return str_home,str_away
 
 
-def fn_driverStart():
+def fn_driverStart(init_bb_firefox_on):
+       
+    if init_bb_firefox_on == True:
+            
+        #start driver with open browser
+        driver = webdriver.Firefox()
+           
+    else:
+           
+        # # Firefox için headless seçeneği oluşturun
+        firefox_options = Options()
+        firefox_options.add_argument('--headless')
 
-       # # Firefox için headless seçeneği oluşturun
-       firefox_options = Options()
-       firefox_options.add_argument('--headless')
+        #start driver without browse
+        driver = webdriver.Firefox(options=firefox_options)
 
-       #start driver
-       driver = webdriver.Firefox(options=firefox_options)
-       # driver = webdriver.Firefox()
+    # Hedef web sitesine gidin
+    macKolikUrl = basket_games_link #"https://www.mackolik.com/basketbol/canli-sonuclar"
+    driver.get(macKolikUrl)
+    time.sleep(4)
+    accept_cookies(driver)
+    time.sleep(4)
 
-
-       # Hedef web sitesine gidin
-       macKolikUrl = "https://www.mackolik.com/basketbol/canli-sonuclar"
-       driver.get(macKolikUrl)
-       time.sleep(4)
-       accept_cookies(driver)
-       time.sleep(4)
-
-       return driver
+    return driver
 
 
 def date_period_check(date, as_future):
@@ -496,8 +503,7 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
     
     # calc how many time will be clicked on day, month and year on calendar
     diff_year,diff_month,selected_day = fn_SelectStartDate_set(db_lastStartdate,repeat_count)
-     
-    driver = fn_driverStart()
+    driver = fn_driverStart(init_bb_firefox_on)
     
     #select given date to start pulling
     clickStartDate(driver,diff_year,diff_month,selected_day,db_lastStartdate)
@@ -877,7 +883,7 @@ def master_trigger():
         print(Fore.MAGENTA + f'\n------------> {date} ({day}) have been started to collect <-----------------' + Style.RESET_ALL, flush=True)
         df = pd.DataFrame({'given_date':date,'repeat':0,'date_range':lst_dateRange})
 
-        df.to_sql(name='BB_log_time_jump', con=engine, if_exists='replace', index=False)
+        df.to_sql(name='BB_log_TimeJump', con=engine, if_exists='replace', index=False)
         master_collection(engine)
 
         # count_run = 0

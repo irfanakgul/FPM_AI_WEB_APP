@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 
+
+basket_games_link = "https://www.mackolik.com/basketbol/canli-sonuclar"
 # Parameters for pulling games | in DATA GATHERING
 bb_as_future = False
 bb_best_league=False
@@ -15,6 +17,7 @@ bb_rond_threshold = 0.50
 # google connection
 spreadsheet_id='1c_0Maup2VkR1yg-RjkCbVS1e7d_ng0wgMGY43nFPn3U'
 
+bb_firefox_on = False
 
 # connection into cloud db (central)
 def cloud_connection():
