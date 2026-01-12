@@ -237,8 +237,6 @@ def set_week_period():
     
     return period
 
-
-
 def fn_link_clean(link):
     if '/fikstur' in link:
         return link.replace('/fikstur', '')

@@ -47,3 +47,11 @@ def cloud_connection():
     return engine
 
 engine = cloud_connection()
+
+
+## prediction chapter
+bb_selected_odds_list = 'odds_select_B'
+bb_target_cols = ['home_FT','Away_FT']
+bb_rond_threshold = 0.6  # threshold for round up/down on predicted scores
+bb_model_size = 11
+bb_model_first_cleaned_data = 'BB_model_first_cleaned_TrainData'

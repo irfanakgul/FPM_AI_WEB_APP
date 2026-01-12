@@ -41,15 +41,7 @@ cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 tables = cursor.fetchall()
 
 
-manual_table_list = ['only_links_all',
- 'disabledGameLinks',
- 'issue_error_Links',
- 'log_accuracy_onScore',
- 'issue_char',
- 'model_first_cleaned_TrainData',
- 'log_mdl_accuracy_scores',
- 'Predicted_games_AVG_sec',
- 'log_TimeJump']
+manual_table_list = ['BB_Predicted_games_AVG']
 
 if len(manual_table_list)>0:
     print(f"Size: {len(manual_table_list)}")
@@ -66,6 +58,6 @@ for table in tables:
         
     df = fn_read_data_db(str_table,conn)
     print(f"{str_table} | {len(df)}")
-    df.to_sql(f'BB_{str_table}', engine, if_exists="replace", index=False)
+    df.to_sql(f'{str_table}', engine, if_exists="replace", index=False)
 
 print('**DONE**')
