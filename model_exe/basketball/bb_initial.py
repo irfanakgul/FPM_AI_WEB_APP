@@ -63,3 +63,13 @@ bb_model_first_cleaned_data = 'BB_model_first_cleaned_TrainData'
 # model fit chapter
 bb_train_table_name = 'BB_results'
 bb_exclude_terms = ['U20', 'u20', 'U19', 'u19','u23','Kupa','kupa','KUPA','CUP','Cup','cup','Kupası', 'Bölgesel','U21','Hazırlık','hazirlik']
+
+
+# clear table chapter
+# list of clear button tables
+bb_lst_clear_button_tables = ['BB_futureGames']
+
+#protected tables. avoid to remove tables below:
+bb_lst_protected_tables = ['BB_futureGames_container','BB_WEEKLY_STANDINGS_rawContainer',\
+                        'BB_WEEKLY_STANDINGS','log_time_jump','tables','selection_Driver_List'\
+                        'BB_results']
