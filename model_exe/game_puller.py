@@ -621,7 +621,7 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
     #select given date to start pulling
     clickStartDate(driver,diff_year,diff_month,selected_day,db_lastStartdate)
 
-    time.sleep(15)
+    time.sleep(10)
     
     # check if current page container is the same with given date
     str_pageCurrent_date = fn_get_currentDate(driver)
@@ -637,7 +637,7 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
         #select given date to start pulling
         clickStartDate(driver,diff_year,diff_month,selected_day,db_lastStartdate)
         
-        time.sleep(30)
+        time.sleep(20)
         driver_count += 1
         str_pageCurrent_date = fn_get_currentDate(driver)
         print(Back.RED +f'??? Given date and page date is not matching!!! TRYING: {driver_count} ??? '+ Style.RESET_ALL, flush=True)

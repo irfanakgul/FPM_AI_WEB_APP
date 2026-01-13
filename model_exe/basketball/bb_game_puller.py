@@ -165,7 +165,7 @@ def clickStartDate(driver,diff_year,diff_month,selectedDay,db_lastStartdate):
     # based on fn_SelectStartDate_set output, this func will click and select start date    
     # open calendar
     driver.find_element(By.CSS_SELECTOR, ".widget-dateslider__datepicker-toggle").click()
-    time.sleep(3)
+    time.sleep(1)
     xpth = "/html/body/div[5]/div/main/div[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div/div[1]/div[2]/div[3]"
     driver.find_element(By.XPATH, xpth).click()
     
@@ -505,7 +505,7 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
     #select given date to start pulling
     clickStartDate(driver,diff_year,diff_month,selected_day,db_lastStartdate)
 
-    time.sleep(15)
+    time.sleep(10)
     
     # check if current page container is the same with given date
     str_pageCurrent_date = fn_get_currentDate(driver)
@@ -521,7 +521,7 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
         #select given date to start pulling
         clickStartDate(driver,diff_year,diff_month,selected_day,db_lastStartdate)
         
-        time.sleep(30)
+        time.sleep(20)
         driver_count += 1
         str_pageCurrent_date = fn_get_currentDate(driver)
         print(Back.RED +f'??? Given date and page date is not matching!!! TRYING: {driver_count} ??? '+ Style.RESET_ALL)
