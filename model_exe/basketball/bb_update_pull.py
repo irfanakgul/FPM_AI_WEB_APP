@@ -486,7 +486,7 @@ def fn_driverRun():
                             count += 1
                             driver.quit()
                 else:
-                    print(f'☑️ IDX: {count}> Game was already pulled before ##')
+                    print(f'☑️ IDX: {count}/{total_ftr_len}> Game was already pulled before ##')
                     count += 1
 
             except TimeoutException:
@@ -496,7 +496,7 @@ def fn_driverRun():
                 continue  # Bir sonrakine geç
             
         else:
-            print(f'⚠️ IDX: {count}> Link is not past: {str_date}-{str_time} ')
+            print(f'⚠️ IDX: {count}/{total_ftr_len}> Link is not past: {str_date}-{str_time} ')
             count += 1
 
     return df_future
@@ -520,13 +520,15 @@ df_merged = df_future.merge(
     how="left",
     suffixes=("_future", "_results")
 )
-
 # 2) İstediğin kolonları tek df'de birleştir
 df_comb = pd.DataFrame({
     # df_future'dan
     "MacTarihi": df_merged["MacTarihi_future"],
     "EvSahibi": df_merged["EvSahibi_future"],
     "KonukEkip": df_merged["KonukEkip_future"],
+    "Ms1": df_merged["Ms1"],
+    "Ms2": df_merged["Ms2"],
+
 
     # df_results'dan
     "P1": df_merged["P1_results"],
@@ -538,6 +540,7 @@ df_comb = pd.DataFrame({
     "GameLink": df_merged["GameLink"]
 
 })
+df_comb[['Ms1','Ms2']] = df_comb[['Ms1','Ms2']].replace('-',1.0)
 
 df_comb.to_sql(name='BB_future_result_analysis', con=engine, if_exists='replace', index=False)
 print('✅✅✅ FUTURE GAMES HAS BEEN UPDATED WITH RESULTS AFTER GAMES ARE REALISED.✅✅✅ ')
