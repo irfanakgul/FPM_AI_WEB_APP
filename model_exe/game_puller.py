@@ -16,7 +16,6 @@ from selenium.webdriver.firefox.options import Options # type: ignore
 from colorama import Fore, Style, Back # type: ignore
 from datetime import datetime, timedelta
 import warnings
-from datetime import datetime
 
 warnings.filterwarnings('ignore')
 class BadGatewayException(Exception):
@@ -109,6 +108,220 @@ def read_sql_case_safe(engine, query: str):
 
     fixed_query = f'SELECT {fixed_select} FROM "{table}" {rest}'.strip()
     return pd.read_sql_query(fixed_query, engine)
+
+
+def set_week_period(df):
+    "Calc period based on MacTarihi"
+    def calc_period(tarih_str):
+        tarih = datetime.strptime(tarih_str, '%d-%m-%Y')
+
+        # Bir önceki Salı (weekday 1)
+        onceki_sali = tarih - timedelta(days=(tarih.weekday() - 1) % 7)
+
+        # Sonraki ilk Pazartesi (weekday 0)
+        sonraki_pazartesi = tarih + timedelta(days=(7 - tarih.weekday()) % 7)
+
+        sali_str = onceki_sali.strftime('%d-%m-%Y')
+        pazartesi_str = sonraki_pazartesi.strftime('%d-%m-%Y')
+        return f"{sali_str}<>{pazartesi_str}"
+
+    df['period'] = df['MacTarihi'].apply(calc_period)
+    return df
+
+
+def add_is_std_curr(cleaned_df, lst_curr_weekly_dist_period):
+    """
+    cleaned_df['period'] sütunundaki ilk değerin,
+    lst_curr_weekly_dist_period listesi içinde olup olmadığını kontrol eder.
+    Sonucu boolean olarak cleaned_df['IS_STD_CURR'] sütununa ekler.
+
+    Parameters
+    ----------
+    cleaned_df : pd.DataFrame
+    lst_curr_weekly_dist_period : list
+        df_weekly['period'] sütunundan türetilmiş unique period listesi
+
+    Returns
+    -------
+    pd.DataFrame
+        IS_STD_CURR sütunu eklenmiş cleaned_df
+    """
+
+    # Boş dataframe kontrolü
+    if cleaned_df.empty:
+        cleaned_df['IS_STD_CURR'] = False
+        return cleaned_df
+
+    first_period = cleaned_df['period'].iloc[0]
+
+    cleaned_df['IS_STD_CURR'] = first_period in lst_curr_weekly_dist_period
+
+    return cleaned_df
+
+import pandas as pd
+
+def add_lig_code(cleaned_df: pd.DataFrame,
+                 df_weekly: pd.DataFrame,
+                 df_weekly_raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    cleaned_df'e Lig_CODE sütunu ekler.
+
+    Kurallar:
+    - IS_STD_CURR True -> öncelik df_weekly
+    - IS_STD_CURR False -> öncelik df_weekly_raw
+    - period seçilen DF'de yoksa diğer DF'de de aranır
+    - period her iki DF'de de yoksa -> '--NoStanding'
+    - home_lig ve away_lig aynıysa -> o değer
+    - değilse veya eksikse -> '--duplicateORmissing'
+    """
+
+    def _first_league_for_team(period_df: pd.DataFrame, team_name: str):
+        if period_df is None or period_df.empty:
+            return None
+        m = period_df["TeamName"].eq(team_name)
+        if not m.any():
+            return None
+        # birden fazla sonuç varsa ilkini al
+        return period_df.loc[m, "League"].iloc[0]
+
+    def _pick_period_df(period_val, prefer_weekly: bool):
+        """
+        prefer_weekly=True  -> önce df_weekly, sonra df_weekly_raw
+        prefer_weekly=False -> önce df_weekly_raw, sonra df_weekly
+        """
+        if prefer_weekly:
+            primary, secondary = df_weekly, df_weekly_raw
+        else:
+            primary, secondary = df_weekly_raw, df_weekly
+
+        p1 = primary.loc[primary["period"].eq(period_val)]
+        if not p1.empty:
+            return p1
+
+        p2 = secondary.loc[secondary["period"].eq(period_val)]
+        if not p2.empty:
+            return p2
+
+        return None  # ikisinde de yok
+
+    def _calc_row(row):
+        period_val = row["period"]
+        home = row["EvSahibi"]
+        away = row["KonukEkip"]
+
+        is_std = bool(row.get("IS_STD_CURR", False))  # yoksa False varsay
+        period_df = _pick_period_df(period_val, prefer_weekly=is_std)
+
+        if period_df is None or period_df.empty:
+            return "--NoStanding"
+
+        home_lig = _first_league_for_team(period_df, home)
+        away_lig = _first_league_for_team(period_df, away)
+
+        if home_lig is not None and away_lig is not None and home_lig == away_lig:
+            return home_lig
+
+        return "--duplicateORmissing"
+
+    cleaned_df["Lig_CODE"] = cleaned_df.apply(_calc_row, axis=1)
+    return cleaned_df
+
+
+
+import pandas as pd
+
+def add_standing_and_extra(cleaned_df: pd.DataFrame,
+                           df_weekly: pd.DataFrame,
+                           df_weekly_raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    cleaned_df'e aynı anda:
+      - Standing
+      - StandingExtra
+    sütunlarını ekler.
+
+    KESİN KURAL:
+    - period iki df_weekly tablosunda da YOKSA:
+        Standing = '--NoStanding'
+        StandingExtra = '--NoStanding'
+    """
+
+    def _pick_period_df(period_val, prefer_weekly: bool):
+        if prefer_weekly:
+            primary, secondary = df_weekly, df_weekly_raw
+        else:
+            primary, secondary = df_weekly_raw, df_weekly
+
+        p1 = primary.loc[primary["period"].eq(period_val)]
+        if not p1.empty:
+            return p1
+
+        p2 = secondary.loc[secondary["period"].eq(period_val)]
+        if not p2.empty:
+            return p2
+
+        return None  # iki DF'de de yok
+
+    def _team_row(df, team):
+        if df is None or df.empty:
+            return None
+        m = df["TeamName"].eq(team)
+        if not m.any():
+            return None
+        return df.loc[m].iloc[0]
+
+    def _val(row, col):
+        if row is None:
+            return "?"
+        v = row.get(col, "?")
+        return "?" if pd.isna(v) else v
+
+    def _calc_row(row):
+        period = row["period"]
+        lig = row.get("Lig_CODE")
+        home = row["EvSahibi"]
+        away = row["KonukEkip"]
+        is_std = bool(row.get("IS_STD_CURR", False))
+
+        period_df = _pick_period_df(period, prefer_weekly=is_std)
+
+        # 🔴 KESİN KURAL
+        if period_df is None:
+            return "--NoStanding", "--NoStanding"
+
+        # period + Lig_CODE filtresi
+        league_df = period_df.loc[period_df["League"].eq(lig)]
+
+        home_r = _team_row(league_df, home)
+        away_r = _team_row(league_df, away)
+
+        # ---------- Standing ----------
+        H = _val(home_r, "Position")
+        A = _val(away_r, "Position")
+        H_w = _val(home_r, "Week")
+        A_w = _val(away_r, "Week")
+
+        standing = f"H={H},A={A},Week={H_w}-{A_w}"
+
+        # ---------- StandingExtra ----------
+        extra_parts = [
+            f"H_P={_val(home_r,'Point')},A_P={_val(away_r,'Point')}",
+            f"H_W={_val(home_r,'Win')},A_W={_val(away_r,'Win')}",
+            f"H_D={_val(home_r,'Draw')},A_D={_val(away_r,'Draw')}",
+            f"H_L={_val(home_r,'Loss')},A_L={_val(away_r,'Loss')}",
+            f"H_GH={_val(home_r,'Goal_home')},A_GH={_val(away_r,'Goal_home')}",
+            f"H_GA={_val(home_r,'Goal_dep')},A_GA={_val(away_r,'Goal_dep')}",
+            f"H_AV={_val(home_r,'Avarage')},A_AV={_val(away_r,'Avarage')}",
+        ]
+
+        standing_extra = ",".join(extra_parts)
+
+        return standing, standing_extra
+
+    res = cleaned_df.apply(_calc_row, axis=1, result_type="expand")
+    cleaned_df["Standing"] = res[0]
+    cleaned_df["StandingExtra"] = res[1]
+
+    return cleaned_df
 
 
 
@@ -740,6 +953,11 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
                     print(f'!!! CAUTION > Limit is open ({limit}) for prediction. Flag: TRUE !!! ', flush=True)
                     new_links = new_links[:limit]
        
+        df_weekly = fn_read_data_db('MK_WEEKLY_STANDINGS')
+        lst_curr_weekly_dist_period = df_weekly['period'].unique().tolist()
+        
+        df_weekly_raw = fn_read_data_db('MK_WEEKLY_STANDINGS_rawContainer')
+
         # main for loop
         for game_link in new_links[int_jump:]:
             try:
@@ -848,7 +1066,169 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
     
                                 keywords = ['DUR', 'IPT', 'ERT', '(']
                                 cleaned_df = filter_dataframe(cleaned_df, 'IlkYariSonucu','MacSonucu', keywords,game_link,count,db_lastStartdate)
-    
+
+                                # set dynamic period ['period']
+                                cleaned_df = set_week_period(cleaned_df)
+
+                                # check game is in current weekly standing or not ['IS_STD_CURR']
+                                cleaned_df = add_is_std_curr(cleaned_df, lst_curr_weekly_dist_period)
+
+                                # set new league code based on weekly standing
+                                cleaned_df = add_lig_code(cleaned_df, df_weekly, df_weekly_raw)
+                                
+                                # set standing and extra standing info
+
+                                cleaned_df = add_standing_and_extra(
+                                    cleaned_df=cleaned_df,
+                                    df_weekly=df_weekly,
+                                    df_weekly_raw=df_weekly_raw
+                                )
+
+                                cols = columns = [
+
+                                                "MacTarihi",
+                                                "Time",
+                                                "EvSahibi",
+                                                "KonukEkip",
+                                                "Lig",
+                                                "IlkYariSonucu",
+                                                "MacSonucu",
+                                                "Ms1",
+                                                "Ms0",
+                                                "Ms2",
+                                                "CS10",
+                                                "CS12",
+                                                "CS02",
+                                                "H10Ms1",
+                                                "H10Ms0",
+                                                "H10Ms2",
+                                                "H20Ms1",
+                                                "H20Ms0",
+                                                "H20Ms2",
+                                                "H30Ms1",
+                                                "H30Ms0",
+                                                "H30Ms2",
+                                                "H01Ms1",
+                                                "H01Ms0",
+                                                "H01Ms2",
+                                                "H02Ms1",
+                                                "H02Ms0",
+                                                "H02Ms2",
+                                                "H03Ms1",
+                                                "H03Ms0",
+                                                "H03Ms2",
+                                                "Ms1den1",
+                                                "Ms0dan1",
+                                                "Ms2den1",
+                                                "Ms1den0",
+                                                "Ms0dan0",
+                                                "Ms2den0",
+                                                "Ms1den2",
+                                                "Ms0dan2",
+                                                "Ms2den2",
+                                                "Alt15",
+                                                "Ust15",
+                                                "Alt25",
+                                                "Ust25",
+                                                "Alt35",
+                                                "Ust35",
+                                                "Alt45",
+                                                "Ust45",
+                                                "Alt55",
+                                                "Ust55",
+                                                "MS1VE15A",
+                                                "MS0VE15A",
+                                                "MS2VE15A",
+                                                "MS1VE15U",
+                                                "MS0VE15U",
+                                                "MS2VE15U",
+                                                "MS1VE25A",
+                                                "MS0VE25A",
+                                                "MS2VE25A",
+                                                "MS1VE25U",
+                                                "MS0VE25U",
+                                                "MS2VE25U",
+                                                "MS1VE35A",
+                                                "MS0VE35A",
+                                                "MS2VE35A",
+                                                "MS1VE35U",
+                                                "MS0VE35U",
+                                                "MS2VE35U",
+                                                "IYAlt05",
+                                                "IYUst05",
+                                                "IYAlt25",
+                                                "IYUst25",
+                                                "IYAlt15",
+                                                "IYUst15",
+                                                "Ev05Alt",
+                                                "Ev05Ust",
+                                                "EnCokGol1Yari",
+                                                "EnCokGolEsit",
+                                                "EnCokGol2Yari",
+                                                "Dep25Alt",
+                                                "Dep25Ust",
+                                                "Dep05Alt",
+                                                "Dep05Ust",
+                                                "Dep15Alt",
+                                                "Dep15Ust",
+                                                "IYEv05Alt",
+                                                "IYEv05Ust",
+                                                "Iy1",
+                                                "Iy0",
+                                                "Iy2",
+                                                "TEK",
+                                                "CIFT",
+                                                "KgVar",
+                                                "KgYok",
+                                                "Ev15Alt",
+                                                "Ev15Ust",
+                                                "Ev25Alt",
+                                                "Ev25Ust",
+                                                "IYDep05Alt",
+                                                "IYDep05Ust",
+                                                "IYKgVar",
+                                                "IYKgYok",
+                                                "IYEnCokKorner1",
+                                                "IYEnCokKorner0",
+                                                "IYEnCokKorner2",
+                                                "Skor00",
+                                                "Skor10",
+                                                "Skor20",
+                                                "Skor30",
+                                                "Skor40",
+                                                "Skor50",
+                                                "Skor01",
+                                                "Skor02",
+                                                "Skor03",
+                                                "Skor04",
+                                                "Skor05",
+                                                "Skor11",
+                                                "Skor22",
+                                                "Skor33",
+                                                "Skor21",
+                                                "Skor31",
+                                                "Skor41",
+                                                "Skor51",
+                                                "Skor12",
+                                                "Skor32",
+                                                "Skor42",
+                                                "Skor13",
+                                                "Skor14",
+                                                "Skor15",
+                                                "Skor23",
+                                                "Skor24",
+                                                "period",
+                                                "IS_STD_CURR",
+                                                "Lig_CODE",
+                                                "Standing",
+                                                "StandingExtra",
+                                                "runTime",
+                                                "GameLink"
+                                            ]
+                                
+                                #re-order cols
+                                cleaned_df = cleaned_df[cols]
+
                                 if cursor == 'past':
                                     # DataFrame'i veritabanındaki bir tabloya eklemek
                                     cleaned_df.to_sql(name='results', con=engine, if_exists='append', index=False)
@@ -992,25 +1372,25 @@ def master_trigger():
         df = pd.DataFrame({'given_date':date,'repeat':0,'date_range':lst_dateRange})
 
         df.to_sql(name='log_time_jump', con=engine, if_exists='replace', index=False)
-        # master_collection(engine)
+        master_collection(engine)
 
-        count_run = 0
-        try:
-            #first run
-            master_collection(engine)
-        except:
-            count_run +=1
-            print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
-            try :
-                master_collection(engine)
+        # count_run = 0
+        # try:
+        #     #first run
+        #     master_collection(engine)
+        # except:
+        #     count_run +=1
+        #     print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
+        #     try :
+        #         master_collection(engine)
                 
-            except:
-                count_run +=1
-                print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
+        #     except:
+        #         count_run +=1
+        #         print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
     
-                master_collection(engine)
+        #         master_collection(engine)
                 
-                pass
+        #         pass
                 
                 
     
