@@ -959,10 +959,10 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
         df_weekly_raw = fn_read_data_db('MK_WEEKLY_STANDINGS_rawContainer')
 
         # pull spesific links
-        df_non_model = fn_read_data_db('tbl_futureGames_test')
-        new_links = list(df_non_model[~df_non_model["STATUS"].isin(["W", "D", "L"])]['GameLink'])
-        print(f'**** TEST NEW LINK SIZE = {len(new_links)} ****')
-        cursor = 'past'
+        # df_non_model = fn_read_data_db('tbl_futureGames_test')
+        # new_links = list(df_non_model[~df_non_model["STATUS"].isin(["W", "D", "L"])]['GameLink'])
+        # print(f'**** TEST NEW LINK SIZE = {len(new_links)} ****')
+        # cursor = 'past'
         # main for loop
         for game_link in new_links[int_jump:]:
             try:
@@ -972,9 +972,8 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
                 
                 # check game is already pulled or not. if not, do all progress below
                 if (game_link not in lst_pulled_gameLinks) and (game_link not in lst_disabled_links):
-                    print(game_link)
-                    # if (cursor == 'past') | (cursor == 'as_future'):
-                    #     game_link = f"{game_link.rsplit('/', 1)[0]}/iddaa/{game_link.rsplit('/', 1)[1]}"
+                    # print(game_link)
+
                     driver.get(game_link)
                     
                     body_css = WebDriverWait(driver, 6).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "body")))
@@ -1236,7 +1235,7 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
                                 cleaned_df = cleaned_df[cols]
 
                                 if cursor == 'past':
-                                    print('ADDED to results table')
+                                    # print('ADDED to results table')
                                     # DataFrame'i veritabanındaki bir tabloya eklemek
                                     cleaned_df.to_sql(name='results', con=engine, if_exists='append', index=False)
     
