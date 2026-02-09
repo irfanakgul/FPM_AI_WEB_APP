@@ -1024,10 +1024,3 @@ def master_trigger():
 
 if __name__ == "__main__":
     master_trigger()
-
-
-# In[ ]:
-
-
-
-
