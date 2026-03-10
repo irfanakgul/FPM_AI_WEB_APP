@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # coding: utf-8
 import signal
-from initial import engine, as_future, best_league, int_jump, limit
+from initial import engine, as_future, best_league, int_jump, limit,football_games_link,firefox_on
 import re
 from selenium import webdriver # pyright: ignore[reportMissingImports]
 from selenium.webdriver.common.by import By # type: ignore
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException # type: ignore
 import time
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait # type: ignore
+from selenium.webdriver.support import expected_conditions as EC # type: ignore
 import pandas as pd, numpy as np
 import os,sys
 from sqlalchemy import text
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.options import Options # type: ignore
 from colorama import Fore, Style, Back # type: ignore
 from datetime import datetime, timedelta
 import warnings
@@ -290,20 +290,25 @@ def fn_extract_teamsFromLink(gameLink):
 # In[17]:
 
 
-def fn_driverStart():
+def fn_driverStart(firefox_on):
+
     global GLOBAL_DRIVER   # 🔑
 
-    # # Firefox için headless seçeneği oluşturun
-    firefox_options = Options()
-    firefox_options.add_argument('--headless')
-    
-    #start driver
-    driver = webdriver.Firefox(options=firefox_options)
-    # driver = webdriver.Firefox()
-    
+    if firefox_on == True:
+        driver = webdriver.Firefox()
 
+    else:
+
+        # # Firefox için headless seçeneği oluşturun
+        firefox_options = Options()
+        firefox_options.add_argument('--headless')
+        
+        #start driver
+        driver = webdriver.Firefox(options=firefox_options)
+
+    
     # Hedef web sitesine gidin
-    macKolikUrl = "https://www.mackolik.com/futbol/canli-sonuclar"
+    macKolikUrl = football_games_link #"https://www.mackolik.com/futbol/canli-sonuclar"
     driver.get(macKolikUrl)
     time.sleep(4)
     accept_cookies(driver)
@@ -611,12 +616,12 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
     # calc how many time will be clicked on day, month and year on calendar
     diff_year,diff_month,selected_day = fn_SelectStartDate_set(db_lastStartdate,repeat_count)
      
-    driver = fn_driverStart()
+    driver = fn_driverStart(firefox_on)
     
     #select given date to start pulling
     clickStartDate(driver,diff_year,diff_month,selected_day,db_lastStartdate)
 
-    time.sleep(15)
+    time.sleep(10)
     
     # check if current page container is the same with given date
     str_pageCurrent_date = fn_get_currentDate(driver)
@@ -632,7 +637,7 @@ def fn_driverRun(as_future,best_league,limit,int_jump):
         #select given date to start pulling
         clickStartDate(driver,diff_year,diff_month,selected_day,db_lastStartdate)
         
-        time.sleep(30)
+        time.sleep(20)
         driver_count += 1
         str_pageCurrent_date = fn_get_currentDate(driver)
         print(Back.RED +f'??? Given date and page date is not matching!!! TRYING: {driver_count} ??? '+ Style.RESET_ALL, flush=True)
@@ -987,25 +992,25 @@ def master_trigger():
         df = pd.DataFrame({'given_date':date,'repeat':0,'date_range':lst_dateRange})
 
         df.to_sql(name='log_time_jump', con=engine, if_exists='replace', index=False)
-        master_collection(engine)
+        # master_collection(engine)
 
-        # count_run = 0
-        # try:
-        #     #first run
-        #     master_collection(engine)
-        # except:
-        #     count_run +=1
-        #     print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
-        #     try :
-        #         master_collection(engine)
+        count_run = 0
+        try:
+            #first run
+            master_collection(engine)
+        except:
+            count_run +=1
+            print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
+            try :
+                master_collection(engine)
                 
-        #     except:
-        #         count_run +=1
-        #         print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
+            except:
+                count_run +=1
+                print(Back.RED + f'-------------> Forcing: {count_run} <----------------------'+ Style.RESET_ALL, flush=True)
     
-        #         master_collection(engine)
+                master_collection(engine)
                 
-        #         pass
+                pass
                 
                 
     
@@ -1019,10 +1024,3 @@ def master_trigger():
 
 if __name__ == "__main__":
     master_trigger()
-
-
-# In[ ]:
-
-
-
-

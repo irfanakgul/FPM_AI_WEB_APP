@@ -1,4 +1,8 @@
-sqlite_path = "/Users/irfanakgul/Desktop/FPM_BACKUPS/fpm_ai_backup_02012026.db"
+# if the run doesn't work, then use this run code in terminal: 
+# python /Users/irfanakgul/Desktop/FPM_AI_WEB_APP/model_exe/utilty/replace_tables_from_local_to_cloud.py
+
+sqlite_path = "/Users/irfanakgul/Desktop/FPM/BPM_/database/results.db"
+# sqlite_path = "/Users/irfanakgul/Desktop/FPM_BACKUPS/database/fpm_ai_backup_11012026.db"
 
 import pandas as pd
 from sqlalchemy import create_engine, text
@@ -27,7 +31,6 @@ def fn_read_data_db(tableName, conn):
         raise ValueError("Invalid table name")
 
     query = f'SELECT * FROM {tableName}'
-    print(query)
     return pd.read_sql(query, conn)
 
 
@@ -38,7 +41,7 @@ cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 tables = cursor.fetchall()
 
 
-manual_table_list = ["MK_WEEKLY_STANDINGS"]
+manual_table_list = ['BB_Predicted_games_AVG']
 
 if len(manual_table_list)>0:
     print(f"Size: {len(manual_table_list)}")
@@ -55,6 +58,6 @@ for table in tables:
         
     df = fn_read_data_db(str_table,conn)
     print(f"{str_table} | {len(df)}")
-    df.to_sql(str_table, engine, if_exists="replace", index=False)
+    df.to_sql(f'{str_table}', engine, if_exists="replace", index=False)
 
 print('**DONE**')

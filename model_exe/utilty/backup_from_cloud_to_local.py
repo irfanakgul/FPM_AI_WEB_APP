@@ -1,3 +1,7 @@
+# if the run doesn't work, then use this run code in terminal: 
+# python /Users/irfanakgul/Desktop/FPM_AI_WEB_APP/model_exe/utilty/backup_from_cloud_to_local.py
+
+
 import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL

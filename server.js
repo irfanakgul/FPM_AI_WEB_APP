@@ -1,3 +1,8 @@
+// ===============================
+//   FPM SERVER (FULL VERSION)
+// ===============================
+
+
 console.log("🚀 SERVER.JS LOADED");
 let modelLogs = [];
 
@@ -19,9 +24,25 @@ let gamePullProcess = null;
 let standingPullProcess = null;
 
 
-// ===============================
-//   FPM SERVER (FULL VERSION)
-// ===============================
+
+// =========================================================
+// PURPOSE: Decide which python script to run (soccer vs basketball)
+// RULE:
+// - If request header "X-FPM-Model" === "bb" -> basketball
+// - else -> soccer (default)
+// =========================================================
+function resolvePyPath(req, soccerScriptName) {
+  const mode = String(req.headers["x-fpm-model"] || "").toLowerCase();
+
+  if (mode === "bb") {
+    // basketball scripts are in model_exe/bb_all and prefixed with bb_
+    return `model_exe/basketball/bb_${soccerScriptName}`;
+  }
+
+  // default soccer
+  return `model_exe/${soccerScriptName}`;
+}
+
 /* =========================================================
 FILE: /server.js  (PAYMENT → SHEET WRITE FIX)
 PURPOSE:
@@ -2260,135 +2281,223 @@ let gamePullRunning = false;
 /* 🔹 API ROUTE */
 let currentGamePullProcess = null;
 
-app.post("/api/game-pull", (req, res) => {
-    const { input } = req.body;
 
-    if (!input) {
-        return res.status(400).json({ error: "Input missing" });
-    }
+// =========================================================
+// STOP BUTTON
+// =========================================================
+// =========================================================
+// FILE: server.js
+// ENDPOINT: POST /api/game-pull/stop
+// PURPOSE:
+// - Stop ALL running python/selenium related processes started by endpoints
+// - Kills process trees (python + geckodriver + firefox)
+// NOTES:
+// - Works best if spawned processes are created with { detached:true }
+// =========================================================
+app.post("/api/game-pull/stop", async (req, res) => {
+  try {
+    const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
 
-    const [startDate, howMany] = input.trim().split(/\s+/);
+    pushModelLog(`[${modeTag}] STOP requested`, "system");
 
-    // const scriptPath =
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/game_puller.py";
-    
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "game_puller.py"
-        );
+    // Collect known process refs (some may be undefined/null)
+    const procs = [
+      { name: "activePyProcess", p: typeof activePyProcess !== "undefined" ? activePyProcess : null },
+      { name: "gamePullProcess", p: typeof gamePullProcess !== "undefined" ? gamePullProcess : null },
+      { name: "standingPullProcess", p: typeof standingPullProcess !== "undefined" ? standingPullProcess : null },
+      { name: "leaguePullProcess", p: typeof leaguePullProcess !== "undefined" ? leaguePullProcess : null },
+      { name: "updatePullProcess", p: typeof updatePullProcess !== "undefined" ? updatePullProcess : null },
+    ];
 
-    console.log("🚀 Spawning Python:", startDate, howMany);
+    let killed = 0;
 
-    gamePullProcess = spawn("python3", [
-    "-u",
-    scriptPath,
-    startDate,
-    howMany
-]);
+    // Helper: kill a process tree by process group (mac/linux)
+    function killTree(child, label) {
+      if (!child || !child.pid) return false;
 
-
-
-
-    // ✅ stdout
-    gamePullProcess.stdout.on("data", (data) => {
-        const msg = data.toString();
-        console.log("[GAME_PULL]", msg);
-
-        modelLogs.push({
-            type: "info",
-            message: msg,
-            time: Date.now()
-        });
-    });
-
-    // ✅ stderr
-    gamePullProcess.stderr.on("data", (data) => {
-        const msg = data.toString();
-        console.error("[GAME_PULL_ERROR]", msg);
-
-        modelLogs.push({
-            type: "error",
-            message: msg,
-            time: Date.now()
-        });
-    });
-
-    // ✅ close
-    gamePullProcess.on("close", (code) => {
-        console.log(`[GAME_PULL] Python finished with code ${code}`);
-
-        modelLogs.push({
-            type: "system",
-            message: `Python finished with code ${code}`,
-            time: Date.now()
-        });
-
-        currentGamePullProcess = null;
-    });
-
-    res.json({ status: "started" });
-});
-
-
-/* 🔹 STATIC EN SON */
-app.use(express.static("public"));
-
-
-app.get("/api/model-logs", (req, res) => {
-    res.json(modelLogs.splice(0)); // gönder ve temizle
-});
-
-
-
-app.delete("/api/model-logs", (req, res) => {
-    modelLogs = [];
-    res.json({ status: "cleared" });
-});
-
-// import { exec } from "child_process";
-
-app.post("/api/game-pull/stop", (req, res) => {
-    console.log("🛑 HARD STOP REQUEST RECEIVED");
-
-    // 🔥 ACIMASIZ OS KILL (TÜM PY + SELENIUM)
-    const killCmd = `
-        pkill -f game_puller.py;
-        pkill -f standing_puller.py;
-        pkill -f PredictionEngine.py;
-        pkill -f all_analysis.py;
-        pkill -f future_standing_finder.py;
-        pkill -f update_pull.py;
-        pkill -f model_train_fit.py
-        pkill -f geckodriver;
-        pkill -f firefox;
-    `;
-
-    exec(killCmd, (err) => {
-        if (err) {
-            console.error("❌ Kill error:", err.message);
+      try {
+        // On mac/linux: kill process group to include children (selenium drivers)
+        if (process.platform !== "win32") {
+          // negative pid => process group
+          process.kill(-child.pid, "SIGKILL");
+        } else {
+          // Windows: best effort (taskkill)
+          spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"]);
         }
 
-        // 🔄 TÜM REFERANSLARI SIFIRLA
-        gamePullProcess = null;
-        standingPullProcess = null;
-        predictProcess = null;
-        analysisProcess = null;
-        leaguePullProcess = null;
-        activePyProcess = null;
-        updatePullProcess = null;
+        pushModelLog(`[${modeTag}] KILLED ${label} (pid=${child.pid})`, "system");
+        return true;
+      } catch (e) {
+        // Fallback: direct kill
+        try {
+          child.kill("SIGKILL");
+          pushModelLog(`[${modeTag}] KILLED ${label} direct (pid=${child.pid})`, "system");
+          return true;
+        } catch (e2) {
+          pushModelLog(`[${modeTag}] FAILED to kill ${label} (pid=${child.pid})`, "error");
+          return false;
+        }
+      }
+    }
 
+    // Kill known refs
+    for (const item of procs) {
+      if (item.p && item.p.pid) {
+        const ok = killTree(item.p, item.name);
+        if (ok) killed += 1;
+      }
+    }
 
-        modelLogs.push({
-            type: "system",
-            message: "⛔ ALL Python + Selenium + Firefox processes FORCE KILLED",
-            time: Date.now()
-        });
+    // Clear refs (avoid stale pid reuse)
+    try { activePyProcess = null; } catch {}
+    try { gamePullProcess = null; } catch {}
+    try { standingPullProcess = null; } catch {}
+    try { leaguePullProcess = null; } catch {}
+    try { updatePullProcess = null; } catch {}
 
-        res.json({ status: "killed" });
-    });
+    pushModelLog(`[${modeTag}] STOP complete. processesKilled=${killed}`, "system");
+
+    return res.json({ success: true, stopped: true, processesKilled: killed });
+  } catch (err) {
+    console.error("STOP ERROR:", err);
+    pushModelLog(`[STOP] ERROR: ${err.message}`, "error");
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
+//
+// =========================================================
+// FILE: server.js
+// ENDPOINT: POST /api/game-pull
+// PURPOSE:
+// - Runs soccer or basketball script via resolvePyPath(req, "game_puller.py")
+// - NO static paths
+// - SEND RESPONSE ONLY ONCE
+// - Push stdout/stderr lines into MODEL_LOGS so UI can show them
+// =========================================================
+app.post("/api/game-pull", (req, res) => {
+  let responded = false;
+  const sendOnce = (status, payload) => {
+    if (responded) return;
+    responded = true;
+    return res.status(status).json(payload);
+  };
+
+  const { input } = req.body;
+  if (!input) return sendOnce(400, { success: false, error: "Input missing" });
+
+  const [startDate, howMany] = String(input).trim().split(/\s+/);
+  if (!startDate || !howMany) {
+    return sendOnce(400, { success: false, error: "Invalid input. Expected: <DD-MM-YYYY> <count>" });
+  }
+
+  const scriptRel = resolvePyPath(req, "game_puller.py");
+  const scriptPath = path.join(__dirname, scriptRel);
+
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
+
+  console.log("🚀 Spawning Python:", { scriptPath, startDate, howMany });
+
+  try {
+    // Start marker (visible in UI)
+    pushModelLog(`[${modeTag}] START game-pull | ${startDate} ${howMany}`, "system");
+
+    gamePullProcess = spawn("python3", ["-u", scriptPath, startDate, howMany], {
+      cwd: __dirname,
+      env: process.env,
+      detached: true
+    });
+    gamePullProcess.unref();
+
+  } catch (e) {
+    console.error("❌ spawn threw:", e);
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return sendOnce(500, { success: false, error: e.message });
+  }
+
+  // ✅ reply immediately (single response)
+  sendOnce(200, { success: true, started: true, script: scriptRel });
+
+  // ---------------------------------------------------------
+  // STDOUT -> UI
+  // ---------------------------------------------------------
+  gamePullProcess.stdout.on("data", (d) => {
+    const msg = d.toString();
+    console.log("[PY STDOUT]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
+
+  // ---------------------------------------------------------
+  // STDERR -> UI
+  // ---------------------------------------------------------
+  gamePullProcess.stderr.on("data", (d) => {
+    const msg = d.toString();
+    console.error("[PY STDERR]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
+
+  gamePullProcess.on("error", (err) => {
+    console.error("❌ child_process error:", err);
+    pushModelLog(`[${modeTag}] PROCESS ERROR: ${err.message}`, "error");
+  });
+
+  gamePullProcess.on("close", (code) => {
+    console.log("✅ Python finished. exit code:", code);
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+  });
+});
+
+
+
+// =========================================================
+// FILE: server.js
+// SECTION: Model logs buffer (shared by soccer + basketball)
+// PURPOSE:
+// - Store log lines so UI can poll /api/model-logs
+// - "pull queue" style: GET returns and clears buffer (instant feel)
+// =========================================================
+let MODEL_LOGS = [];
+
+function pushModelLog(message, type = "log") {
+  // Split big chunks into lines so UI looks "instant"
+  const text = String(message || "");
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+
+  for (const line of lines) {
+    MODEL_LOGS.push({
+      type,
+      message: line,
+      ts: Date.now()
+    });
+  }
+
+  // Keep buffer small
+  if (MODEL_LOGS.length > 800) {
+    MODEL_LOGS = MODEL_LOGS.slice(-600);
+  }
+}
+
+// =========================================================
+// ENDPOINT: GET /api/model-logs
+// PURPOSE:
+// - Return current buffer AND clear it
+// - This gives "live" streaming feel on the UI
+// =========================================================
+app.get("/api/model-logs", (req, res) => {
+  const out = MODEL_LOGS;
+  MODEL_LOGS = []; // ✅ clear after sending (instant)
+  res.json(out);
+});
+
+// =========================================================
+// ENDPOINT: DELETE /api/model-logs
+// PURPOSE:
+// - Clear buffer (fix variable name bug)
+// =========================================================
+app.delete("/api/model-logs", (req, res) => {
+  MODEL_LOGS = [];
+  res.json({ status: "cleared" });
+});
 
 
 
@@ -2397,587 +2506,775 @@ app.post("/api/game-pull/stop", (req, res) => {
 // =====================================
 // STANDING PULL BUTTON
 // =====================================
+// =========================================================
+// FILE: server.js
+// ENDPOINT: POST /api/standing-pull
+// PURPOSE:
+// - Runs soccer or basketball standing puller based on X-FPM-Model header
+//   * soccer: model_exe/standing_puller.py
+//   * bb:     model_exe/basketball/bb_standing_puller.py
+// - No static paths
+// - Pushes stdout/stderr into MODEL_LOGS via pushModelLog (live UI)
+// - Sends response ONLY ONCE
+// =========================================================
 app.post("/api/standing-pull", (req, res) => {
-    console.log("🟢 STANDING PULL ENDPOINT HIT");
+  console.log("🟢 STANDING PULL ENDPOINT HIT");
 
-    const { input } = req.body;
-    console.log("INPUT:", input);
+  const { input } = req.body;
+  console.log("INPUT:", input);
 
-    if (!input || !input.trim()) {
-        return res.status(400).json({ error: "Input empty" });
-    }
+  if (!input || !String(input).trim()) {
+    return res.status(400).json({ success: false, error: "Input empty" });
+  }
 
-    // 🔹 1️⃣ ÖNCE parçala
-    const parts = input.trim().split(/\s+/);
-
-    if (parts.length < 2) {
-        return res.status(400).json({
-            error: "Standing Pull requires TWO parameters"
-        });
-    }
-
-    // 🔹 2️⃣ SONRA parametreleri al
-    const [param1, param2] = parts;
-
-    // const scriptPath =
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/standing_puller.py";
-
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "standing_puller.py"
-        );
-
-    console.log("🚀 Spawning Standing Pull:", param1, param2);
-
-    // 🔹 3️⃣ EN SON spawn et
-    standingPullProcess = spawn("python3", [
-    "-u",
-    scriptPath,
-    param1,
-    param2
-]);
-
-
-    standingPullProcess.stdout.on("data", data => {
-        const msg = data.toString();
-        console.log("[STANDING_PULL]", msg);
-
-        modelLogs.push({
-            type: "info",
-            message: msg,
-            time: Date.now()
-        });
+  // 1) Parse input
+  const parts = String(input).trim().split(/\s+/);
+  if (parts.length < 2) {
+    return res.status(400).json({
+      success: false,
+      error: "Standing Pull requires TWO parameters"
     });
+  }
 
-    standingPullProcess.stderr.on("data", data => {
-        const msg = data.toString();
-        console.error("[STANDING_PULL_ERROR]", msg);
+  const [param1, param2] = parts;
 
-        modelLogs.push({
-            type: "error",
-            message: msg,
-            time: Date.now()
-        });
+  // 2) Resolve script (no static path)
+  const scriptRel = resolvePyPath(req, "standing_puller.py");
+  const scriptPath = path.join(__dirname, scriptRel);
+
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
+
+  console.log("🚀 Spawning Standing Pull:", { scriptPath, param1, param2 });
+
+  // Start marker for UI
+  pushModelLog(`[${modeTag}] START standing-pull | ${param1} ${param2}`, "system");
+
+  // 3) Spawn
+  try {
+    standingPullProcess = spawn("python3", ["-u", scriptPath, param1, param2], {
+      cwd: __dirname,
+      env: process.env,
+      detached: true
     });
+    standingPullProcess.unref();
 
-    standingPullProcess.on("close", code => {
-        modelLogs.push({
-            type: "system",
-            message: `Standing Pull finished (code ${code})`,
-            time: Date.now()
-        });
-    });
+  } catch (e) {
+    console.error("❌ spawn threw:", e);
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-    res.json({ status: "started" });
+  // 4) Live logs -> UI
+  standingPullProcess.stdout.on("data", (data) => {
+    const msg = data.toString();
+    console.log("[STANDING_PULL]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
+
+  standingPullProcess.stderr.on("data", (data) => {
+    const msg = data.toString();
+    console.error("[STANDING_PULL_ERROR]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
+
+  standingPullProcess.on("error", (err) => {
+    console.error("❌ child_process error:", err);
+    pushModelLog(`[${modeTag}] PROCESS ERROR: ${err.message}`, "error");
+  });
+
+  standingPullProcess.on("close", (code) => {
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+  });
+
+  // 5) Single response
+  return res.json({ success: true, status: "started", script: scriptRel });
 });
+
 
 // =====================================
 // Predict Button Action
 // =====================================
+// =========================================================
+// FILE: server.js
+// ENDPOINT: POST /api/predict
+// PURPOSE:
+// - Runs soccer or basketball PredictionEngine depending on X-FPM-Model header
+//   * soccer: model_exe/PredictionEngine.py
+//   * bb:     model_exe/basketball/bb_PredictionEngine.py
+// - No static paths
+// - Pushes stdout/stderr to UI logs instantly via pushModelLog
+// - Sends response ONLY ONCE
+// =========================================================
+// =========================================================
+// FILE: server.js
+// ENDPOINT: POST /api/predict
+// PURPOSE:
+// - Soccer: model_exe/PredictionEngine.py
+// - BB:     model_exe/basketball/bb_PredictionEngine.py
+// - STOP compatible: detached + unref + activePyProcess
+// - Live logs: pushModelLog
+// - macOS noise filtered from UI
+// =========================================================
 app.post("/api/predict", (req, res) => {
-    console.log("🟣 PREDICT ENDPOINT HIT");
+  console.log("🟣 PREDICT ENDPOINT HIT");
 
-    const input = req.body?.input;
+  const input = req.body?.input;
+  console.log("INPUT:", input);
 
-    console.log("INPUT:", input);
+  if (!input || !String(input).trim()) {
+    return res.status(400).json({ success: false, error: "Input required (yes/no)" });
+  }
 
-    if (!input || !input.trim()) {
-        return res.status(400).json({ error: "Input required (yes/no)" });
-    }
+  const response = String(input).trim().toLowerCase();
+  if (response !== "yes" && response !== "no") {
+    return res.status(400).json({ success: false, error: "Predict input must be yes or no" });
+  }
 
-    const response = input.trim().toLowerCase();
-    if (response !== "yes" && response !== "no") {
-        return res.status(400).json({
-            error: "Predict input must be yes or no"
-        });
-    }
+  // Resolve script (no static path)
+  const scriptRel = resolvePyPath(req, "PredictionEngine.py");
+  const scriptPath = path.join(__dirname, scriptRel);
 
-    // const scriptPath =
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/PredictionEngine.py";
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
 
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "PredictionEngine.py"
-        );
-    console.log("🚀 Spawning Predict:", response);
+  console.log("🚀 Spawning Predict:", { scriptPath, response });
 
-    const pyProcess = spawn("python3", [
-        "-u", 
-        scriptPath,
-        response
-    ]);
+  // UI start marker
+  pushModelLog(`[${modeTag}] START predict | onlyNew=${response}`, "system");
 
-    pyProcess.stdout.on("data", data => {
-        const msg = data.toString();
-        console.log("[PREDICT]", msg);
-        modelLogs.push({ type: "info", message: msg, time: Date.now() });
-    });
+  let pyProcess;
+  try {
+    // ✅ IMPORTANT: assign to the OUTER variable (no "const" here)
+    pyProcess = spawn(
+      "python3",
+      ["-u", scriptPath, response],
+      {
+        cwd: __dirname,
+        env: process.env,
+        detached: true // ✅ STOP için şart
+      }
+    );
 
-    pyProcess.stderr.on("data", data => {
-        const msg = data.toString();
-        console.error("[PREDICT_ERROR]", msg);
-        modelLogs.push({ type: "error", message: msg, time: Date.now() });
-    });
+    pyProcess.unref();           // ✅ Node’u kilitlemesin
+    activePyProcess = pyProcess; // ✅ STOP bunu öldürebilsin
 
-    pyProcess.on("close", code => {
-        modelLogs.push({
-            type: "system",
-            message: `Predict finished (code ${code})`,
-            time: Date.now()
-        });
-    });
+  } catch (e) {
+    console.error("❌ spawn threw:", e);
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-    res.json({ status: "started" });
+  // Live logs -> UI
+  pyProcess.stdout.on("data", (data) => {
+    const msg = data.toString();
+    console.log("[PREDICT]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
+
+  pyProcess.stderr.on("data", (data) => {
+    const msg = data.toString();
+
+    // Filter macOS noise (not real error)
+    const isMacNoise =
+      msg.includes("MallocStackLogging: can't turn off malloc stack logging") ||
+      msg.includes("MallocStackLogging:") ||
+      msg.includes("objc[") ||
+      msg.includes("libobjc");
+
+    console.error("[PREDICT_ERROR]", msg);
+
+    if (isMacNoise) return;
+    pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
+
+  pyProcess.on("error", (err) => {
+    console.error("❌ child_process error:", err);
+    pushModelLog(`[${modeTag}] PROCESS ERROR: ${err.message}`, "error");
+  });
+
+  pyProcess.on("close", (code) => {
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+    // optional: activePyProcess reset (safe)
+    if (activePyProcess === pyProcess) activePyProcess = null;
+  });
+
+  // Single response
+  return res.json({ success: true, status: "started", script: scriptRel });
 });
+
+
 
 // =====================================
 // Analysis button js
 // =====================================
+// =========================================================
+// FILE: server.js
+// ENDPOINT: POST /api/analysis
+// PURPOSE:
+// - Soccer: model_exe/all_analysis.py
+// - BB:     model_exe/basketball/bb_all_analysis.py
+// - Live UI logs via pushModelLog
+// - No static paths, single response
+// =========================================================
 app.post("/api/analysis", (req, res) => {
-    console.log("🔵 ANALYSIS ENDPOINT HIT");
+  console.log("🔵 ANALYSIS ENDPOINT HIT");
 
-    // const scriptPath =
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/all_analysis.py";
+  const scriptRel = resolvePyPath(req, "all_analysis.py");
+  const scriptPath = path.join(__dirname, scriptRel);
 
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "all_analysis.py"
-        );
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
 
-    console.log("🚀 Spawning Analysis:", scriptPath);
+  console.log("🚀 Spawning Analysis:", scriptPath);
+  pushModelLog(`[${modeTag}] START analysis | ${scriptRel}`, "system");
 
-    const pyProcess = spawn("python3", [
-        "-u",          // 👈 UNBUFFERED
-        scriptPath
-    ]);
-
-    activePyProcess = pyProcess;
-
-    pyProcess.stdout.on("data", data => {
-        const msg = data.toString();
-        console.log("[ANALYSIS]", msg);
-
-        modelLogs.push({
-            type: "info",
-            message: msg,
-            time: Date.now()
-        });
+  let pyProcess;
+  try {
+    pyProcess = spawn("python3", ["-u", scriptPath], {
+      cwd: __dirname,
+      env: process.env,
+      detached: true
     });
+    pyProcess.unref();
 
-    pyProcess.stderr.on("data", data => {
-        const msg = data.toString();
-        console.error("[ANALYSIS_ERROR]", msg);
+  } catch (e) {
+    console.error("❌ spawn threw:", e);
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-        modelLogs.push({
-            type: "error",
-            message: msg,
-            time: Date.now()
-        });
-    });
+  activePyProcess = pyProcess;
 
-    pyProcess.on("close", code => {
-        console.log(`[ANALYSIS] finished with code ${code}`);
+  pyProcess.stdout.on("data", (data) => {
+    const msg = data.toString();
+    console.log("[ANALYSIS]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
 
-        modelLogs.push({
-            type: "system",
-            message: `Analysis finished (code ${code})`,
-            time: Date.now()
-        });
+  pyProcess.stderr.on("data", (data) => {
+    const msg = data.toString();
+    console.error("[ANALYSIS_ERROR]", msg);
 
-        activePyProcess = null;
-    });
+    // Filter macOS noise (not real error)
+    const isNoise =
+      msg.includes("MallocStackLogging:") ||
+      msg.includes("objc[") ||
+      msg.includes("libobjc");
 
-    res.json({ status: "started" });
+    if (!isNoise) pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
+
+  pyProcess.on("error", (err) => {
+    console.error("❌ child_process error:", err);
+    pushModelLog(`[${modeTag}] PROCESS ERROR: ${err.message}`, "error");
+  });
+
+  pyProcess.on("close", (code) => {
+    console.log(`[ANALYSIS] finished with code ${code}`);
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+    activePyProcess = null;
+  });
+
+  return res.json({ success: true, status: "started", script: scriptRel });
 });
+
 
 // =====================================
 // League Pull button actioon
 // =====================================
 
+// =========================================================
+// FILE: server.js
+// ENDPOINT: POST /api/league-pull
+// PURPOSE:
+// - Soccer: model_exe/future_standing_finder.py
+// - BB:     model_exe/basketball/bb_future_standing_finder.py
+// - Live UI logs via pushModelLog
+// - No static paths, single response
+// =========================================================
 app.post("/api/league-pull", (req, res) => {
-    console.log("🟡 LEAGUE PULL ENDPOINT HIT");
+  console.log("🟡 LEAGUE PULL ENDPOINT HIT");
 
-    // const scriptPath =
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/future_standing_finder.py";
+  const scriptRel = resolvePyPath(req, "future_standing_finder.py");
+  const scriptPath = path.join(__dirname, scriptRel);
 
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "future_standing_finder.py"
-        );
-    console.log("🚀 Spawning League PULL:", scriptPath);
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
 
-    const pyProcess = spawn("python3", ["-u", scriptPath]);
+  console.log("🚀 Spawning League PULL:", scriptPath);
+  pushModelLog(`[${modeTag}] START league-pull | ${scriptRel}`, "system");
 
-
-    // 🔑 STOP için global referans
-    leaguePullProcess = pyProcess;
-    activePyProcess = pyProcess;
-
-    pyProcess.stdout.on("data", (data) => {
-        const msg = data.toString();
-        console.log("[LEAGUE_PULL]", msg);
-
-        modelLogs.push({
-            type: "info",
-            message: msg,
-            time: Date.now()
-        });
+  let pyProcess;
+  try {
+    pyProcess = spawn("python3", ["-u", scriptPath], {
+      cwd: __dirname,
+      env: process.env,
+      detached: true
     });
+    pyProcess.unref();
 
-    pyProcess.stderr.on("data", (data) => {
-        const msg = data.toString();
-        console.error("[LEAGUE_PULL_ERROR]", msg);
+  } catch (e) {
+    console.error("❌ spawn threw:", e);
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-        modelLogs.push({
-            type: "error",
-            message: msg,
-            time: Date.now()
-        });
-    });
+  // Keep your STOP references
+  leaguePullProcess = pyProcess;
+  activePyProcess = pyProcess;
 
-    pyProcess.on("close", (code) => {
-        console.log(`[LEAGUE_PULL] finished with code ${code}`);
+  pyProcess.stdout.on("data", (data) => {
+    const msg = data.toString();
+    console.log("[LEAGUE_PULL]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
 
-        modelLogs.push({
-            type: "system",
-            message: `League PULL finished (code ${code})`,
-            time: Date.now()
-        });
+  pyProcess.stderr.on("data", (data) => {
+    const msg = data.toString();
+    console.error("[LEAGUE_PULL_ERROR]", msg);
 
-        leaguePullProcess = null;
-        activePyProcess = null;
-    });
+    const isNoise =
+      msg.includes("MallocStackLogging:") ||
+      msg.includes("objc[") ||
+      msg.includes("libobjc");
 
-    res.json({ status: "started" });
+    if (!isNoise) pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
+
+  pyProcess.on("error", (err) => {
+    console.error("❌ child_process error:", err);
+    pushModelLog(`[${modeTag}] PROCESS ERROR: ${err.message}`, "error");
+  });
+
+  pyProcess.on("close", (code) => {
+    console.log(`[LEAGUE_PULL] finished with code ${code}`);
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+    leaguePullProcess = null;
+    activePyProcess = null;
+  });
+
+  return res.json({ success: true, status: "started", script: scriptRel });
 });
+
 
 // =====================================
 // Update ?  Pull button actioon
 // =====================================
 
+// =========================================================
+// FILE: server.js
+// ENDPOINT: POST /api/update-pull
+// PURPOSE:
+// - Soccer: model_exe/update_pull.py
+// - BB:     model_exe/basketball/bb_update_pull.py
+// - Live UI logs via pushModelLog
+// - No static paths, single response
+// =========================================================
 let updatePullProcess = null;
 
 app.post("/api/update-pull", (req, res) => {
-    console.log("🟠 UPDATE PULL ENDPOINT HIT");
+  console.log("🟠 UPDATE PULL ENDPOINT HIT");
 
-    // const scriptPath =
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/update_pull.py";
+  const scriptRel = resolvePyPath(req, "update_pull.py");
+  const scriptPath = path.join(__dirname, scriptRel);
 
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "update_pull.py"
-        );
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
 
-    console.log("🚀 Spawning Update PULL:", scriptPath);
+  console.log("🚀 Spawning Update PULL:", scriptPath);
+  pushModelLog(`[${modeTag}] START update-pull | ${scriptRel}`, "system");
 
-    const pyProcess = spawn("python3", ["-u", scriptPath]);
-
-    // 🔑 STOP için referans
-    updatePullProcess = pyProcess;
-    activePyProcess = pyProcess;
-
-    pyProcess.stdout.on("data", data => {
-        const msg = data.toString();
-        console.log("[UPDATE_PULL]", msg);
-
-        modelLogs.push({
-            type: "info",
-            message: msg,
-            time: Date.now()
-        });
+  let pyProcess;
+  try {
+    pyProcess = spawn("python3", ["-u", scriptPath], {
+      cwd: __dirname,
+      env: process.env,
+      detached: true
     });
+    pyProcess.unref();
 
-    pyProcess.stderr.on("data", data => {
-        const msg = data.toString();
-        console.error("[UPDATE_PULL_ERROR]", msg);
+  } catch (e) {
+    console.error("❌ spawn threw:", e);
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-        modelLogs.push({
-            type: "error",
-            message: msg,
-            time: Date.now()
-        });
-    });
+  // Keep STOP refs
+  updatePullProcess = pyProcess;
+  activePyProcess = pyProcess;
 
-    pyProcess.on("close", code => {
-        console.log(`[UPDATE_PULL] finished with code ${code}`);
+  pyProcess.stdout.on("data", (data) => {
+    const msg = data.toString();
+    console.log("[UPDATE_PULL]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
 
-        modelLogs.push({
-            type: "system",
-            message: `Update PULL finished (code ${code})`,
-            time: Date.now()
-        });
+  pyProcess.stderr.on("data", (data) => {
+    const msg = data.toString();
+    console.error("[UPDATE_PULL_ERROR]", msg);
 
-        updatePullProcess = null;
-        activePyProcess = null;
-    });
+    const isNoise =
+      msg.includes("MallocStackLogging:") ||
+      msg.includes("objc[") ||
+      msg.includes("libobjc");
 
-    res.json({ status: "started" });
+    if (!isNoise) pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
+
+  pyProcess.on("error", (err) => {
+    console.error("❌ child_process error:", err);
+    pushModelLog(`[${modeTag}] PROCESS ERROR: ${err.message}`, "error");
+  });
+
+  pyProcess.on("close", (code) => {
+    console.log(`[UPDATE_PULL] finished with code ${code}`);
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+    updatePullProcess = null;
+    activePyProcess = null;
+  });
+
+  return res.json({ success: true, status: "started", script: scriptRel });
 });
 
 /////////////
 
 // =====================================
-// Clear Table Button
+// Clear Table Button GROUP
 // =====================================
-
+// =========================================================
+// ENDPOINT: POST /api/clear-table
+// PURPOSE:
+// - Runs clear script with input (confirm/cancel)
+// - Soccer: model_exe/clear_future_table.py
+// - BB:     model_exe/basketball/bb_clear_future_table.py
+// - Live UI logs via pushModelLog
+// - STOP compatible (detached + unref + activePyProcess)
+// =========================================================
 app.post("/api/clear-table", (req, res) => {
-    console.log("🧹 CLEAR TABLE ENDPOINT HIT");
+  console.log("🧹 CLEAR TABLE ENDPOINT HIT");
 
-    const { input } = req.body;
-    console.log("INPUT:", input);
+  const { input } = req.body;
+  console.log("INPUT:", input);
 
-    if (!input || !input.trim()) {
-        return res.status(400).json({ error: "Confirmation required" });
-    }
+  if (!input || !String(input).trim()) {
+    return res.status(400).json({ success: false, error: "Confirmation required" });
+  }
 
-    // const scriptPath =
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/clear_future_table.py";
+  const scriptRel = resolvePyPath(req, "clear_future_table.py");
+  const scriptPath = path.join(__dirname, scriptRel);
 
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "clear_future_table.py"
-        );
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
+  const cleanInput = String(input).trim();
 
-    console.log("🚀 Spawning Clear Table:", input);
+  console.log("🚀 Spawning Clear Table:", { scriptPath, cleanInput });
+  pushModelLog(`[${modeTag}] START clear-table | input=${cleanInput}`, "system");
 
-    const pyProcess = spawn("python3", [
-        scriptPath,
-        input
-    ]);
+  let pyProcess;
+  try {
+    // ✅ IMPORTANT: assign to outer variable (NO "const" here)
+    pyProcess = spawn(
+      "python3",
+      ["-u", scriptPath, cleanInput],
+      { cwd: __dirname, env: process.env, detached: true }
+    );
 
-    // 🔑 STOP için referans
+    pyProcess.unref();
     activePyProcess = pyProcess;
 
-    pyProcess.stdout.on("data", data => {
-        const msg = data.toString();
-        console.log("[CLEAR_TABLE]", msg);
+  } catch (e) {
+    console.error("❌ spawn threw:", e);
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-        modelLogs.push({
-            type: "info",
-            message: msg,
-            time: Date.now()
-        });
-    });
+  pyProcess.stdout.on("data", (data) => {
+    const msg = data.toString();
+    console.log("[CLEAR_TABLE]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
 
-    pyProcess.stderr.on("data", data => {
-        const msg = data.toString();
-        console.error("[CLEAR_TABLE_ERROR]", msg);
+  pyProcess.stderr.on("data", (data) => {
+    const msg = data.toString();
+    console.error("[CLEAR_TABLE_ERROR]", msg);
 
-        modelLogs.push({
-            type: "error",
-            message: msg,
-            time: Date.now()
-        });
-    });
+    const isNoise = msg.includes("MallocStackLogging:") || msg.includes("objc[") || msg.includes("libobjc");
+    if (!isNoise) pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
 
-    pyProcess.on("close", code => {
-        modelLogs.push({
-            type: "system",
-            message: `Clear Table finished (code ${code})`,
-            time: Date.now()
-        });
+  pyProcess.on("error", (err) => {
+    console.error("❌ child_process error:", err);
+    pushModelLog(`[${modeTag}] PROCESS ERROR: ${err.message}`, "error");
+  });
 
-        activePyProcess = null;
-    });
+  pyProcess.on("close", (code) => {
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+    if (activePyProcess === pyProcess) activePyProcess = null;
+  });
 
-    res.json({ status: "started" });
+  return res.json({ success: true, status: "started", script: scriptRel });
 });
-////
+
+//
+
+// =========================================================
+// ENDPOINT: POST /api/clear-table/ask
+// PURPOSE:
+// - Runs clear script without args (asks for confirm/cancel output)
+// - Soccer: model_exe/clear_future_table.py
+// - BB:     model_exe/basketball/bb_clear_future_table.py
+// - Live UI logs via pushModelLog
+// - STOP compatible (detached + unref + activePyProcess)
+// =========================================================
 app.post("/api/clear-table/ask", (req, res) => {
-    // const py = spawn("python3", [
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/clear_future_table.py"
-    // ]);
+  const scriptRel = resolvePyPath(req, "clear_future_table.py");
+  const scriptPath = path.join(__dirname, scriptRel);
 
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "clear_future_table.py"
-            );
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
 
-    const py = spawn("python3", [scriptPath]);
+  pushModelLog(`[${modeTag}] ASK clear-table | ${scriptRel}`, "system");
 
+  let py;
+  try {
+    py = spawn("python3", ["-u", scriptPath], {
+      cwd: __dirname,
+      env: process.env,
+      detached: true
+    });
+
+    py.unref();
     activePyProcess = py;
 
-    py.stdout.on("data", d => pushLog("info", d));
-    py.stderr.on("data", d => pushLog("error", d));
+  } catch (e) {
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-    res.json({ status: "asking" });
+  py.stdout.on("data", (d) => {
+    const msg = d.toString();
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
+
+  py.stderr.on("data", (d) => {
+    const msg = d.toString();
+    const isNoise = msg.includes("MallocStackLogging:") || msg.includes("objc[") || msg.includes("libobjc");
+    if (!isNoise) pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
+
+  py.on("error", (err) => {
+    pushModelLog(`[${modeTag}] PROCESS ERROR: ${err.message}`, "error");
+  });
+
+  py.on("close", (code) => {
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+    if (activePyProcess === py) activePyProcess = null;
+  });
+
+  return res.json({ success: true, status: "asking", script: scriptRel });
 });
 
 //
+
+// =========================================================
+// ENDPOINT: POST /api/clear-table/confirm
+// PURPOSE:
+// - Runs clear script with confirm/cancel input
+// - Soccer: model_exe/clear_future_table.py
+// - BB:     model_exe/basketball/bb_clear_future_table.py
+// - Live UI logs via pushModelLog
+// - STOP compatible (detached + unref + activePyProcess)
+// =========================================================
 app.post("/api/clear-table/confirm", (req, res) => {
-    const { input } = req.body;
+  const { input } = req.body;
 
-    // const py = spawn("python3", [
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/clear_future_table.py",
-    //     input
-    // ]);
-// new starts
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "clear_future_table.py"
-        );
+  if (!input || !String(input).trim()) {
+    return res.status(400).json({ success: false, error: "Input required (confirm/cancel)" });
+  }
 
-    const pythonCmd = process.platform === "win32"
-        ? "python"
-        : "python3";
+  const scriptRel = resolvePyPath(req, "clear_future_table.py");
+  const scriptPath = path.join(__dirname, scriptRel);
 
-    const py = spawn(pythonCmd, [
-        scriptPath,
-        input
-        ]);
-// new end
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
+  const cleanInput = String(input).trim();
 
+  pushModelLog(`[${modeTag}] CONFIRM clear-table | input=${cleanInput}`, "system");
+
+  let py;
+  try {
+    py = spawn("python3", ["-u", scriptPath, cleanInput], {
+      cwd: __dirname,
+      env: process.env,
+      detached: true
+    });
+
+    py.unref();
     activePyProcess = py;
 
-    py.stdout.on("data", d => pushLog("info", d));
-    py.stderr.on("data", d => pushLog("error", d));
+  } catch (e) {
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-    res.json({ status: "started" });
+  py.stdout.on("data", (d) => {
+    pushModelLog(`[${modeTag}] ${d.toString()}`, "log");
+  });
+
+  py.stderr.on("data", (d) => {
+    const msg = d.toString();
+    const isNoise = msg.includes("MallocStackLogging:") || msg.includes("objc[") || msg.includes("libobjc");
+    if (!isNoise) pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
+
+  py.on("error", (err) => {
+    pushModelLog(`[${modeTag}] PROCESS ERROR: ${err.message}`, "error");
+  });
+
+  py.on("close", (code) => {
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+    if (activePyProcess === py) activePyProcess = null;
+  });
+
+  return res.json({ success: true, status: "started", script: scriptRel });
 });
-//
+
+
+
 // =====================================
 // Model Fit Button 
 // =====================================
+// =========================================================
+// ENDPOINT: POST /api/model-fit
+// PURPOSE:
+// - Soccer: model_exe/model_train_fit.py
+// - BB:     model_exe/basketball/bb_model_train_fit.py
+// - Live UI logs via pushModelLog
+// =========================================================
 app.post("/api/model-fit", (req, res) => {
-    console.log("🟢 MODEL FIT ENDPOINT HIT");
+  console.log("🟢 MODEL FIT ENDPOINT HIT");
 
-    // const scriptPath =
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/model_train_fit.py";
+  const scriptRel = resolvePyPath(req, "model_train_fit.py");
+  const scriptPath = path.join(__dirname, scriptRel);
 
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "model_train_fit.py"
-            );
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
 
-    console.log("🚀 Spawning Model FIT:", scriptPath);
+  console.log("🚀 Spawning Model FIT:", scriptPath);
+  pushModelLog(`[${modeTag}] START model-fit | ${scriptRel}`, "system");
 
-    const pyProcess = spawn("python3", [scriptPath]);
-
-    // 🔑 STOP için global referans
-    activePyProcess = pyProcess;
-
-    pyProcess.stdout.on("data", data => {
-        const msg = data.toString();
-        console.log("[MODEL_FIT]", msg);
-
-        modelLogs.push({
-            type: "info",
-            message: msg,
-            time: Date.now()
-        });
+  let pyProcess;
+  try {
+    pyProcess = spawn("python3", ["-u", scriptPath], {
+      cwd: __dirname,
+      env: process.env,
+      detached: true
     });
+    pyProcess.unref();
+  } catch (e) {
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-    pyProcess.stderr.on("data", data => {
-        const msg = data.toString();
-        console.error("[MODEL_FIT_ERROR]", msg);
+  activePyProcess = pyProcess;
 
-        modelLogs.push({
-            type: "error",
-            message: msg,
-            time: Date.now()
-        });
-    });
+  pyProcess.stdout.on("data", (data) => {
+    const msg = data.toString();
+    console.log("[MODEL_FIT]", msg);
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
 
-    pyProcess.on("close", code => {
-        modelLogs.push({
-            type: "system",
-            message: `Model FIT finished (code ${code})`,
-            time: Date.now()
-        });
+  pyProcess.stderr.on("data", (data) => {
+    const msg = data.toString();
+    console.error("[MODEL_FIT_ERROR]", msg);
 
-        activePyProcess = null;
-    });
+    const isNoise = msg.includes("MallocStackLogging:") || msg.includes("objc[") || msg.includes("libobjc");
+    if (!isNoise) pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
 
-    res.json({ status: "started" });
+  pyProcess.on("close", (code) => {
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+    activePyProcess = null;
+  });
+
+  return res.json({ success: true, status: "started", script: scriptRel });
 });
 //
+
 
 
 // =====================================
 // Button current game shows
 // =====================================
+// =========================================================
+// ENDPOINT: POST /api/show-current
+// PURPOSE:
+// - Soccer: model_exe/current_period_games.py
+// - BB:     model_exe/basketball/bb_current_period_games.py
+// - Supports table streaming with __TABLE_START__/__TABLE_END__
+// - Live UI logs via pushModelLog (table -> type "table")
+// =========================================================
 app.post("/api/show-current", (req, res) => {
-    console.log("🟢 SHOW CURRENT ENDPOINT HIT");
+  console.log("🟢 SHOW CURRENT ENDPOINT HIT");
 
-    // const scriptPath =
-    //     "/Users/irfanakgul/Desktop/FPM_AI_WEB_ALL/model_exe/current_period_games.py";
+  const scriptRel = resolvePyPath(req, "current_period_games.py");
+  const scriptPath = path.join(__dirname, scriptRel);
 
-    const scriptPath = path.join(
-        __dirname,
-        "model_exe",
-        "current_period_games.py"
-            );
+  const modeTag = String(req.headers["x-fpm-model"] || "").toLowerCase() === "bb" ? "BB" : "FB";
 
-    const pyProcess = spawn("python3", [scriptPath]);
+  pushModelLog(`[${modeTag}] START show-current | ${scriptRel}`, "system");
 
-    activePyProcess = pyProcess;
-
-    let tableBuffer = "";
-    let isTable = false;
-
-    pyProcess.stdout.on("data", data => {
-        const msg = data.toString();
-
-        // 📊 TABLO BAŞLANGICI
-        if (msg.includes("__TABLE_START__")) {
-            isTable = true;
-            tableBuffer = "";
-            return;
-        }
-
-        // 📊 TABLO BİTİŞİ
-        if (msg.includes("__TABLE_END__")) {
-            modelLogs.push({
-                type: "table",
-                message: tableBuffer,
-                time: Date.now()
-            });
-            isTable = false;
-            return;
-        }
-
-        // 📊 TABLO İÇERİĞİ
-        if (isTable) {
-            tableBuffer += msg;
-            return;
-        }
-
-        // 🧾 NORMAL LOG
-        modelLogs.push({
-            type: "info",
-            message: msg,
-            time: Date.now()
-        });
+  let pyProcess;
+  try {
+    pyProcess = spawn("python3", ["-u", scriptPath], {
+      cwd: __dirname,
+      env: process.env,
+      detached: true
     });
+    pyProcess.unref();
+  } catch (e) {
+    pushModelLog(`[${modeTag}] SPAWN ERROR: ${e.message}`, "error");
+    return res.status(500).json({ success: false, error: e.message });
+  }
 
-    pyProcess.stderr.on("data", data => {
-        modelLogs.push({
-            type: "error",
-            message: data.toString(),
-            time: Date.now()
-        });
-    });
+  activePyProcess = pyProcess;
 
-    pyProcess.on("close", code => {
-        modelLogs.push({
-            type: "system",
-            message: "__PROCESS_DONE__",
-            time: Date.now()
-        });
-        activePyProcess = null;
-    });
+  let tableBuffer = "";
+  let isTable = false;
 
-    res.json({ status: "started" });
+  pyProcess.stdout.on("data", (data) => {
+    const msg = data.toString();
+
+    // table start
+    if (msg.includes("__TABLE_START__")) {
+      isTable = true;
+      tableBuffer = "";
+      return;
+    }
+
+    // table end
+    if (msg.includes("__TABLE_END__")) {
+      pushModelLog(`[${modeTag}] ${tableBuffer}`, "table");
+      isTable = false;
+      return;
+    }
+
+    // table content
+    if (isTable) {
+      tableBuffer += msg;
+      return;
+    }
+
+    // normal logs
+    pushModelLog(`[${modeTag}] ${msg}`, "log");
+  });
+
+  pyProcess.stderr.on("data", (data) => {
+    const msg = data.toString();
+    const isNoise = msg.includes("MallocStackLogging:") || msg.includes("objc[") || msg.includes("libobjc");
+    if (!isNoise) pushModelLog(`[${modeTag}] ${msg}`, "error");
+  });
+
+  pyProcess.on("close", (code) => {
+    pushModelLog(`[${modeTag}] __PROCESS_DONE__ exit=${code}`, "system");
+    activePyProcess = null;
+  });
+
+  return res.json({ success: true, status: "started", script: scriptRel });
 });
+
 //
 
 // =====================================
@@ -2993,7 +3290,12 @@ app.post("/api/backup-from-cloud", (req, res) => {
         "backup_from_cloud_to_local.py"
             );
 
-    const pyProcess = spawn("python3", ["-u", scriptPath]);
+    const pyProcess = spawn("python3", ["-u", scriptPath], {
+          cwd: __dirname,
+          env: process.env,
+          detached: true
+        });
+        pyProcess.unref();
 
     pyProcess.stdout.on("data", data => {
         const msg = data.toString();

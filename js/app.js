@@ -171,9 +171,9 @@ STABILITY FIXES (ADDED):
 
       // Pages (demo)
       home_title: "Hoş geldin",
-      home_desc: "Bu Ana Sayfa. Daha sonra mevcut içeriğini mantığı bozmadan buraya taşıyacağız.",
+      home_desc: "Bu Ana Sayfa. Icerikler daha sonra yuklenecektir.",
       about_title: "Hakkında",
-      about_desc: "Bu Hakkında sayfası. Mevcut işlevlerini adım adım aktaracağız.",
+      about_desc: "Bu Hakkinda sayfasi. Icerikler daha sonra yuklenecektir",
 
       // Header labels
       username: "Kullanıcı",
